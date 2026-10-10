@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { ArrowLeft, ArrowRight, ArrowUpRight, Bookmark, Camera, Check, ChevronDown, Clock3, Copy, Download, Facebook, Flame, Headphones, Heart, ImagePlus, Instagram, LayoutDashboard, LogOut, Menu, MessageCircle, Mic, MicOff, Monitor, Pause, Play, Plus, QrCode, Search, Send, ShieldCheck, SlidersHorizontal, Sparkles, Square, Video, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowUpRight, Bookmark, Camera, Check, ChevronDown, Clock3, Copy, Download, Facebook, Flame, Headphones, Heart, Home, ImagePlus, Images, Instagram, LayoutDashboard, LogOut, Menu, MessageCircle, Mic, MicOff, Monitor, Pause, Play, Plus, QrCode, Search, Send, ShieldCheck, SlidersHorizontal, Sparkles, Square, Video, X } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { appConfig } from '../config/app.config'
 import { QRCodeCanvas } from 'qrcode.react'
@@ -10,6 +10,7 @@ import { getPromptBloggerDraftMetadata, parseBloggerEditUrl, promptBloggerDraft,
 import { publishPdfProduct } from '../data/digital-products'
 import { createMenuItemId, defaultSideMenus, type SideMenuSection } from '../data/side-menus'
 import type { Prompt } from '../domain/prompt'
+import CollageStudio from '../collage/CollageStudio'
 
 const promptRepository = createPromptRepository({
   contentProvider: appConfig.contentProvider,
@@ -34,22 +35,24 @@ function Header({ onMenu, adminLoggedIn = false }: { onMenu: () => void; adminLo
   return <header className="topbar">
     <button className="menu-toggle" onClick={onMenu} aria-label="Open navigation"><Menu size={21} /></button>
     <Link to="/" className="brand"><span className="brand-symbol"><Sparkles size={18} /></span><span>{appConfig.appName || 'Promptseen'}<i>.</i></span></Link>
-    <nav className="top-links" aria-label="Main navigation"><a href="#trending">Trending</a><a href="#explore">Explore</a><Link to="/store">Sell online</Link></nav>
+    <nav className="top-links" aria-label="Main navigation"><Link to="/">Home</Link><a href="#trending">Trending</a><a href="#explore">Explore</a><Link to="/store">Sell online</Link></nav>
     <form className="top-search" onSubmit={submit}><Search size={17} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search prompts, styles, ideas" aria-label="Search prompts" /><kbd>⌘ K</kbd></form>
     <Link className="creator-link" to={signedIn ? '/admin' : '/login'}>{signedIn ? 'Dashboard' : 'Log in'} <ArrowUpRight size={15} /></Link>
   </header>
 }
 
-function Sidebar({ open, active, onSelect, onClose, menuSections, recorderOpen, qrOpen, onOpenRecorder, onOpenQr }: { open: boolean; active: string; onSelect: (category: string) => void; onClose: () => void; menuSections: SideMenuSection[]; recorderOpen: boolean; qrOpen: boolean; onOpenRecorder: () => void; onOpenQr: () => void }) {
+function Sidebar({ open, active, onSelect, onHome, onClose, menuSections, recorderOpen, qrOpen, onOpenRecorder, onOpenQr }: { open: boolean; active: string; onSelect: (category: string) => void; onHome: () => void; onClose: () => void; menuSections: SideMenuSection[]; recorderOpen: boolean; qrOpen: boolean; onOpenRecorder: () => void; onOpenQr: () => void }) {
   return <>
     {open && <button className="sidebar-scrim" aria-label="Close navigation" onClick={onClose} />}
     <aside className={`sidebar ${open ? 'sidebar-open' : ''}`}>
       <div className="sidebar-mobile-head"><span>Browse</span><button onClick={onClose} aria-label="Close navigation"><X size={19} /></button></div>
       <div className="side-section"><p className="side-label">YOUR SPACE</p>
+        <Link className="side-item" to="/" onClick={onHome}><Home size={17} />Home</Link>
         <button className={`side-item ${active === 'All' && !recorderOpen && !qrOpen ? 'selected' : ''}`} onClick={() => onSelect('All')}><Headphones size={17} />Discover</button>
         <button className={`side-item ${recorderOpen ? 'selected' : ''}`} onClick={onOpenRecorder}><Video size={17} />Screen Recorder</button>
         <button className={`side-item ${qrOpen ? 'selected' : ''}`} onClick={onOpenQr}><QrCode size={17} />QR Code Generator</button>
         <button className={`side-item ${active === 'Trending' ? 'selected' : ''}`} onClick={() => onSelect('Trending')}><Flame size={17} />Trending prompts<span className="side-live-dot" /></button>
+        <Link className="side-item" to="/collage" onClick={onClose}><Images size={17} />Photo and Video Editor</Link>
         <button className={`side-item ${active === 'Latest' ? 'selected' : ''}`} onClick={() => onSelect('Latest')}><Clock3 size={17} />Latest prompts</button>
         <button className="side-item" onClick={() => onSelect('Saved')}><Bookmark size={17} />Saved collection</button>
       </div>
@@ -405,7 +408,7 @@ function HomePage({ prompts, blogStatus, canGenerate, onAddTrend, menuSections, 
   const toggleSave = (id: string) => setSavedIds((ids) => ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id])
   const addedTrendIds = useMemo(() => new Set(prompts.filter((prompt) => prompt.id.startsWith('social-')).map((prompt) => prompt.id.slice('social-'.length))), [prompts])
   const title = active === 'All' ? 'All prompts' : active === 'Saved' ? 'Your saved prompts' : active === 'Trending' ? 'Trending prompts' : active === 'Latest' ? 'Latest prompts' : `${active} prompts`
-  return <div className="app-layout"><Header onMenu={() => setSidebarOpen(true)} adminLoggedIn={adminLoggedIn} /><div className="page-body"><Sidebar open={sidebarOpen} active={active} recorderOpen={recorderOpen} qrOpen={qrOpen} onOpenRecorder={() => { setRecorderOpen(true); setQrOpen(false); setSidebarOpen(false); window.setTimeout(() => document.getElementById('home-generator-area')?.scrollIntoView({ behavior: 'smooth' }), 0) }} onOpenQr={() => { setQrOpen(true); setRecorderOpen(false); setSidebarOpen(false); window.setTimeout(() => document.getElementById('home-generator-area')?.scrollIntoView({ behavior: 'smooth' }), 0) }} onSelect={(category) => { setActive(category); setRecorderOpen(false); setQrOpen(false); setSidebarOpen(false); document.getElementById('explore')?.scrollIntoView({ behavior: 'smooth' }) }} onClose={() => setSidebarOpen(false)} menuSections={menuSections} />
+  return <div className="app-layout"><Header onMenu={() => setSidebarOpen(true)} adminLoggedIn={adminLoggedIn} /><div className="page-body"><Sidebar open={sidebarOpen} active={active} onHome={() => { setActive('All'); setQuery(''); setRecorderOpen(false); setQrOpen(false); setSidebarOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }} recorderOpen={recorderOpen} qrOpen={qrOpen} onOpenRecorder={() => { setRecorderOpen(true); setQrOpen(false); setSidebarOpen(false); window.setTimeout(() => document.getElementById('home-generator-area')?.scrollIntoView({ behavior: 'smooth' }), 0) }} onOpenQr={() => { setQrOpen(true); setRecorderOpen(false); setSidebarOpen(false); window.setTimeout(() => document.getElementById('home-generator-area')?.scrollIntoView({ behavior: 'smooth' }), 0) }} onSelect={(category) => { setActive(category); setRecorderOpen(false); setQrOpen(false); setSidebarOpen(false); document.getElementById('explore')?.scrollIntoView({ behavior: 'smooth' }) }} onClose={() => setSidebarOpen(false)} menuSections={menuSections} />
     <main className={`main-content ${utilityOpen ? 'recorder-main-wide' : ''}`}><div className={`content-inner ${utilityOpen ? 'recorder-content-wide' : ''}`}><div id="home-generator-area">{recorderOpen ? <ScreenRecorder /> : qrOpen ? <QRCodeGenerator /> : <HomePhotoPromptGenerator canGenerate={canGenerate} />}</div><FeatureHero prompts={prompts} /><SocialTrendSection addedIds={addedTrendIds} onAdd={onAddTrend} />
       <section className="browse-section" id="explore"><div className="section-topline"><div><span className="section-kicker">THE PROMPT LIBRARY</span><h2>Find your next <em>favorite.</em></h2></div><span className="collection-count">{prompts.length} IDEAS <span>↗</span></span></div>
         
@@ -465,6 +468,10 @@ function CheckoutPage() {
       .finally(() => setLoading(false))
   }, [productId])
   return <div className="detail-shell store-shell"><Header onMenu={() => {}} /><main className="checkout-page"><Link className="store-back-link" to="/store"><ArrowLeft size={14} /> Back to products</Link><section className="checkout-card"><div className="checkout-icon"><ShieldCheck size={24} /></div><span className="section-kicker">PAYMENT</span><h1>{loading ? 'Loading checkout…' : product?.title || 'Product unavailable'}</h1>{product && <><p className="checkout-description">{product.description}</p><div className="checkout-summary"><span>{product.type === 'pdf' ? 'PDF download' : 'Software download'}</span><strong>{priceLabel(product)}</strong></div><div className="payment-qr-placeholder"><span className="qr-placeholder-art" aria-hidden="true">▦</span><strong>Payment scanner will be added here</strong><p>Payment verification is not connected yet. Downloads stay locked until a payment method and verification flow are configured.</p></div></>}{error && <p className="checkout-error" role="alert">{error}</p>}{!loading && !product && !error && <p className="checkout-error">This product is no longer available.</p>}</section></main></div>
+}
+
+function CollagePage() {
+  return <div className="detail-shell"><Header onMenu={() => {}} /><CollageStudio /></div>
 }
 
 function PromptPage({ prompts }: { prompts: Prompt[] }) {
@@ -893,7 +900,6 @@ export default function App() {
   }
   useEffect(() => { document.title = `${appConfig.appName || 'Promptseen'} — AI prompt library` }, [])
   const adminAllowed = bloggerConnected || adminAuthenticated
-  return <Routes><Route path="/" element={<HomePage prompts={prompts} blogStatus={blogStatus} canGenerate={true} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /><Route path="/store" element={<StorePage />} /><Route path="/checkout/:productId" element={<CheckoutPage />} /><Route path="/prompt/:slug" element={<PromptPage prompts={prompts} />} /><Route path="/login" element={<LoginPage onConnected={() => setBloggerConnected(true)} onAdminLogin={() => { setAdminAuthenticated(true); setAdminAuthReady(true) }} />} /><Route path="/admin/upload-pdf" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="/admin/*" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="*" element={<HomePage prompts={prompts} blogStatus={blogStatus} canGenerate={bloggerConnected} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /></Routes>
+  return <Routes><Route path="/" element={<HomePage prompts={prompts} blogStatus={blogStatus} canGenerate={true} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /><Route path="/store" element={<StorePage />} /><Route path="/collage" element={<CollagePage />} /><Route path="/checkout/:productId" element={<CheckoutPage />} /><Route path="/prompt/:slug" element={<PromptPage prompts={prompts} />} /><Route path="/login" element={<LoginPage onConnected={() => setBloggerConnected(true)} onAdminLogin={() => { setAdminAuthenticated(true); setAdminAuthReady(true) }} />} /><Route path="/admin/upload-pdf" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="/admin/*" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="*" element={<HomePage prompts={prompts} blogStatus={blogStatus} canGenerate={bloggerConnected} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /></Routes>
 }
-
 
