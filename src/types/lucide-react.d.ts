@@ -17,7 +17,9 @@ declare module 'lucide-react' {
   export const Flame: LucideIcon
   export const Headphones: LucideIcon
   export const Heart: LucideIcon
+  export const Home: LucideIcon
   export const ImagePlus: LucideIcon
+  export const Images: LucideIcon
   export const Instagram: LucideIcon
   export const LayoutDashboard: LucideIcon
   export const LogOut: LucideIcon
