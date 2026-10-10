@@ -31,6 +31,11 @@ export const appConfig = Object.freeze({
     apiKey: env.VITE_BLOGGER_API_KEY?.trim() || '',
   }),
   analytics: Object.freeze({ measurementId: env.VITE_GA_MEASUREMENT_ID?.trim() || '' }),
+  social: Object.freeze({
+    // Public OAuth client identifiers. The matching secrets stay on the server.
+    googleClientId: env.VITE_GOOGLE_CLIENT_ID?.trim() || env.VITE_BLOGGER_CLIENT_ID?.trim() || '',
+    facebookAppId: env.VITE_FACEBOOK_APP_ID?.trim() || '',
+  }),
   community: Object.freeze(communitySettings),
   promptSharing: Object.freeze({
     messaging: Object.freeze([

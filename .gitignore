@@ -7,3 +7,5 @@ dist
 *.local
 /data/ai-model-settings.json
 /data/ai-model-settings.json.*.tmp
+.local-db
+.local-db/

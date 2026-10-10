@@ -72,12 +72,40 @@ Deploy the frontend to Vercel and define browser-visible environment variables i
 - `npm run build` — production build
 - `npm run preview` — serve the production build locally
 
-## Paid digital products
+## Digital store, premium features and licenses
 
 The **Sell online** sidebar section has **Software** and **PDF** categories. Creator Studio includes **Upload PDF product**. It uploads PDFs up to 25 MB privately to the connected Google Drive account and publishes the product description, price, and checkout-page link as a Blogger post. Blogger REST API posts contain HTML and do not upload PDF binaries. The Drive API must be enabled in the Google Cloud project, and Google authorization requests the restricted `drive.file` scope for files created by this app.
 
-The checkout page is currently a locked QR scanner placeholder. Downloads remain locked until payment scanning and verification are integrated. Razorpay order creation and verification have been removed. Product listings are stored in PostgreSQL and served by `/api/store/products`. After upload, the API verifies the PDF using the Google access token and automatically inserts the product into the database. The schema is created automatically on first API use.
+Every product carries a feature list. A feature is either **free** (shown as included) or **premium** (shown as locked on the public store). A premium feature can also declare a **benefit key**, which is what actually switches a capability on for a paying customer. The screen recorder uses the built-in benefit key `watermark_free`: free users get their video composited through a canvas with a tiled watermark plus a "free version" badge, and an account that has redeemed a license containing `watermark_free` records clean.
 
-Set the server-only `DATABASE_URL` in `.env.local` and in Vercel project environment settings. Use a PostgreSQL connection string from your provider (Neon, Supabase, or another PostgreSQL host). For hosted databases, use the provider's TLS connection string. For local PostgreSQL without TLS, set `DATABASE_SSL=disable`. The application creates a `store_products` table when the API is first used. Do not expose `DATABASE_URL` through a `VITE_` variable.
+Admin Panel → **Digital store** (`/admin/products`) is the only place that manages this. It lists every product with its complete feature list and benefit keys, edits the premium flag and watermark text, and issues or revokes license codes. It is gated by the admin session cookie, and `/api/admin-store` rejects every request without it.
+
+Customers sign in at **My account** (`/account`), redeem a code such as `PS-A1B2-C3D4-E5F6`, and their unlocks are listed there. Payment is still handled manually: the checkout page explains the three steps (pay, receive a code, redeem it), and the store owner creates the license after the money arrives.
+
+### Social sign-in (Google and Facebook)
+
+The account page also offers **Continue with Google** and **Continue with Facebook**. Both are for customer accounts only — Creator Studio still signs in with the `ADMIN_USER_ID` / `ADMIN_PASSWORD` pair. The browser never asserts an identity: Google's Identity Services returns an ID token and Facebook's JS SDK returns an access token, and `/api/social-auth` verifies them on the server (`server/social.js`) before touching the database.
+
+Google is checked against Google's JWKS with real RS256 signature verification plus `iss`, `aud` and `exp`. Facebook tokens are checked through `debug_token` (valid, and issued to *this* app) and then `/me` with an `appsecret_proof` HMAC. A provider account ID is stored once per provider, so the same person can link both to one account.
+
+An email returned by Google is marked verified by Google, so signing in with Google links to an existing password account with the same email. Facebook exposes no verified flag, so a Facebook email never claims an existing account — it only ever matches its own `facebook_id`.
+
+| Variable | Where | Notes |
+| --- | --- | --- |
+| `VITE_GOOGLE_CLIENT_ID` | browser + server | OAuth client ID of type **Web application** with this site in Authorized JavaScript origins. Falls back to `VITE_BLOGGER_CLIENT_ID`, so Google sign-in works here without extra setup. No client secret is used. |
+| `VITE_FACEBOOK_APP_ID` | browser | Meta app ID. Button stays hidden until it is set. |
+| `FACEBOOK_APP_SECRET` | server only | Needed for `appsecret_proof` and `debug_token`. Never prefix with `VITE_`. Facebook Login must list this site as a valid OAuth redirect URI. |
+
+`GET /api/social-auth` reports which providers are configured, and a button only appears when both the browser ID and the server-side secret are present.
+
+### Data model
+
+The backend is reached through one repository interface in `server/db/index.js`. `DATA_STORE` selects the adapter and defaults to `postgres`; adding an engine means writing a factory that returns the same methods and registering it in that file — no API module contains SQL. Connection details come from `DATABASE_URL` and `DATABASE_SSL`.
+
+Tables are created automatically on first API use: `store_products` (catalog plus `premium`, `watermark_text`, `sort_order`), `product_features` (tier, benefit key, order; cascades from the product), `app_users` (email, scrypt password hash and salt, plus `google_sub`, `facebook_id` and `signup_source` for social accounts), `app_sessions` (hashed token, expiry), `licenses` (code, benefits, status `issued` / `redeemed` / `revoked`) and `entitlements` (user + product + benefit key). Revoking a license deletes the entitlements granted by it. Customer sessions use a signed, HttpOnly, SameSite=Lax cookie; passwords never leave the server.
+
+Set the server-only `DATABASE_URL` in `.env.local` and in Vercel project environment settings. Use a PostgreSQL connection string from your provider (Neon, Supabase, or another PostgreSQL host). For hosted databases, use the provider's TLS connection string. For local PostgreSQL without TLS, set `DATABASE_SSL=disable`. Do not expose `DATABASE_URL` through a `VITE_` variable.
+
+For local work without a hosted provider, `npm run db:local` starts a persistent Postgres-wire server in `.local-db` (dev dependency, never deployed) and pairs with `DATABASE_URL=postgres://postgres:postgres@localhost:5543/postgres` and `DATABASE_SSL=disable`. `npm run db:verify` runs the data-layer checks (schema, feature attach, license issue/redeem/revoke, session and cascade behaviour) against whichever store is configured.
 
 Drive files are uploaded without public sharing. Do not add a public download URL to a paid product while payment verification is disabled.

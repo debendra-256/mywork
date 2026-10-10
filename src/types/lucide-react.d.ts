@@ -6,12 +6,14 @@ declare module 'lucide-react' {
   export const ArrowRight: LucideIcon
   export const ArrowUpRight: LucideIcon
   export const Bookmark: LucideIcon
+  export const BadgeCheck: LucideIcon
   export const Camera: LucideIcon
   export const Check: LucideIcon
   export const ChevronDown: LucideIcon
   export const Clock3: LucideIcon
   export const Command: LucideIcon
   export const Copy: LucideIcon
+  export const DatabaseBackup: LucideIcon
   export const Download: LucideIcon
   export const Facebook: LucideIcon
   export const Flame: LucideIcon
@@ -21,7 +23,10 @@ declare module 'lucide-react' {
   export const ImagePlus: LucideIcon
   export const Images: LucideIcon
   export const Instagram: LucideIcon
+  export const KeyRound: LucideIcon
   export const LayoutDashboard: LucideIcon
+  export const Lock: LucideIcon
+  export const LockOpen: LucideIcon
   export const LogOut: LucideIcon
   export const Menu: LucideIcon
   export const MessageCircle: LucideIcon
@@ -38,6 +43,8 @@ declare module 'lucide-react' {
   export const SlidersHorizontal: LucideIcon
   export const Square: LucideIcon
   export const Sparkles: LucideIcon
+  export const Store: LucideIcon
+  export const Trash2: LucideIcon
   export const Video: LucideIcon
   export const X: LucideIcon
 }

@@ -6,6 +6,11 @@ import { handleStoreRequest } from './api/store.js'
 import generatePromptHandler from './api/generate-prompt.js'
 import aiModelSettingsHandler from './api/ai-model-settings.js'
 import adminAuthHandler from './api/admin-auth.js'
+import adminStoreHandler from './api/admin-store.js'
+import accountHandler from './api/account.js'
+import socialAuthHandler from './api/social-auth.js'
+
+type ApiHandler = (request: any, response: any, env: Record<string, string>) => Promise<unknown>
 
 function localSocialTrendsApi() {
   let serverEnv: Record<string, string> = {}
@@ -15,6 +20,29 @@ function localSocialTrendsApi() {
       serverEnv = loadEnv(mode, '.', '')
     },
     configureServer(server: ViteDevServer) {
+      const jsonApi = (handler: ApiHandler) => async (request: any, response: any) => {
+        let body = ''
+        await new Promise<void>((resolve, reject) => {
+          request.on('data', (chunk: { toString(): string } | undefined) => { body += chunk?.toString() ?? '' })
+          request.on('end', () => resolve())
+          request.on('error', (reason: unknown) => reject(reason))
+        })
+        try { request.body = body ? JSON.parse(body) : undefined }
+        catch {
+          response.statusCode = 400
+          response.setHeader('Content-Type', 'application/json; charset=utf-8')
+          response.end(JSON.stringify({ error: 'Invalid JSON request body.' }))
+          return
+        }
+        const apiResponse = Object.assign(response, {
+          status(code: number) { response.statusCode = code; return this },
+          json(value: unknown) { response.setHeader('Content-Type', 'application/json; charset=utf-8'); response.end(JSON.stringify(value)); return this },
+        })
+        await handler(request, apiResponse, serverEnv)
+      }
+      server.middlewares.use('/api/admin-store', jsonApi(adminStoreHandler))
+      server.middlewares.use('/api/account', jsonApi(accountHandler))
+      server.middlewares.use('/api/social-auth', jsonApi(socialAuthHandler))
       server.middlewares.use('/api/admin-auth', async (request, response) => {
         let body = ''
         await new Promise<void>((resolve, reject) => {

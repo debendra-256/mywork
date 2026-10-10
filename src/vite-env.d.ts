@@ -12,6 +12,8 @@ interface ImportMetaEnv {
   readonly VITE_RANK_MATH_API_URL?: string
   readonly VITE_GA_MEASUREMENT_ID?: string
   readonly VITE_SIDE_MENUS_STORAGE_KEY?: string
+  readonly VITE_GOOGLE_CLIENT_ID?: string
+  readonly VITE_FACEBOOK_APP_ID?: string
 }
 
 interface ImportMeta {
@@ -25,6 +27,15 @@ interface GoogleTokenResponse {
   error_description?: string
 }
 
+interface GoogleCredentialResponse {
+  credential?: string
+}
+
+interface FacebookAuthResponse {
+  status?: string
+  authResponse?: { accessToken?: string }
+}
+
 interface Window {
   google?: {
     accounts: {
@@ -36,7 +47,18 @@ interface Window {
           error_callback?: (error: { type: string; message?: string }) => void
         }): { requestAccessToken(options?: { prompt?: string }): void }
       }
+      id: {
+        initialize(options: { client_id: string; callback: (response: GoogleCredentialResponse) => void; auto_select?: boolean; cancel_on_tap_outside?: boolean }): void
+        renderButton(element: HTMLElement, options?: { theme?: 'inherit' | 'black' | 'white'; size?: 'large' | 'medium' | 'small'; text?: 'signin_with' | 'signup_with' | 'continue_with'; shape?: 'rectangular' | 'pill' | 'circle'; width?: number }): void
+        prompt(notifications?: (notification: unknown) => void): void
+      }
     }
   }
+  FB?: {
+    init(options: { appId: string; cookie: boolean; xfbml: boolean; version: string }): void
+    login(callback: (response: FacebookAuthResponse) => void, options?: { scope: string }): void
+    getLoginStatus(callback: (response: FacebookAuthResponse) => void): void
+  }
+  fbAsyncInit?: () => void
 }
 

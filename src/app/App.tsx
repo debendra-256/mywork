@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { ArrowLeft, ArrowRight, ArrowUpRight, Bookmark, Camera, Check, ChevronDown, Clock3, Copy, Download, Facebook, Flame, Headphones, Heart, Home, ImagePlus, Images, Instagram, LayoutDashboard, LogOut, Menu, MessageCircle, Mic, MicOff, Monitor, Pause, Play, Plus, QrCode, Search, Send, ShieldCheck, SlidersHorizontal, Sparkles, Square, Video, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Camera, Check, ChevronDown, Clock3, Copy, DatabaseBackup, Download, Facebook, Flame, Headphones, Heart, Home, ImagePlus, Images, Instagram, KeyRound, LayoutDashboard, Lock, LockOpen, LogOut, Menu, MessageCircle, Mic, MicOff, Monitor, Pause, Play, Plus, QrCode, Search, Send, ShieldCheck, SlidersHorizontal, Sparkles, Square, Store, Trash2, Video, X } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { appConfig } from '../config/app.config'
 import { QRCodeCanvas } from 'qrcode.react'
@@ -8,6 +8,10 @@ import { createPromptRepository } from '../data/prompt-repository'
 import { clearBloggerSession, connectBlogger, getBloggerAccessToken, hasBloggerSession } from '../data/blogger-auth'
 import { getPromptBloggerDraftMetadata, parseBloggerEditUrl, promptBloggerDraft, publishPromptToBlogger } from '../data/blogger-publisher'
 import { publishPdfProduct } from '../data/digital-products'
+import { loadStoreSnapshot, storeAction } from '../data/store-admin'
+import { loadCustomerSession, redeemLicenseCode, signIn, signInWithProvider, signOut, signUp, useCustomer } from '../data/customer-auth'
+import { loadSocialProviders, mountGoogleSignInButton, requestFacebookToken, type SocialProviderFlags } from '../data/social-login'
+import { WATERMARK_BENEFIT, productPrice, type StoreFeature, type StoreProduct, type StoreSnapshot } from '../domain/store'
 import { createMenuItemId, defaultSideMenus, type SideMenuSection } from '../data/side-menus'
 import type { Prompt } from '../domain/prompt'
 import CollageStudio from '../collage/CollageStudio'
@@ -35,7 +39,7 @@ function Header({ onMenu, adminLoggedIn = false }: { onMenu: () => void; adminLo
   return <header className="topbar">
     <button className="menu-toggle" onClick={onMenu} aria-label="Open navigation"><Menu size={21} /></button>
     <Link to="/" className="brand"><span className="brand-symbol"><Sparkles size={18} /></span><span>{appConfig.appName || 'Promptseen'}<i>.</i></span></Link>
-    <nav className="top-links" aria-label="Main navigation"><Link to="/">Home</Link><a href="#trending">Trending</a><a href="#explore">Explore</a><Link to="/store">Sell online</Link></nav>
+    <nav className="top-links" aria-label="Main navigation"><Link to="/">Home</Link><a href="#trending">Trending</a><a href="#explore">Explore</a><Link to="/store">Sell online</Link><Link to="/account">My account</Link></nav>
     <form className="top-search" onSubmit={submit}><Search size={17} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search prompts, styles, ideas" aria-label="Search prompts" /><kbd>⌘ K</kbd></form>
     <Link className="creator-link" to={signedIn ? '/admin' : '/login'}>{signedIn ? 'Dashboard' : 'Log in'} <ArrowUpRight size={15} /></Link>
   </header>
@@ -112,6 +116,42 @@ interface SocialTrendResponse {
   items: SocialTrend[]
   configured: { x: boolean; instagram: boolean }
   errors: string[]
+}
+
+const scrollerTiles = { software: '/images/tile-software.png', pdf: '/images/tile-pdf.png', feature: '/images/tile-license.png' }
+
+interface ScrollerSlide {
+  key: string
+  image: string
+  value: string
+  label: string
+}
+
+function ProductScroller() {
+  const [products, setProducts] = useState<StoreProduct[]>([])
+  useEffect(() => {
+    const controller = new AbortController()
+    fetch('/api/store/products', { signal: controller.signal })
+      .then(async (response) => await response.json() as { products?: StoreProduct[] })
+      .then((data) => setProducts(data.products ?? []))
+      .catch(() => { /* the band simply does not render when the catalog is unreachable */ })
+    return () => controller.abort()
+  }, [])
+  const slides = useMemo<ScrollerSlide[]>(() => products.flatMap((product) => [
+    { key: product.id, image: product.imageUrl || scrollerTiles[product.type], value: product.title, label: `${product.type === 'software' ? 'Software' : 'PDF download'} · ${productPrice(product)}` },
+    ...product.features.map((feature) => ({ key: `${product.id}-${feature.id}`, image: scrollerTiles.feature, value: feature.title, label: feature.tier === 'premium' ? 'Premium unlock' : 'Free for everyone' })),
+  ]), [products])
+  if (!slides.length) return null
+  return <section className="product-scroller" aria-label="Products and software in our store">
+    <div className="product-scroller-track">
+      {[false, true].map((isClone) => <div className="product-scroller-set" key={isClone ? 'clone' : 'live'} aria-hidden={isClone || undefined}>
+        {slides.map((slide) => <div className="product-scroller-item" key={slide.key}>
+          <div className="product-scroller-tile"><i className="product-scroller-dash" /><img className="product-scroller-image" src={slide.image} alt="" width={168} height={168} loading="lazy" /></div>
+          <div className="product-scroller-copy"><strong>{slide.value}</strong><span>{slide.label}</span></div>
+        </div>)}
+      </div>)}
+    </div>
+  </section>
 }
 
 function SocialTrendSection({ addedIds, onAdd }: { addedIds: Set<string>; onAdd: (trend: SocialTrend) => boolean }) {
@@ -198,6 +238,33 @@ function HomePhotoPromptGenerator({ canGenerate }: { canGenerate: boolean }) {
   return <section className="home-photo-generator" aria-labelledby="home-photo-generator-title"><div className="home-photo-generator-heading"><span className="section-kicker">AI PROMPT GENERATOR</span><h2 id="home-photo-generator-title">Free AI Prompt Generator</h2></div>{canGenerate ? <div className="home-photo-generator-workspace"><div className="home-prompt-composer"><textarea aria-label="Describe an image to generate a prompt for" value={instruction} onChange={(event) => setInstruction(event.target.value)} placeholder="Generate a prompt for..." rows={5} /><div className="home-prompt-composer-footer"><label className="home-generator-mode"><select value={generatorMode} aria-label="Input mode" onChange={(event) => { const mode = event.target.value as 'text' | 'image'; setGeneratorMode(mode); setError('') }}><option value="text">Text</option><option value="image">Image</option></select><ChevronDown size={15} /></label><label className="home-image-attach"><ImagePlus size={15} />{photo ? photoName : 'Add image'}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { setGeneratorMode('image'); choosePhoto(event.currentTarget.files?.[0]) }} /></label><button className="home-photo-generate-button" type="button" onClick={() => void generate()} disabled={busy || (generatorMode === 'image' ? !photo : !instruction.trim())}>{busy ? 'Generating…' : 'Generate'} <ArrowRight size={16} /></button></div></div>{generatorMode === 'image' && photo && <div className="home-photo-selected"><img src={photo} alt="Selected photo preview" /><span>{photoName}</span></div>}{prompt && <div className="home-generated-prompt"><label htmlFor="generated-home-prompt">Generated prompt</label><textarea id="generated-home-prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={7} /><button type="button" onClick={() => void copyPrompt()}><Copy size={14} /> Copy prompt</button></div>}{error && <p className="editor-error" role="alert">{error}</p>}</div> : <div className="home-photo-generator-login"><p>Sign in with your Blogger account to use the prompt generator.</p><Link to="/login" className="home-photo-generate-button">Sign in to generate <ArrowRight size={15} /></Link></div>}</section>
 }
 
+function videoReady(video: HTMLVideoElement): Promise<void> {
+  if (video.videoWidth) return Promise.resolve()
+  return new Promise<void>((resolve) => { video.onloadedmetadata = () => resolve() })
+}
+
+function paintWatermark(context: CanvasRenderingContext2D, canvas: HTMLCanvasElement, text: string) {
+  const bar = Math.max(30, Math.round(canvas.height / 16))
+  const pad = Math.max(12, Math.round(canvas.height / 34))
+  const mark = (label: string, y: number) => {
+    context.save()
+    context.font = `700 ${Math.max(14, Math.round(canvas.height / 24))}px system-ui, -apple-system, Segoe UI, sans-serif`
+    context.textBaseline = 'middle'
+    const labelWidth = context.measureText(label).width
+    context.globalAlpha = 0.4
+    context.fillStyle = '#0b0f0d'
+    context.beginPath()
+    context.roundRect((canvas.width - labelWidth - bar * 1.5) / 2, y, labelWidth + bar * 1.5, bar, bar * 0.45)
+    context.fill()
+    context.globalAlpha = 0.92
+    context.fillStyle = '#ffffff'
+    context.fillText(label, (canvas.width - labelWidth) / 2, y + bar / 2)
+    context.restore()
+  }
+  mark(text, pad)
+  mark(`${text} · free version`, canvas.height - pad - bar)
+}
+
 function ScreenRecorder() {
   const [title, setTitle] = useState('Screen recording')
   const [audioEnabled, setAudioEnabled] = useState(true)
@@ -210,11 +277,26 @@ function ScreenRecorder() {
   const [seconds, setSeconds] = useState(0)
   const [error, setError] = useState('')
   const [previewStream, setPreviewStream] = useState<MediaStream | null>(null)
+  const [watermarkText, setWatermarkText] = useState(appConfig.appName || 'Promptseen')
+  const customer = useCustomer()
+  const watermarkFree = customer.benefits.includes(WATERMARK_BENEFIT)
   const recorderRef = useRef<MediaRecorder | null>(null)
   const tracksRef = useRef<MediaStream[]>([])
   const chunksRef = useRef<Blob[]>([])
   const videoRef = useRef<HTMLVideoElement>(null)
   const timerRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    fetch('/api/store/products', { signal: controller.signal })
+      .then(async (response) => await response.json() as { products?: StoreProduct[] })
+      .then((data) => {
+        const owner = (data.products ?? []).find((product) => product.features.some((feature) => feature.benefitKey === WATERMARK_BENEFIT))
+        if (owner?.watermarkText) setWatermarkText(owner.watermarkText)
+      })
+      .catch(() => { /* the shipped product name is a fine fallback watermark */ })
+    return () => controller.abort()
+  }, [])
 
   useEffect(() => {
     if (videoRef.current && previewStream) {
@@ -243,7 +325,9 @@ function ScreenRecorder() {
     let camera: MediaStream | null = null
     let mic: MediaStream | null = null
     let canvasStream: MediaStream | null = null
-    let drawFrame = 0
+    let rafFrame = 0
+    let lastPaint = 0
+    let haltCompositor = () => {}
     try {
       screen = cameraOnly
         ? await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 3840 }, height: { ideal: 2160 }, frameRate: { ideal: 60, max: 60 } }, audio: audioEnabled ? { echoCancellation: true, noiseSuppression: true, autoGainControl: true } : false })
@@ -254,26 +338,41 @@ function ScreenRecorder() {
         catch { setError('Microphone access was unavailable. Recording will continue with shared-tab audio, if selected.') }
       }
       let videoTracks = screen.getVideoTracks()
-      if (camera) {
+      if (camera || !watermarkFree) {
         const displayVideo = document.createElement('video')
         const cameraVideo = document.createElement('video')
         displayVideo.muted = true; cameraVideo.muted = true
-        displayVideo.srcObject = screen; cameraVideo.srcObject = camera
-        await Promise.all([displayVideo.play(), cameraVideo.play()])
-        await Promise.all([displayVideo.videoWidth ? Promise.resolve() : new Promise<void>((resolve) => { displayVideo.onloadedmetadata = () => resolve() }), cameraVideo.videoWidth ? Promise.resolve() : new Promise<void>((resolve) => { cameraVideo.onloadedmetadata = () => resolve() })])
+        displayVideo.srcObject = screen
+        if (camera) cameraVideo.srcObject = camera
+        await Promise.all([displayVideo.play(), camera ? cameraVideo.play() : Promise.resolve()])
+        await Promise.all([videoReady(displayVideo), ...(camera ? [videoReady(cameraVideo)] : [])])
         const canvas = document.createElement('canvas')
         canvas.width = displayVideo.videoWidth || 1280; canvas.height = displayVideo.videoHeight || 720
         const context = canvas.getContext('2d')
-        if (!context || !canvas.captureStream) throw new Error('This browser cannot create a screen and camera recording.')
-        const draw = () => {
-          context.drawImage(displayVideo, 0, 0, canvas.width, canvas.height)
-          const diameter = Math.min(canvas.width, canvas.height) * 0.22
-          const x = canvas.width - diameter - 28; const y = canvas.height - diameter - 28
-          context.save(); context.beginPath(); context.arc(x + diameter / 2, y + diameter / 2, diameter / 2, 0, Math.PI * 2); context.clip()
-          context.drawImage(cameraVideo, x, y, diameter, diameter); context.restore()
-          drawFrame = requestAnimationFrame(draw)
+        if (!context || !canvas.captureStream) throw new Error('This browser cannot composite the recording. Try another browser.')
+        const paint = () => {
+          const now = performance.now()
+          if (now - lastPaint < 16) return
+          lastPaint = now
+          try {
+            if (!displayVideo.videoWidth) return
+            context.drawImage(displayVideo, 0, 0, canvas.width, canvas.height)
+            if (camera && cameraVideo.videoWidth) {
+              const diameter = Math.min(canvas.width, canvas.height) * 0.22
+              const x = canvas.width - diameter - 28; const y = canvas.height - diameter - 28
+              context.save(); context.beginPath(); context.arc(x + diameter / 2, y + diameter / 2, diameter / 2, 0, Math.PI * 2); context.clip()
+              context.drawImage(cameraVideo, x, y, diameter, diameter)
+            }
+            if (!watermarkFree) paintWatermark(context, canvas, watermarkText)
+          } catch { /* an interrupted or resized capture surface should cost a frame, not the whole recording */ }
+          finally { context.restore() }
         }
-        draw()
+        // rAF stops as soon as this tab stops painting (another tab, or the recorded window on top of
+        // the browser), so a timer keeps compositing; paint() itself caps the rate at 60 fps.
+        const loop = () => { paint(); rafFrame = requestAnimationFrame(loop) }
+        loop()
+        const watchdog = window.setInterval(paint, 100)
+        haltCompositor = () => { cancelAnimationFrame(rafFrame); window.clearInterval(watchdog) }
         canvasStream = canvas.captureStream(60)
         videoTracks = canvasStream.getVideoTracks()
       }
@@ -288,7 +387,12 @@ function ScreenRecorder() {
       }
       setCountdown(null)
       const mimeType = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'].find((type) => MediaRecorder.isTypeSupported(type))
-      const recorder = new MediaRecorder(composed, { ...(mimeType ? { mimeType } : {}), videoBitsPerSecond: 50000000, audioBitsPerSecond: 192000 })
+      const surface = screen.getVideoTracks()[0]?.getSettings()
+      const pixels = (surface?.width ?? 1920) * (surface?.height ?? 1080)
+      // A flat 50 Mbps starves the encoder on a laptop-sized surface and the take stalls after a few
+      // seconds, so scale the target with the captured resolution and keep 4K at the old ceiling.
+      const videoBitsPerSecond = Math.min(50000000, Math.max(4000000, Math.round(pixels * 60 * 0.06)))
+      const recorder = new MediaRecorder(composed, { ...(mimeType ? { mimeType } : {}), videoBitsPerSecond, audioBitsPerSecond: 192000 })
       recorder.ondataavailable = (event) => { if (event.data.size) chunksRef.current.push(event.data) }
       recorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'video/webm' })
@@ -299,7 +403,7 @@ function ScreenRecorder() {
         anchor.click()
         window.setTimeout(() => URL.revokeObjectURL(url), 1000)
         streams.forEach((stream) => stream.getTracks().forEach((track) => track.stop()))
-        cancelAnimationFrame(drawFrame)
+        haltCompositor()
         setPreviewStream(null); setRecording(false); setPaused(false); setStarting(false); setCountdown(null)
       }
       screen.getVideoTracks()[0]?.addEventListener('ended', () => { if (recorder.state !== 'inactive') recorder.stop() }, { once: true })
@@ -309,7 +413,7 @@ function ScreenRecorder() {
     } catch (reason) {
       ;[screen, camera, mic].filter((stream): stream is MediaStream => Boolean(stream)).forEach((stream) => stream.getTracks().forEach((track) => track.stop()))
       canvasStream?.getTracks().forEach((track) => track.stop())
-      cancelAnimationFrame(drawFrame)
+      haltCompositor()
       setPreviewStream(null)
       setStarting(false); setCountdown(null)
       setError(reason instanceof Error ? reason.message : 'Could not start screen recording. Check browser permissions and try again.')
@@ -330,6 +434,7 @@ function ScreenRecorder() {
         <label>Recording title<input value={title} onChange={(event) => setTitle(event.target.value)} disabled={recording} placeholder="Recording title" /></label>
         <div className="recorder-setting-label">Capture</div>
         <div className="recorder-quality-badge"><span>4K</span><strong>Ultra HD</strong><small>Up to 2160p · 60 fps</small></div>
+        <div className={`recorder-tier-badge ${watermarkFree ? 'pro' : 'free'}`}>{watermarkFree ? <BadgeCheck size={16} /> : <Lock size={16} />}<div><strong>{watermarkFree ? 'Watermark free' : 'Free version'}</strong><small>{watermarkFree ? 'Your downloads export clean.' : `Downloads carry a “${watermarkText}” watermark.`}</small></div>{!watermarkFree && <Link className="recorder-upgrade" to={customer.user ? '/store?type=software' : '/account'} onClick={() => { if (recording) setError('Start a clean recording after unlocking to remove the watermark.') }}>{customer.user ? 'Remove watermark' : 'Have a code? Redeem it'} <ArrowRight size={13} /></Link>}</div>
         <button className={`recorder-option ${!cameraEnabled && !cameraOnly ? 'active' : ''}`} onClick={() => { setCameraEnabled(false); setCameraOnly(false) }} disabled={recording}><Monitor size={17} />Screen</button>
         <button className={`recorder-option ${cameraEnabled ? 'active' : ''}`} onClick={() => { setCameraEnabled(true); setCameraOnly(false) }} disabled={recording}><Monitor size={17} /><Camera size={15} />Screen &amp; Camera</button>
         <button className={`recorder-option ${cameraOnly ? 'active' : ''}`} onClick={() => { setCameraEnabled(false); setCameraOnly(true) }} disabled={recording}><Camera size={17} />Camera only</button>
@@ -345,6 +450,25 @@ function ScreenRecorder() {
     </div>
     {error && <p className="recorder-error" role="alert">{error}</p>}
   </section>
+}
+
+function RecorderFullscreen({ onClose }: { onClose: () => void }) {
+  const closeRef = useRef(onClose)
+  closeRef.current = onClose
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const handleKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') closeRef.current() }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = previousOverflow
+    }
+  }, [])
+  return <div className="recorder-fullscreen">
+    <div className="recorder-fullscreen-bar"><div><Video size={17} /><strong>Screen Recorder</strong><small>Full screen while you capture</small></div><button className="recorder-fullscreen-close" type="button" onClick={onClose}><X size={15} />Exit full screen</button></div>
+    <div className="recorder-fullscreen-body"><ScreenRecorder /></div>
+  </div>
 }
 
 function QRCodeGenerator() {
@@ -409,7 +533,7 @@ function HomePage({ prompts, blogStatus, canGenerate, onAddTrend, menuSections, 
   const addedTrendIds = useMemo(() => new Set(prompts.filter((prompt) => prompt.id.startsWith('social-')).map((prompt) => prompt.id.slice('social-'.length))), [prompts])
   const title = active === 'All' ? 'All prompts' : active === 'Saved' ? 'Your saved prompts' : active === 'Trending' ? 'Trending prompts' : active === 'Latest' ? 'Latest prompts' : `${active} prompts`
   return <div className="app-layout"><Header onMenu={() => setSidebarOpen(true)} adminLoggedIn={adminLoggedIn} /><div className="page-body"><Sidebar open={sidebarOpen} active={active} onHome={() => { setActive('All'); setQuery(''); setRecorderOpen(false); setQrOpen(false); setSidebarOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }} recorderOpen={recorderOpen} qrOpen={qrOpen} onOpenRecorder={() => { setRecorderOpen(true); setQrOpen(false); setSidebarOpen(false); window.setTimeout(() => document.getElementById('home-generator-area')?.scrollIntoView({ behavior: 'smooth' }), 0) }} onOpenQr={() => { setQrOpen(true); setRecorderOpen(false); setSidebarOpen(false); window.setTimeout(() => document.getElementById('home-generator-area')?.scrollIntoView({ behavior: 'smooth' }), 0) }} onSelect={(category) => { setActive(category); setRecorderOpen(false); setQrOpen(false); setSidebarOpen(false); document.getElementById('explore')?.scrollIntoView({ behavior: 'smooth' }) }} onClose={() => setSidebarOpen(false)} menuSections={menuSections} />
-    <main className={`main-content ${utilityOpen ? 'recorder-main-wide' : ''}`}><div className={`content-inner ${utilityOpen ? 'recorder-content-wide' : ''}`}><div id="home-generator-area">{recorderOpen ? <ScreenRecorder /> : qrOpen ? <QRCodeGenerator /> : <HomePhotoPromptGenerator canGenerate={canGenerate} />}</div><FeatureHero prompts={prompts} /><SocialTrendSection addedIds={addedTrendIds} onAdd={onAddTrend} />
+    <main className={`main-content ${utilityOpen ? 'recorder-main-wide' : ''}`}><div className={`content-inner ${utilityOpen ? 'recorder-content-wide' : ''}`}><div id="home-generator-area">{recorderOpen ? null : qrOpen ? <QRCodeGenerator /> : <HomePhotoPromptGenerator canGenerate={canGenerate} />}</div>{recorderOpen && <RecorderFullscreen onClose={() => setRecorderOpen(false)} />}<FeatureHero prompts={prompts} /><ProductScroller /><SocialTrendSection addedIds={addedTrendIds} onAdd={onAddTrend} />
       <section className="browse-section" id="explore"><div className="section-topline"><div><span className="section-kicker">THE PROMPT LIBRARY</span><h2>Find your next <em>favorite.</em></h2></div><span className="collection-count">{prompts.length} IDEAS <span>↗</span></span></div>
         
         <div className="inline-search"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search prompts, styles, ideas" aria-label="Filter the prompt library" />{query && <button onClick={() => setQuery('')} aria-label="Clear search"><X size={15} /></button>}</div>
@@ -421,19 +545,17 @@ function HomePage({ prompts, blogStatus, canGenerate, onAddTrend, menuSections, 
     </div></main></div></div>
 }
 
-interface StoreProduct {
-  id: string
-  title: string
-  type: 'software' | 'pdf'
-  description: string
-  pricePaise: number
-  currency: string
-  imageUrl?: string
-  fileName?: string
-}
-
-function priceLabel(product: StoreProduct): string {
-  return new Intl.NumberFormat(undefined, { style: 'currency', currency: product.currency || 'INR' }).format(product.pricePaise / 100)
+function StoreFeatureList({ features, benefits }: { features: StoreFeature[]; benefits: string[] }) {
+  if (!features.length) return null
+  return <ul className="store-feature-list">{features.map((feature) => {
+    const premium = feature.tier === 'premium'
+    const active = premium ? (feature.benefitKey ? benefits.includes(feature.benefitKey) : false) : true
+    return <li className={`store-feature ${premium ? 'store-feature-premium' : ''} ${premium && !active ? 'store-feature-locked' : ''}`} key={feature.id}>
+      {premium ? (active ? <LockOpen size={13} /> : <Lock size={13} />) : <Check size={13} />}
+      <span><strong>{feature.title}</strong>{feature.description && <small>{feature.description}</small>}</span>
+      {premium && <em>{active ? 'UNLOCKED' : 'PREMIUM'}</em>}
+    </li>
+  })}</ul>
 }
 
 function StorePage() {
@@ -441,6 +563,7 @@ function StorePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [category, setCategory] = useState(() => new URLSearchParams(window.location.search).get('type') || 'all')
+  const customer = useCustomer()
   useEffect(() => {
     fetch('/api/store/products').then(async (response) => {
       const data = await response.json() as { products?: StoreProduct[]; error?: string }
@@ -451,7 +574,7 @@ function StorePage() {
   }, [])
   useEffect(() => { setCategory(new URLSearchParams(location.search).get('type') || 'all') }, [location.search])
   const visible = products.filter((product) => category === 'all' || product.type === category)
-  return <div className="detail-shell store-shell"><Header onMenu={() => {}} /><main className="store-page"><Link className="store-back-link" to="/"><ArrowLeft size={14} /> Prompt library</Link><section className="store-hero"><span className="feature-eyebrow"><Sparkles size={14} /> DIGITAL GOODS</span><h1>Sell online</h1><p>Software and practical PDFs. Downloadable PDFs and software products. Payment verification is being prepared.</p></section><nav className="store-filters" aria-label="Product categories"><Link className={category === 'all' ? 'active' : ''} to="/store">All products</Link><Link className={category === 'software' ? 'active' : ''} to="/store?type=software">Software</Link><Link className={category === 'pdf' ? 'active' : ''} to="/store?type=pdf">PDF</Link></nav>{loading && <div className="store-empty">Loading products…</div>}{error && <div className="store-empty store-error" role="alert">{error}</div>}{!loading && !error && visible.length === 0 && <div className="store-empty"><span><Copy size={23} /></span><h2>No products listed yet</h2><p>Products are loaded from the server catalog. Upload a PDF from Creator Studio, then add its record to STORE_PRODUCTS_JSON.</p></div>}{visible.length > 0 && <div className="store-product-grid">{visible.map((product) => <article className="store-product-card" key={product.id}><div className="store-product-image">{product.imageUrl ? <img src={product.imageUrl} alt="" loading="lazy" /> : product.type === 'pdf' ? <Copy size={31} /> : <Sparkles size={31} />}<span>{product.type === 'pdf' ? 'PDF' : 'SOFTWARE'}</span></div><div className="store-product-copy"><h2>{product.title}</h2><p>{product.description}</p><div className="store-product-buy"><strong>{priceLabel(product)}</strong><Link to={`/checkout/${encodeURIComponent(product.id)}`}>Buy now <ArrowRight size={15} /></Link></div></div></article>)}</div>}<p className="store-security-note"><ShieldCheck size={14} /> Downloads stay locked until payment scanner verification is available.</p></main></div>
+  return <div className="detail-shell store-shell"><Header onMenu={() => {}} /><main className="store-page"><Link className="store-back-link" to="/"><ArrowLeft size={14} /> Prompt library</Link><section className="store-hero"><span className="feature-eyebrow"><Store size={14} /> DIGITAL GOODS</span><h1>Sell online</h1><p>Software and practical PDFs with every feature listed up front. Premium features unlock the moment your license code is redeemed.</p></section><nav className="store-filters" aria-label="Product categories"><Link className={category === 'all' ? 'active' : ''} to="/store">All products</Link><Link className={category === 'software' ? 'active' : ''} to="/store?type=software">Software</Link><Link className={category === 'pdf' ? 'active' : ''} to="/store?type=pdf">PDF</Link></nav>{loading && <div className="store-empty">Loading products…</div>}{error && <div className="store-empty store-error" role="alert">{error}</div>}{!loading && !error && visible.length === 0 && <div className="store-empty"><span><Copy size={23} /></span><h2>No products listed yet</h2><p>Products and their feature lists come from the store database. Add them in Creator Studio under Digital store.</p></div>}{visible.length > 0 && <div className="store-product-grid">{visible.map((product) => <article className={`store-product-card ${product.premium ? 'store-product-premium' : ''}`} key={product.id}><div className="store-product-image">{product.imageUrl ? <img src={product.imageUrl} alt="" loading="lazy" /> : product.type === 'pdf' ? <Copy size={31} /> : <Sparkles size={31} />}<span>{product.type === 'pdf' ? 'PDF' : 'SOFTWARE'}</span>{product.premium && <em className="store-premium-flag">PREMIUM</em>}</div><div className="store-product-copy"><h2>{product.title}</h2><p>{product.description}</p><StoreFeatureList features={product.features} benefits={customer.benefits} />{product.features.some((feature) => feature.tier === 'premium') && <p className="store-feature-hint">Premium features unlock after payment.</p>}<div className="store-product-buy"><strong>{productPrice(product)}</strong><Link to={`/checkout/${encodeURIComponent(product.id)}`}>Buy now <ArrowRight size={15} /></Link></div></div></article>)}</div>}<p className="store-security-note"><ShieldCheck size={14} /> Pay with the on-screen instructions, then redeem your license code in your account to unlock premium features.</p></main></div>
 }
 
 function CheckoutPage() {
@@ -459,6 +582,7 @@ function CheckoutPage() {
   const [product, setProduct] = useState<StoreProduct | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const customer = useCustomer()
   useEffect(() => {
     fetch('/api/store/products').then(async (response) => {
       const data = await response.json() as { products?: StoreProduct[]; error?: string }
@@ -467,7 +591,76 @@ function CheckoutPage() {
     }).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : 'Store is unavailable.'))
       .finally(() => setLoading(false))
   }, [productId])
-  return <div className="detail-shell store-shell"><Header onMenu={() => {}} /><main className="checkout-page"><Link className="store-back-link" to="/store"><ArrowLeft size={14} /> Back to products</Link><section className="checkout-card"><div className="checkout-icon"><ShieldCheck size={24} /></div><span className="section-kicker">PAYMENT</span><h1>{loading ? 'Loading checkout…' : product?.title || 'Product unavailable'}</h1>{product && <><p className="checkout-description">{product.description}</p><div className="checkout-summary"><span>{product.type === 'pdf' ? 'PDF download' : 'Software download'}</span><strong>{priceLabel(product)}</strong></div><div className="payment-qr-placeholder"><span className="qr-placeholder-art" aria-hidden="true">▦</span><strong>Payment scanner will be added here</strong><p>Payment verification is not connected yet. Downloads stay locked until a payment method and verification flow are configured.</p></div></>}{error && <p className="checkout-error" role="alert">{error}</p>}{!loading && !product && !error && <p className="checkout-error">This product is no longer available.</p>}</section></main></div>
+  return <div className="detail-shell store-shell"><Header onMenu={() => {}} /><main className="checkout-page"><Link className="store-back-link" to="/store"><ArrowLeft size={14} /> Back to products</Link><section className="checkout-card"><div className="checkout-icon"><ShieldCheck size={24} /></div><span className="section-kicker">PAYMENT</span><h1>{loading ? 'Loading checkout…' : product?.title || 'Product unavailable'}</h1>{product && <><p className="checkout-description">{product.description}</p><div className="checkout-summary"><span>{product.type === 'pdf' ? 'PDF download' : 'Software access'}</span><strong>{productPrice(product)}</strong></div><div className="checkout-feature-panel"><span className="admin-kicker">WHAT YOU GET</span><StoreFeatureList features={product.features} benefits={customer.benefits} /></div><ol className="checkout-steps"><li><span>1</span><div><strong>Pay the listed price</strong><p>Payment is handled by the store owner. Open the store page or reply to the link you were sent to arrange it.</p></div></li><li><span>2</span><div><strong>Receive your license code</strong><p>After the payment is confirmed you are sent a code, for example PS-A1B2-C3D4-E5F6.</p></div></li><li><span>3</span><div><strong>Redeem it in your account</strong><p>Signing in and redeeming unlocks every premium feature on this product, such as watermark-free recording.</p></div></li></ol><div className="checkout-redeem-row">{customer.user ? <><BadgeCheck size={16} /> <span>Signed in as {customer.user.email}</span><Link to="/account">Manage license <ArrowRight size={14} /></Link></> : <><KeyRound size={16} /> <span>Already paid? Sign in and redeem your code.</span><Link to="/account">Go to my account <ArrowRight size={14} /></Link></>}</div></>}{error && <p className="checkout-error" role="alert">{error}</p>}{!loading && !product && !error && <p className="checkout-error">This product is no longer available.</p>}</section></main></div>
+}
+
+function benefitLabels(products: StoreProduct[], benefitKey: string) {
+  const matches: string[] = []
+  for (const product of products) for (const feature of product.features) if (feature.benefitKey === benefitKey) matches.push(`${product.title} · ${feature.title}`)
+  return matches
+}
+
+function AccountPage() {
+  const customer = useCustomer()
+  const [products, setProducts] = useState<StoreProduct[]>([])
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [displayName, setDisplayName] = useState('')
+  const [code, setCode] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  useEffect(() => {
+    fetch('/api/store/products').then(async (response) => {
+      const data = await response.json() as { products?: StoreProduct[] }
+      setProducts(data.products ?? [])
+    }).catch(() => setProducts([]))
+  }, [])
+  useEffect(() => { void loadCustomerSession() }, [])
+  const [providers, setProviders] = useState<SocialProviderFlags>({ google: false, facebook: false })
+  const [facebookBusy, setFacebookBusy] = useState(false)
+  const googleButtonRef = useRef<HTMLDivElement | null>(null)
+  useEffect(() => { void loadSocialProviders().then(setProviders) }, [])
+  const completeSocialSignIn = async (provider: 'google' | 'facebook', credential: string) => {
+    setBusy(true); setError(''); setNotice('')
+    try {
+      await signInWithProvider(provider, credential)
+      setNotice(`Signed in with ${provider === 'google' ? 'Google' : 'Facebook'}. Your premium features appear here once redeemed.`)
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Social sign-in failed.') }
+    finally { setBusy(false); setFacebookBusy(false) }
+  }
+  useEffect(() => {
+    if (!providers.google || customer.user || !googleButtonRef.current) return
+    mountGoogleSignInButton(googleButtonRef.current, (credential) => { void completeSocialSignIn('google', credential) })
+      .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : 'Google sign-in could not load.'))
+  }, [providers.google, customer.user])
+  const facebookSignIn = async () => {
+    setFacebookBusy(true); setError(''); setNotice('')
+    try { await completeSocialSignIn('facebook', await requestFacebookToken()) }
+    catch (reason) { setFacebookBusy(false); setError(reason instanceof Error ? reason.message : 'Facebook sign-in failed.') }
+  }
+  const socialRow = providers.google || providers.facebook ? <div className="account-social"><div className="login-divider"><span />or<span /></div>{providers.google && <div className="account-google-button" ref={googleButtonRef} />}{providers.facebook && <button className="account-facebook-button" type="button" onClick={() => { void facebookSignIn() }} disabled={busy || facebookBusy}><Facebook size={17} /> {facebookBusy ? 'Connecting…' : 'Continue with Facebook'}</button>}</div> : null
+  const authenticate = async (event: FormEvent) => {
+    event.preventDefault(); setBusy(true); setError(''); setNotice('')
+    try {
+      if (mode === 'signup') { await signUp(email, password, displayName); setNotice('Account created. Your premium features appear here once redeemed.') }
+      else { await signIn(email, password); setNotice('Signed in.') }
+      setPassword('')
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not complete that request.') }
+    finally { setBusy(false) }
+  }
+  const redeem = async (event: FormEvent) => {
+    event.preventDefault(); setBusy(true); setError(''); setNotice('')
+    try {
+      await redeemLicenseCode(code)
+      setNotice('License redeemed. Premium features are now unlocked in this account.')
+      setCode('')
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not redeem that code.') }
+    finally { setBusy(false) }
+  }
+  const logout = () => { void signOut(); setError(''); setNotice('Signed out.') }
+  return <div className="detail-shell store-shell"><Header onMenu={() => {}} /><main className="account-page"><Link className="store-back-link" to="/"><ArrowLeft size={14} /> Back to the library</Link>{customer.user ? <section className="account-card"><div className="account-card-head"><span className="section-kicker">MY ACCOUNT</span><h1>{customer.user.displayName || customer.user.email}</h1><p>{customer.user.signupSource === 'password' ? customer.user.email : `Signed in with ${customer.user.signupSource === 'google' ? 'Google' : 'Facebook'}`}</p></div><div className="account-unlocks"><span className="admin-kicker">UNLOCKED PREMIUM FEATURES</span>{customer.entitlements.length ? <ul>{customer.entitlements.map((entitlement) => <li key={`${entitlement.productId}-${entitlement.benefitKey}`}><LockOpen size={15} /><div><strong>{benefitLabels(products, entitlement.benefitKey).join(', ') || entitlement.benefitKey}</strong>{entitlement.expiresAt && <small>Valid until {new Date(entitlement.expiresAt).toLocaleDateString()}</small>}</div></li>)}</ul> : <p className="account-empty">No premium features unlocked yet. Pay for a product, then redeem its license code below.</p>}</div><form className="account-redeem" onSubmit={redeem}><label>License code<input value={code} onChange={(event) => setCode(event.target.value)} placeholder="PS-XXXX-XXXX-XXXX" autoComplete="off" required /></label><button className="admin-primary" type="submit" disabled={busy || !code.trim()}>{busy ? 'Checking…' : 'Redeem code'} <KeyRound size={15} /></button></form><div className="account-foot"><Link to="/store">Browse products <ArrowRight size={14} /></Link><button className="admin-secondary" type="button" onClick={logout}><LogOut size={15} /> Sign out</button></div>{notice && <p className="menu-manager-message" role="status">{notice}</p>}{error && <p className="editor-error" role="alert">{error}</p>}</section> : <section className="account-card"><div className="account-card-head"><span className="section-kicker">CUSTOMER SIGN IN</span><h1>Your licenses, one account</h1><p>Sign in to redeem a license code and unlock the premium features of every product you own.</p></div><div className="account-mode-tabs"><button type="button" className={mode === 'signin' ? 'active' : ''} onClick={() => { setMode('signin'); setError('') }}>Sign in</button><button type="button" className={mode === 'signup' ? 'active' : ''} onClick={() => { setMode('signup'); setError('') }}>Create account</button></div><form className="account-form" onSubmit={authenticate}>{mode === 'signup' && <label className="editor-field">Name <span className="field-optional">OPTIONAL</span><input value={displayName} onChange={(event) => setDisplayName(event.target.value)} maxLength={60} placeholder="How should we greet you?" /></label>}<label className="editor-field">Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="username" required /></label><label className="editor-field">Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} minLength={8} required /></label><button className="publish-button" type="submit" disabled={busy}>{busy ? 'Working…' : mode === 'signup' ? 'Create account' : 'Sign in'} <ArrowRight size={16} /></button></form>{socialRow}{notice && <p className="menu-manager-message" role="status">{notice}</p>}{error && <p className="editor-error" role="alert">{error}</p>}<p className="account-privacy"><ShieldCheck size={15} /> Passwords are stored hashed on the server. This account is only used for product licenses.</p></section>}</main></div>
 }
 
 function CollagePage() {
@@ -576,7 +769,111 @@ function AdminShell({ onLogout, bloggerConnected, children }: { onLogout: () => 
   const isMenus = location.pathname.endsWith('/menus')
   const isPdfUpload = location.pathname.endsWith('/upload-pdf')
   const isAiModels = location.pathname.endsWith('/ai-models')
-  return <div className="admin-shell"><header className="admin-topbar"><Link to="/" className="brand"><span className="brand-symbol"><Sparkles size={17} /></span><span>{appConfig.appName}<i>.</i></span></Link><div className="admin-topbar-right">{!bloggerConnected && <Link className="admin-connect-blogger" to="/login">Connect Blogger</Link>}<Link className="admin-view-site" to="/">View site <ArrowUpRight size={14} /></Link><button className="admin-header-logout" onClick={onLogout}><LogOut size={15} />Logout</button><button className="admin-avatar" aria-label={`${appConfig.adminDisplayName} profile`}>{appConfig.adminDisplayName.slice(0, 1).toUpperCase()}</button></div></header><div className="admin-body"><aside className="admin-nav"><span className="admin-nav-title">WORKSPACE</span><Link to="/admin" className={!isCreate && !isMenus && !isPdfUpload && !isAiModels ? 'admin-nav-link active' : 'admin-nav-link'}><LayoutDashboard size={17} />Overview</Link><Link to="/admin/new" onClick={openNewBloggerPost} className={isCreate ? 'admin-nav-link active' : 'admin-nav-link'}><Plus size={18} />Create prompt</Link><Link to="/admin/ai-models" className={isAiModels ? 'admin-nav-link active' : 'admin-nav-link'}><Sparkles size={17} />AI models</Link><Link to="/admin/upload-pdf" className={isPdfUpload ? 'admin-nav-link active' : 'admin-nav-link'}><Copy size={17} />Upload PDF product</Link><Link to="/admin/menus" className={isMenus ? 'admin-nav-link active' : 'admin-nav-link'}><SlidersHorizontal size={17} />Manage menus</Link><a className="admin-nav-link" href="/#categories"><SlidersHorizontal size={17} />Categories</a><div className="admin-nav-bottom"><div className="admin-preview-note"><ShieldCheck size={17} /><strong>Blogger publishing</strong><p>Your connection stays active in this tab until the access token expires.</p></div><button className="admin-nav-link logout-link" onClick={onLogout}><LogOut size={17} />Sign out</button></div></aside><main className="admin-main"><div className="admin-main-inner">{children}</div></main></div></div>
+  const isProducts = location.pathname.endsWith('/products')
+  return <div className="admin-shell"><header className="admin-topbar"><Link to="/" className="brand"><span className="brand-symbol"><Sparkles size={17} /></span><span>{appConfig.appName}<i>.</i></span></Link><div className="admin-topbar-right">{!bloggerConnected && <Link className="admin-connect-blogger" to="/login">Connect Blogger</Link>}<Link className="admin-view-site" to="/">View site <ArrowUpRight size={14} /></Link><button className="admin-header-logout" onClick={onLogout}><LogOut size={15} />Logout</button><button className="admin-avatar" aria-label={`${appConfig.adminDisplayName} profile`}>{appConfig.adminDisplayName.slice(0, 1).toUpperCase()}</button></div></header><div className="admin-body"><aside className="admin-nav"><span className="admin-nav-title">WORKSPACE</span><Link to="/admin" className={!isCreate && !isMenus && !isPdfUpload && !isAiModels && !isProducts ? 'admin-nav-link active' : 'admin-nav-link'}><LayoutDashboard size={17} />Overview</Link><Link to="/admin/new" onClick={openNewBloggerPost} className={isCreate ? 'admin-nav-link active' : 'admin-nav-link'}><Plus size={18} />Create prompt</Link><Link to="/admin/ai-models" className={isAiModels ? 'admin-nav-link active' : 'admin-nav-link'}><Sparkles size={17} />AI models</Link><Link to="/admin/products" className={isProducts ? 'admin-nav-link active' : 'admin-nav-link'}><Store size={17} />Digital store</Link><Link to="/admin/upload-pdf" className={isPdfUpload ? 'admin-nav-link active' : 'admin-nav-link'}><Copy size={17} />Upload PDF product</Link><Link to="/admin/menus" className={isMenus ? 'admin-nav-link active' : 'admin-nav-link'}><SlidersHorizontal size={17} />Manage menus</Link><a className="admin-nav-link" href="/#categories"><SlidersHorizontal size={17} />Categories</a><div className="admin-nav-bottom"><div className="admin-preview-note"><ShieldCheck size={17} /><strong>Blogger publishing</strong><p>Your connection stays active in this tab until the access token expires.</p></div><button className="admin-nav-link logout-link" onClick={onLogout}><LogOut size={17} />Sign out</button></div></aside><main className="admin-main"><div className="admin-main-inner">{children}</div></main></div></div>
+}
+
+interface ProductDraft { id: string; title: string; type: 'software' | 'pdf'; description: string; price: string; currency: string; watermarkText: string; premium: boolean; sortOrder: number }
+interface FeatureDraft { id: string; productId: string; title: string; description: string; tier: 'free' | 'premium'; benefitKey: string; icon: string; sortOrder: number }
+
+const blankProduct: ProductDraft = { id: '', title: '', type: 'software', description: '', price: '199', currency: 'INR', watermarkText: 'Promptseen', premium: true, sortOrder: 0 }
+const blankFeature: FeatureDraft = { id: '', productId: '', title: '', description: '', tier: 'premium', benefitKey: '', icon: 'sparkles', sortOrder: 0 }
+
+function featureToDraft(feature: StoreFeature): FeatureDraft {
+  return { id: feature.id, productId: feature.productId, title: feature.title, description: feature.description, tier: feature.tier, benefitKey: feature.benefitKey, icon: feature.icon, sortOrder: feature.sortOrder }
+}
+
+function ProductManager() {
+  const [snapshot, setSnapshot] = useState<StoreSnapshot | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const [productDraft, setProductDraft] = useState<ProductDraft>(blankProduct)
+  const [featureDraft, setFeatureDraft] = useState<FeatureDraft>(blankFeature)
+  const [selectedId, setSelectedId] = useState('')
+  const [licenseBenefits, setLicenseBenefits] = useState<string[]>([])
+  const products = snapshot?.products ?? []
+  const licenses = snapshot?.licenses ?? []
+  const selected = products.find((product) => product.id === selectedId) ?? null
+  const refresh = (action: string, payload: Record<string, unknown>, message: string) => {
+    setBusy(true); setError(''); setNotice('')
+    return storeAction(action, payload)
+      .then((next) => { setSnapshot(next); setNotice(message) })
+      .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : 'Could not update the store.'))
+      .finally(() => setBusy(false))
+  }
+  useEffect(() => {
+    let cancelled = false
+    loadStoreSnapshot().then((next) => {
+      if (cancelled) return
+      setSnapshot(next)
+      if (next.products.length && !selectedId) {
+        setSelectedId(next.products[0].id)
+        setFeatureDraft({ ...blankFeature, productId: next.products[0].id, sortOrder: next.products[0].features.length + 1 })
+      }
+    }).catch((reason: unknown) => { if (!cancelled) setError(reason instanceof Error ? reason.message : 'Could not load the store.') })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [])
+  useEffect(() => { setLicenseBenefits((selected?.features ?? []).filter((feature) => feature.tier === 'premium' && feature.benefitKey).map((feature) => feature.benefitKey)) }, [selectedId, snapshot])
+  const editProduct = (product: StoreProduct) => {
+    setSelectedId(product.id)
+    setProductDraft({ id: product.id, title: product.title, type: product.type, description: product.description, price: String(product.pricePaise / 100), currency: product.currency, watermarkText: product.watermarkText, premium: product.premium, sortOrder: product.sortOrder })
+    setFeatureDraft({ ...blankFeature, productId: product.id, sortOrder: product.features.length + 1 })
+    setError(''); setNotice('')
+  }
+  const saveProduct = () => {
+    const pricePaise = Math.round(Number(productDraft.price) * 100)
+    if (!Number.isFinite(pricePaise) || pricePaise < 100) { setError('Enter a price of at least 1.00.'); return }
+    const id = (productDraft.id.trim() || productDraft.title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48))
+    const isNew = !products.some((product) => product.id === id)
+    if (!productDraft.title.trim()) { setError('Product title is required.'); return }
+    return refresh('saveProduct', { product: { ...productDraft, id, pricePaise } }, isNew ? 'Product created.' : 'Product saved.')
+      .then(() => { setSelectedId(id); if (isNew) setFeatureDraft({ ...blankFeature, productId: id, sortOrder: 1 }) })
+  }
+  const saveFeature = () => {
+    if (!featureDraft.title.trim()) { setError('Feature title is required.'); return }
+    if (!featureDraft.productId) { setError('Choose a product first.'); return }
+    return refresh('saveFeature', { feature: { ...featureDraft, productId: featureDraft.productId } }, 'Feature saved.')
+      .then(() => setFeatureDraft({ ...blankFeature, productId: featureDraft.productId, sortOrder: (selected?.features.length ?? 0) + 1 }))
+  }
+  const issueLicense = () => {
+    if (!selected) { setError('Choose a product before issuing a license.'); return }
+    if (!licenseBenefits.length) { setError('Select at least one premium benefit. Add a premium feature with a benefit key first.'); return }
+    const input = document.querySelector<HTMLInputElement>('#license-buyer-email')
+    const note = document.querySelector<HTMLInputElement>('#license-note')
+    const expires = document.querySelector<HTMLInputElement>('#license-expires')
+    return refresh('issueLicense', { license: { productId: selected.id, buyerEmail: input?.value.trim() ?? '', note: note?.value.trim() ?? '', expiresAt: expires?.value ?? '', benefitKeys: licenseBenefits } }, 'License issued. Share the code with the buyer.')
+  }
+  const copyCode = (code: string) => {
+    if (!navigator.clipboard) { setNotice(`Copy this code manually: ${code}`); return }
+    void navigator.clipboard.writeText(code).then(() => setNotice('License code copied.')).catch(() => setNotice(`Copy it manually: ${code}`))
+  }
+  const totalFeatures = products.reduce((count, product) => count + product.features.length, 0)
+  const openLicenses = licenses.filter((license) => license.status === 'issued').length
+  const premiumProducts = products.filter((product) => product.premium).length
+  return <><div className="admin-page-heading"><div><span className="admin-kicker">{appConfig.appName.toUpperCase()} / DIGITAL STORE</span><h1>Digital store</h1><p>Every premium product, its full feature list and the license codes you have issued.</p></div><Link to="/store" className="admin-secondary"><Store size={15} /> View public store</Link></div>
+    {loading ? <section className="editor-panel">Loading the store database…</section> : <>
+      <div className="store-source-banner"><DatabaseBackup size={17} /><div><small>DATA SOURCE</small><strong>{snapshot?.store?.dataStore ?? 'postgres'}</strong><p>{snapshot?.store?.databaseConfigured ? 'Connected. Tables are created automatically on first use.' : 'Set DATABASE_URL on the server to activate the store database.'}</p></div>{snapshot?.store?.availableDataStores && <span className="store-source-options">Switchable: {snapshot.store.availableDataStores.join(', ')}</span>}</div>
+      {error && <p className="editor-error" role="alert">{error}</p>}
+      {notice && <p className="menu-manager-message" role="status">{notice}</p>}
+      <section className="admin-stat-grid"><article className="admin-stat-card"><span>PRODUCTS</span><strong>{products.length}</strong><small>In the digital store</small><div className="stat-icon violet"><Store size={18} /></div></article><article className="admin-stat-card"><span>PREMIUM</span><strong>{premiumProducts}</strong><small>Marked premium</small><div className="stat-icon green"><BadgeCheck size={18} /></div></article><article className="admin-stat-card"><span>FEATURES</span><strong>{totalFeatures}</strong><small>Listed across products</small><div className="stat-icon yellow"><SlidersHorizontal size={18} /></div></article><article className="admin-stat-card"><span>LICENSES</span><strong>{licenses.length}</strong><small>{openLicenses} waiting to be redeemed</small><div className="stat-icon blue"><KeyRound size={18} /></div></article></section>
+      <section className="editor-panel store-product-panel"><div className="editor-panel-heading"><div><span className="admin-kicker">{products.some((product) => product.id === productDraft.id) ? 'EDIT PRODUCT' : 'NEW PRODUCT'}</span><h2>Product details</h2></div>{selected && <button type="button" className="admin-text-link" onClick={() => { setProductDraft(blankProduct); setSelectedId(''); setFeatureDraft({ ...blankFeature, productId: '', sortOrder: 1 }) }}><Plus size={14} /> New product</button>}</div><div className="store-product-fields">
+        <label className="editor-field">Title<input value={productDraft.title} maxLength={100} onChange={(event) => setProductDraft((draft) => ({ ...draft, title: event.target.value }))} placeholder="Screen Recorder Pro" /></label>
+        <label className="editor-field">ID<span className="field-optional">URL SAFE</span><input value={productDraft.id} maxLength={48} onChange={(event) => setProductDraft((draft) => ({ ...draft, id: event.target.value }))} placeholder="screen-recorder-pro" /></label>
+        <label className="editor-field">Type<select value={productDraft.type} onChange={(event) => setProductDraft((draft) => ({ ...draft, type: event.target.value as ProductDraft['type'] }))}><option value="software">Software</option><option value="pdf">PDF</option></select></label>
+        <label className="editor-field">Price ({productDraft.currency})<input value={productDraft.price} inputMode="decimal" onChange={(event) => setProductDraft((draft) => ({ ...draft, price: event.target.value }))} /></label>
+        <label className="editor-field">Currency<input value={productDraft.currency} maxLength={3} onChange={(event) => setProductDraft((draft) => ({ ...draft, currency: event.target.value.toUpperCase() }))} /></label>
+        <label className="editor-field">Watermark text <span className="field-optional">FREE USERS</span><input value={productDraft.watermarkText} maxLength={40} onChange={(event) => setProductDraft((draft) => ({ ...draft, watermarkText: event.target.value }))} placeholder="Promptseen" /></label>
+        <label className="editor-field">Order<input type="number" value={productDraft.sortOrder} onChange={(event) => setProductDraft((draft) => ({ ...draft, sortOrder: Number(event.target.value) || 0 }))} /></label>
+        <label className="store-premium-toggle"><input type="checkbox" checked={productDraft.premium} onChange={(event) => setProductDraft((draft) => ({ ...draft, premium: event.target.checked }))} /><span>Premium product</span></label>
+        <label className="editor-field store-description">Description<textarea value={productDraft.description} maxLength={500} rows={3} onChange={(event) => setProductDraft((draft) => ({ ...draft, description: event.target.value }))} /></label>
+      </div><div className="store-product-actions"><button className="admin-primary" type="button" onClick={() => void saveProduct()} disabled={busy}><Check size={15} /> Save product</button>{productDraft.id && <button className="admin-secondary" type="button" disabled={busy} onClick={() => void refresh('deleteProduct', { id: productDraft.id }, 'Product removed.').then(() => { setProductDraft(blankProduct); setSelectedId('') })}><Trash2 size={15} /> Delete product</button>}</div></section>
+      <section className="admin-table-card"><div className="admin-table-head"><div><span className="admin-kicker">CATALOG</span><h2>All products</h2></div><span className="store-table-count">{products.length} record(s)</span></div><div className="admin-table-scroll"><table className="prompts-table store-table"><thead><tr><th>PRODUCT</th><th>TYPE</th><th>PRICE</th><th>FEATURES</th><th>PREMIUM</th><th /></tr></thead><tbody>{products.length ? products.map((product) => <tr key={product.id} className={selectedId === product.id ? 'store-row-active' : ''}><td><div className="table-prompt"><span><strong>{product.title}</strong><small>{product.id}</small></span></div></td><td>{product.type}</td><td>{productPrice(product)}</td><td>{product.features.length}</td><td>{product.premium ? <span className="store-pill premium"><BadgeCheck size={13} /> Premium</span> : <span className="store-pill">Free</span>}</td><td><button className="table-open" type="button" onClick={() => editProduct(product)} aria-label={`Edit ${product.title}`}><SlidersHorizontal size={15} /></button></td></tr>) : <tr><td colSpan={6}>No products yet. Save the form above to create the first one.</td></tr>}</tbody></table></div></section>
+      {selected ? <><section className="editor-panel store-feature-panel"><div className="editor-panel-heading"><div><span className="admin-kicker">FEATURES</span><h2>{selected.title}</h2><p>Free features show as included. Premium features show as locked until a license with that benefit is redeemed.</p></div></div><div className="store-feature-list-admin">{selected.features.length ? selected.features.map((feature) => <div className={`store-feature-row ${feature.tier}`} key={feature.id}><span className="store-feature-icon">{feature.tier === 'premium' ? <Lock size={15} /> : <Check size={15} />}</span><div><strong>{feature.title}</strong><small>{feature.description}{feature.benefitKey && <code>{feature.benefitKey}</code>}</small></div><button type="button" className="menu-remove-button" onClick={() => void refresh('deleteFeature', { id: feature.id }, 'Feature removed.')} aria-label={`Remove ${feature.title}`}><X size={15} /></button><button type="button" className="table-open" onClick={() => setFeatureDraft(featureToDraft(feature))} aria-label={`Edit ${feature.title}`}><SlidersHorizontal size={14} /></button></div>) : <p className="account-empty">No features listed yet.</p>}</div><div className="store-feature-form"><label className="editor-field">Feature title<input value={featureDraft.title} maxLength={80} onChange={(event) => setFeatureDraft((draft) => ({ ...draft, title: event.target.value }))} placeholder="No watermark on export" /></label><label className="editor-field">Detail <span className="field-optional">OPTIONAL</span><input value={featureDraft.description} maxLength={200} onChange={(event) => setFeatureDraft((draft) => ({ ...draft, description: event.target.value }))} /></label><label className="editor-field">Tier<select value={featureDraft.tier} onChange={(event) => setFeatureDraft((draft) => ({ ...draft, tier: event.target.value as FeatureDraft['tier'] }))}><option value="free">Free</option><option value="premium">Premium</option></select></label><label className="editor-field">Benefit key<span className="field-optional">PREMIUM ONLY</span><input value={featureDraft.benefitKey} maxLength={40} onChange={(event) => setFeatureDraft((draft) => ({ ...draft, benefitKey: event.target.value }))} placeholder="watermark_free" /></label><button className="admin-primary" type="button" onClick={() => void saveFeature()} disabled={busy}><Plus size={15} /> {featureDraft.id ? 'Update feature' : 'Add feature'}</button>{featureDraft.id && <button className="admin-secondary" type="button" onClick={() => setFeatureDraft({ ...blankFeature, productId: selected.id, sortOrder: selected.features.length + 1 })}>Cancel edit</button>}</div><p className="store-benefit-hint">Use <code>{WATERMARK_BENEFIT}</code> as the benefit key to remove the screen recorder watermark for paying customers.</p></section>
+        <section className="editor-panel store-license-panel"><div className="editor-panel-heading"><div><span className="admin-kicker">LICENSES</span><h2>Issue a code for {selected.title}</h2><p>Create a code after the payment arrives, then send it to the buyer.</p></div></div><div className="store-license-form"><label className="editor-field">Buyer email <span className="field-optional">OPTIONAL</span><input id="license-buyer-email" type="email" placeholder="buyer@example.com" /></label><label className="editor-field">Note<input id="license-note" maxLength={200} placeholder="Invoice 24" /></label><label className="editor-field">Expires <span className="field-optional">OPTIONAL</span><input id="license-expires" type="date" /></label><div className="store-license-benefits"><span>Benefits in this license</span>{(selected.features ?? []).filter((feature) => feature.tier === 'premium' && feature.benefitKey).length ? (selected.features ?? []).filter((feature) => feature.tier === 'premium' && feature.benefitKey).map((feature) => <label key={feature.id}><input type="checkbox" checked={licenseBenefits.includes(feature.benefitKey)} onChange={(event) => setLicenseBenefits((current) => event.target.checked ? [...current, feature.benefitKey] : current.filter((key) => key !== feature.benefitKey))} /><span>{feature.title} <code>{feature.benefitKey}</code></span></label>) : <small>Add a premium feature with a benefit key first.</small>}</div><button className="admin-primary" type="button" onClick={() => void issueLicense()} disabled={busy}><KeyRound size={15} /> Issue license code</button></div><div className="admin-table-scroll"><table className="prompts-table store-table"><thead><tr><th>CODE</th><th>PRODUCT</th><th>BENEFITS</th><th>STATUS</th><th>REDEEMED BY</th><th /></tr></thead><tbody>{licenses.filter((license) => license.productId === selected.id).length ? licenses.filter((license) => license.productId === selected.id).map((license) => <tr key={license.id}><td><button className="store-code-copy" type="button" onClick={() => copyCode(license.code)} title="Copy code">{license.code} <Copy size={13} /></button></td><td>{license.productId}</td><td>{license.benefitKeys.join(', ')}</td><td><span className={`store-pill ${license.status}`}>{license.status}</span></td><td>{license.redeemedEmail || license.buyerEmail || '—'}</td><td>{license.status === 'issued' ? <button className="menu-remove-button" type="button" onClick={() => void refresh('updateLicense', { id: license.id, status: 'revoked', note: license.note, buyerEmail: license.buyerEmail, expiresAt: license.expiresAt }, 'License revoked. Any account that redeemed it lost the benefit.')} aria-label="Revoke license"><Lock size={14} /></button> : null}</td></tr>) : <tr><td colSpan={6}>No licenses issued for this product yet.</td></tr>}</tbody></table></div></section></> : <section className="editor-panel">Choose a product above to manage its features and licenses.</section>}
+    </>}</>
 }
 
 function AdminOverview({ prompts, blogStatus }: { prompts: Prompt[]; blogStatus: 'idle' | 'loading' | 'connected' | 'error' }) {
@@ -799,10 +1096,11 @@ function AdminGate({ allowed, authReady, bloggerConnected, prompts, blogStatus, 
   const pdfUploadPage = useLocation().pathname.endsWith('/upload-pdf')
   const menusPage = useLocation().pathname.endsWith('/menus')
   const aiModelsPage = useLocation().pathname.endsWith('/ai-models')
+  const productsPage = useLocation().pathname.endsWith('/products')
   if (!authReady) return <main className="auth-page"><p className="auth-subtitle">Checking sign-in…</p></main>
   if (!allowed) return <Navigate to="/login" replace />
   const customCategories = menuSections.flatMap((section) => section.items.map((item) => item.name))
-  return <AdminShell bloggerConnected={bloggerConnected} onLogout={onLogout}>{pdfUploadPage ? <PdfProductUploader /> : aiModelsPage ? <AiModelSettingsPage /> : menusPage ? <MenuManager menuSections={menuSections} onChange={onChangeMenus} /> : createPage ? <PromptEditor onPublish={onPublish} customCategories={customCategories} /> : <AdminOverview prompts={prompts} blogStatus={blogStatus} />}</AdminShell>
+  return <AdminShell bloggerConnected={bloggerConnected} onLogout={onLogout}>{pdfUploadPage ? <PdfProductUploader /> : productsPage ? <ProductManager /> : aiModelsPage ? <AiModelSettingsPage /> : menusPage ? <MenuManager menuSections={menuSections} onChange={onChangeMenus} /> : createPage ? <PromptEditor onPublish={onPublish} customCategories={customCategories} /> : <AdminOverview prompts={prompts} blogStatus={blogStatus} />}</AdminShell>
 }
 
 function loadSideMenus(): SideMenuSection[] {
@@ -899,7 +1197,8 @@ export default function App() {
     void fetch('/api/admin-auth', { method: 'DELETE' }).catch(() => undefined)
   }
   useEffect(() => { document.title = `${appConfig.appName || 'Promptseen'} — AI prompt library` }, [])
+  useEffect(() => { void loadCustomerSession() }, [])
   const adminAllowed = bloggerConnected || adminAuthenticated
-  return <Routes><Route path="/" element={<HomePage prompts={prompts} blogStatus={blogStatus} canGenerate={true} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /><Route path="/store" element={<StorePage />} /><Route path="/collage" element={<CollagePage />} /><Route path="/checkout/:productId" element={<CheckoutPage />} /><Route path="/prompt/:slug" element={<PromptPage prompts={prompts} />} /><Route path="/login" element={<LoginPage onConnected={() => setBloggerConnected(true)} onAdminLogin={() => { setAdminAuthenticated(true); setAdminAuthReady(true) }} />} /><Route path="/admin/upload-pdf" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="/admin/*" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="*" element={<HomePage prompts={prompts} blogStatus={blogStatus} canGenerate={bloggerConnected} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /></Routes>
+  return <Routes><Route path="/" element={<HomePage prompts={prompts} blogStatus={blogStatus} canGenerate={true} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /><Route path="/store" element={<StorePage />} /><Route path="/collage" element={<CollagePage />} /><Route path="/checkout/:productId" element={<CheckoutPage />} /><Route path="/prompt/:slug" element={<PromptPage prompts={prompts} />} /><Route path="/account" element={<AccountPage />} /><Route path="/login" element={<LoginPage onConnected={() => setBloggerConnected(true)} onAdminLogin={() => { setAdminAuthenticated(true); setAdminAuthReady(true) }} />} /><Route path="/admin/upload-pdf" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="/admin/*" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="*" element={<HomePage prompts={prompts} blogStatus={blogStatus} canGenerate={bloggerConnected} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /></Routes>
 }
 
