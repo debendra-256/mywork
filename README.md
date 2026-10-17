@@ -10,6 +10,14 @@ Google Identity Services requests `https://www.googleapis.com/auth/blogger` and 
 
 Blogger's post insert endpoint accepts HTML content and has no media upload endpoint. When you choose a local cover file, the app uploads it to the connected Google Drive account, allows public viewing, and embeds the image in the Blogger post. The image is public so Blogger and visitors can load it. You can also paste an existing public HTTPS image URL.
 
+Every label on a Blogger post becomes a home-screen filter. Labels are matched with or without a leading `#` and regardless of case, so the **Couple** pill also finds a post labelled `#couple`, and a single label field holding `#AIPhotography #couple` counts as both tags. Pills are built from the tags the loaded posts actually carry (curated categories first, then the blog's own labels), so a pill never leads to an empty grid; the sidebar keeps the full category list with the populated ones on top. The search box matches those tags too. A `Featured` label feeds the **Trending** pill instead of getting its own.
+
+Blogger returns each published cover at a fixed `s320` thumbnail, which is far below the size the site draws, so covers looked blurred. Google's image proxy re-renders the same upload at any width, and `src/data/prompt-image.ts` uses that: cards and the trending hero offer `s320`–`s1200` candidates through `srcset` and let the browser pick for the box and pixel density, the detail cover asks for `s1000`, and `og:image` plus the shared image link ask for `s1200`. Covers larger than about 1200 px cost real bandwidth (one PNG cover was 126 KB at `s320` and 1.35 MB at `s1200`), which is why nothing requests the full original.
+
+Each card prints its own hashtags directly under the cover (`promptHashtags()` in `src/domain/prompt.ts` lists every label except the one already shown as the category badge, capped at four) and clicking one filters the library to that tag exactly like a pill does. Copy and share totals print under the description on cards and beside the copy button on the detail page. They come from `src/data/prompt-engagement.ts`, which counts this browser's own taps in `localStorage` (`promptseen:prompt-engagement`) — a card copy, the detail-page copy button and the "open with prompt copied" links count as copies, and the WhatsApp/Telegram links count as shares. Nothing is sent to a server, so the numbers are per visitor, not global; clearing site data resets them.
+
+The library grid paginates at 24 prompts per page (`libraryPageSize` in `src/app/App.tsx`). The controls appear only when a filter or search returns more than one page, keep numbering continuous across pages, window the page buttons with `…` for long runs, and return to the top of the grid on page change. This is display pagination only: `appConfig.pagination.pageSize` still controls how many posts the Blogger feed fetch asks for.
+
 ## Configuration
 
 Copy `.env.example` to `.env.local` and set the values for your environment. Vite reads browser-visible settings prefixed with `VITE_`. Never put OAuth client secrets, social API tokens, or other private keys in those settings. Restart Vite after changing environment values.
@@ -23,7 +31,11 @@ Required Blogger values:
 
 Admin → AI models stores the active model, custom model catalog, and encrypted provider API keys in the server-side `data/ai-model-settings.json` file. The data file is excluded from Git. Set the server-only `AI_SETTINGS_ENCRYPTION_KEY` in `.env.local` to encrypt provider keys; optionally set `AI_MODEL_CONFIG_FILE` to choose another file path. Back up the config file and encryption key together.
 
+Custom endpoints are OpenAI-compatible gateways such as [ZyloAI](https://console.zyloai.net/docs/). Choose **ZyloAI / custom endpoint** as the provider, set the API base URL (`https://api.zyloai.net/v1`), the model ID (`gemini-3.1-pro`, `zimage`, `openai/gpt-image-1.5`, or any ID listed by `GET /v1/models`), and paste the key. Generation then posts to `<base URL>/chat/completions` with `Authorization: Bearer <key>` and reads `choices[0].message.content`, so the same card works for any chat-completions gateway. Switch the model on and save; the public generator uses it immediately.
+
 This file storage works with a local Node/Vite server or another host with persistent writable disk. Vercel serverless functions do not provide durable writable project files, so settings saved there may be lost between function instances or deployments. Keep this limitation in mind when deploying.
+
+Every model card has a **Test key** button. It sends one tiny chat completion to that provider using the key typed in the card, or the saved key when the field is empty, and shows the provider's real answer inline: `GPT-4o replied: OK` when the key works, or the provider's own words — `ZyloAPI (401): Key not found: zk_…` — when it does not. It needs an admin session, and the key is never returned to the browser or logged. `POST /api/ai-model-settings` with `{ modelId, apiKey? }` is the endpoint behind it.
 
 ## Creator Studio sign-in
 

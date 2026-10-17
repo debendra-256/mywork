@@ -9,7 +9,7 @@ export const promptCategories = [
   'Christmas', 'Friendship Day', 'School & College', 'Travel & Nature', "Valentine's Day", 'Independence Day',
 ] as const
 
-const image = (id: string) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=900&q=82`
+const image = (id: string) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1400&q=86`
 
 /** Local presentation data keeps the frontend browseable before the CMS is connected. */
 export const promptCatalog: Prompt[] = [

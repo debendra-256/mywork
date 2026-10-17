@@ -106,7 +106,7 @@ export async function publishPromptToBlogger(prompt: Prompt, target?: { blogId: 
     const updateResponse = await fetch(postUrl, {
       method: 'PATCH',
       headers,
-      body: JSON.stringify({ id: target.postId, title: prompt.title, content: buildEditedPostHtml(prompt, current.content), labels }),
+      body: JSON.stringify({ id: target.postId, title: current.title?.trim() || prompt.title, content: buildEditedPostHtml(prompt, current.content), labels }),
     })
     let updated = await updateResponse.json().catch(() => ({})) as BloggerEditablePost
     if (!updateResponse.ok || !updated.id) throw new Error(updated.error?.message || `Could not update the Blogger post (${updateResponse.status}).`)

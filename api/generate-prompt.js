@@ -1,6 +1,7 @@
 const maxImageBytes = 3 * 1024 * 1024
 const allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp'])
 import { getActiveAiModel } from './ai-model-settings.js'
+import { buildChatRequest, providerFailure, readChatCompletion } from './provider-request.js'
 const requestsByIp = new Map()
 const requestLimit = 20
 const requestWindowMs = 60 * 60 * 1000
@@ -32,47 +33,18 @@ export async function generatePrompt({ image = '', instruction = '' }, env = pro
   }
   const cleanedInstruction = instruction.trim().slice(0, 1200)
   if (!image && !cleanedInstruction) throw new Error('Describe the image you want or attach a photo.')
-  const userContent = [{ type: 'text', text: `${cleanedInstruction ? `Create an image-generation prompt for this idea: ${cleanedInstruction}` : 'Create an image-generation prompt inspired by this photo.'}` }]
-  if (image) userContent.push({ type: 'image_url', image_url: { url: image, detail: 'high' } })
 
   const selected = await getActiveAiModel(env)
   if (!selected.apiKey) throw new Error(`Add an API key for the active model in Admin → AI models.`)
-  const systemPrompt = 'Write one detailed, ready-to-use image-generation prompt. When a photo is included, describe visible subject, composition, pose, clothing, setting, lighting, color palette, camera perspective, and visual style. Avoid identifying people or adding text, headings, explanations, or claims about facts not visible in the photo. Return only the prompt.'
-  const userText = cleanedInstruction ? `Create an image-generation prompt for this idea: ${cleanedInstruction}` : 'Create an image-generation prompt inspired by this photo.'
-  let endpoint
-  let headers
-  let body
-  if (selected.provider === 'google') {
-    endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(selected.model)}:generateContent`
-    headers = { 'x-goog-api-key': selected.apiKey, 'Content-Type': 'application/json' }
-    const parts = [{ text: userText }]
-    if (image) {
-      const [, mimeType, data] = image.match(/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/)
-      parts.push({ inlineData: { mimeType, data } })
-    }
-    body = { systemInstruction: { parts: [{ text: systemPrompt }] }, contents: [{ role: 'user', parts }], generationConfig: { temperature: 0.6, maxOutputTokens: 700 } }
-  } else if (selected.provider === 'anthropic') {
-    endpoint = 'https://api.anthropic.com/v1/messages'
-    headers = { 'x-api-key': selected.apiKey, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' }
-    const content = [{ type: 'text', text: userText }]
-    if (image) {
-      const [, media_type, data] = image.match(/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/)
-      content.push({ type: 'image', source: { type: 'base64', media_type, data } })
-    }
-    body = { model: selected.model, max_tokens: 700, temperature: 0.6, system: systemPrompt, messages: [{ role: 'user', content }] }
-  } else {
-    endpoint = 'https://api.openai.com/v1/chat/completions'
-    headers = { Authorization: `Bearer ${selected.apiKey}`, 'Content-Type': 'application/json' }
-    body = { model: selected.model, temperature: 0.6, max_tokens: 700, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userContent }] }
-  }
+  const photoSystemPrompt = 'You are a reverse-prompt engine. Write ONE dense image-generation prompt that would recreate the supplied photo as closely as possible. Cover, in this order: subject and apparent age range; face shape, eyes, brows, nose, lips, expression; skin tone and texture; hair colour, texture and style; wardrobe including fabric, cut, colours and pattern; pose, body angle and hand placement; framing and composition; camera height, angle, lens, aperture, focus and depth of field; lighting direction, quality, colour temperature, shadow and highlight shape; the exact colour palette and the tone or film grade; background, setting, props and depth; mood, era and photographic style; aspect ratio and grain. Match the reference faithfully instead of improving it. Never name or identify a real person, never invent details that are not visible, and never add text, headings, bullet points or explanations. Return only the prompt.'
+  const ideaSystemPrompt = 'Write one detailed, ready-to-use image-generation prompt for the idea supplied, covering subject, composition, pose, clothing, setting, lighting, colour palette, camera perspective and visual style. Avoid identifying real people or adding text, headings, explanations, or claims about facts. Return only the prompt.'
+  const systemPrompt = image ? photoSystemPrompt : ideaSystemPrompt
+  const userText = image ? 'Recreate this exact photo as an image-generation prompt. Match the face, skin tone, hair, wardrobe, pose, lighting, colour tone and background precisely.' : `Create an image-generation prompt for this idea: ${cleanedInstruction}`
+  const { endpoint, headers, body } = buildChatRequest(selected, { systemText: systemPrompt, userText, image })
   const response = await fetch(endpoint, { method: 'POST', headers, body: JSON.stringify(body) })
   const result = await response.json().catch(() => ({}))
-  if (!response.ok) throw new Error(result.error?.message || result.error?.status || result.message || `${selected.name} could not generate a prompt (${response.status}).`)
-  const prompt = selected.provider === 'google'
-    ? result.candidates?.[0]?.content?.parts?.map((part) => part.text ?? '').join('').trim()
-    : selected.provider === 'anthropic'
-      ? result.content?.filter((part) => part.type === 'text').map((part) => part.text).join('').trim()
-      : result.choices?.[0]?.message?.content?.trim()
+  if (!response.ok) throw new Error(providerFailure(result, response.status, selected.name))
+  const prompt = readChatCompletion(selected, result)
   if (!prompt) throw new Error(`${selected.name} returned an empty prompt. Try again.`)
   return prompt
 }

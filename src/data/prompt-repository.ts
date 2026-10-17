@@ -1,4 +1,4 @@
-import type { Prompt, PromptQuery, PromptRepository } from '../domain/prompt'
+import { promptTags, type Prompt, type PromptQuery, type PromptRepository } from '../domain/prompt'
 import { getBloggerAccessTokenIfAvailable } from './blogger-auth'
 import { demoPrompts } from './demo-prompts'
 
@@ -44,6 +44,7 @@ function mapPost(post: WordPressPost): Prompt {
     description: stripHtml(post.excerpt.rendered), promptText: content,
     category: terms[0]?.name ?? 'Articles', tool: 'AI tool', style: 'Creative',
     featured: false, createdAt: post.date, image: media?.source_url, imageAlt: media?.alt_text,
+    labels: terms.map((term) => term.name),
   }
 }
 
@@ -61,6 +62,7 @@ function mapBloggerPost(post: BloggerPost): Prompt {
     style: 'Article',
     featured: post.labels?.some((label) => label.toLowerCase() === 'featured') ?? false,
     hashtags: post.labels?.filter((label) => label.startsWith('#')).map((label) => label.slice(1)),
+    labels: post.labels,
     createdAt: post.published,
     image: post.images?.[0]?.url ?? post.content.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1],
     sourceUrl: post.url,
@@ -137,7 +139,7 @@ class BloggerPromptRepository implements PromptRepository {
     }
     const result = await response.json() as { items?: BloggerPost[] }
     const posts = (result.items ?? []).map(mapBloggerPost)
-    return query.category ? posts.filter((post) => post.category === query.category) : posts
+    return query.category ? posts.filter((post) => promptTags(post).includes(query.category!.toLowerCase())) : posts
   }
 
   list(query: PromptQuery = {}) { return this.fetchPosts(query) }

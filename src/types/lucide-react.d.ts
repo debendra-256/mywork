@@ -39,6 +39,7 @@ declare module 'lucide-react' {
   export const QrCode: LucideIcon
   export const Search: LucideIcon
   export const Send: LucideIcon
+  export const Share2: LucideIcon
   export const ShieldCheck: LucideIcon
   export const SlidersHorizontal: LucideIcon
   export const Square: LucideIcon
@@ -47,4 +48,5 @@ declare module 'lucide-react' {
   export const Trash2: LucideIcon
   export const Video: LucideIcon
   export const X: LucideIcon
+  export const Zap: LucideIcon
 }

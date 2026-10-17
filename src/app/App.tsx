@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Camera, Check, ChevronDown, Clock3, Copy, DatabaseBackup, Download, Facebook, Flame, Headphones, Heart, Home, ImagePlus, Images, Instagram, KeyRound, LayoutDashboard, Lock, LockOpen, LogOut, Menu, MessageCircle, Mic, MicOff, Monitor, Pause, Play, Plus, QrCode, Search, Send, ShieldCheck, SlidersHorizontal, Sparkles, Square, Store, Trash2, Video, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Camera, Check, ChevronDown, Clock3, Copy, DatabaseBackup, Download, Facebook, Flame, Headphones, Heart, Home, ImagePlus, Images, Instagram, KeyRound, LayoutDashboard, Lock, LockOpen, LogOut, Menu, MessageCircle, Mic, MicOff, Monitor, Pause, Play, Plus, QrCode, Search, Send, Share2, ShieldCheck, SlidersHorizontal, Sparkles, Square, Store, Trash2, Video, X, Zap } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { appConfig } from '../config/app.config'
 import { QRCodeCanvas } from 'qrcode.react'
 import { promptCatalog, promptCategories } from '../data/prompt-catalog'
 import { createPromptRepository } from '../data/prompt-repository'
+import { imageAtWidth, responsiveImage } from '../data/prompt-image'
+import { engagementFor, formatCount, useEngagement, type EngagementCounts } from '../data/prompt-engagement'
 import { clearBloggerSession, connectBlogger, getBloggerAccessToken, hasBloggerSession } from '../data/blogger-auth'
 import { getPromptBloggerDraftMetadata, parseBloggerEditUrl, promptBloggerDraft, publishPromptToBlogger } from '../data/blogger-publisher'
 import { publishPdfProduct } from '../data/digital-products'
@@ -13,7 +15,7 @@ import { loadCustomerSession, redeemLicenseCode, signIn, signInWithProvider, sig
 import { loadSocialProviders, mountGoogleSignInButton, requestFacebookToken, type SocialProviderFlags } from '../data/social-login'
 import { WATERMARK_BENEFIT, productPrice, type StoreFeature, type StoreProduct, type StoreSnapshot } from '../domain/store'
 import { createMenuItemId, defaultSideMenus, type SideMenuSection } from '../data/side-menus'
-import type { Prompt } from '../domain/prompt'
+import { promptHashtags, promptLabels, promptTags, type Prompt } from '../domain/prompt'
 import CollageStudio from '../collage/CollageStudio'
 
 const promptRepository = createPromptRepository({
@@ -45,7 +47,7 @@ function Header({ onMenu, adminLoggedIn = false }: { onMenu: () => void; adminLo
   </header>
 }
 
-function Sidebar({ open, active, onSelect, onHome, onClose, menuSections, recorderOpen, qrOpen, onOpenRecorder, onOpenQr }: { open: boolean; active: string; onSelect: (category: string) => void; onHome: () => void; onClose: () => void; menuSections: SideMenuSection[]; recorderOpen: boolean; qrOpen: boolean; onOpenRecorder: () => void; onOpenQr: () => void }) {
+function Sidebar({ open, active, categories, onSelect, onHome, onClose, menuSections, recorderOpen, qrOpen, onOpenRecorder, onOpenQr }: { open: boolean; active: string; categories: PromptFilter[]; onSelect: (category: string) => void; onHome: () => void; onClose: () => void; menuSections: SideMenuSection[]; recorderOpen: boolean; qrOpen: boolean; onOpenRecorder: () => void; onOpenQr: () => void }) {
   return <>
     {open && <button className="sidebar-scrim" aria-label="Close navigation" onClick={onClose} />}
     <aside className={`sidebar ${open ? 'sidebar-open' : ''}`}>
@@ -63,28 +65,32 @@ function Sidebar({ open, active, onSelect, onHome, onClose, menuSections, record
       <div className="side-section side-special-menus">{menuSections.map((section) => <details className="side-menu-group" key={section.id}><summary className="side-menu-heading"><span className="side-menu-mark">{section.id === 'events' ? 'E' : 'F'}</span>{section.title}<span className="side-menu-count">{section.items.length}</span></summary><div className="side-menu-items">{section.items.map((item) => <button key={item.id} className={`side-item side-subcategory ${active === item.name ? 'selected' : ''}`} title={item.timing ? `${item.name} · ${item.timing}` : item.name} onClick={() => onSelect(item.name)}><span>{item.name}</span>{item.timing && <small>{item.timing}</small>}</button>)}</div></details>)}</div>
       <div className="side-section side-special-menus"><details className="side-menu-group" open><summary className="side-menu-heading"><span className="side-menu-mark">$</span>Sell online<span className="side-menu-count">2</span></summary><div className="side-menu-items"><Link className="side-item side-subcategory" to="/store?type=software" onClick={onClose}><span>Software</span></Link><Link className="side-item side-subcategory" to="/store?type=pdf" onClick={onClose}><span>PDF</span></Link></div></details></div>
       <div className="side-section side-categories" id="categories"><div className="side-label-row"><p className="side-label">CATEGORIES</p><SlidersHorizontal size={14} /></div>
-        {promptCategories.map((category) => <button key={category} className={`side-item category-side-item ${active === category ? 'selected' : ''}`} onClick={() => onSelect(category)}><span className="side-category-mark">{category.slice(0, 1)}</span>{category}</button>)}
+        {categories.map((category) => <button key={category.key} className={`side-item category-side-item ${active.toLowerCase() === category.key ? 'selected' : ''}`} onClick={() => onSelect(category.label)}><span className="side-category-mark">{category.label.slice(0, 1)}</span>{category.label}</button>)}
       </div>
       <div className="sidebar-bottom"><div className="sidebar-promo"><span className="promo-icon"><Sparkles size={17} /></span><strong>Your next idea starts here.</strong><p>Browse the library and make it your own.</p><a href="#explore">Explore prompts <ArrowRight size={14} /></a></div><span className="sidebar-version">PROMPTSEEN · A CREATIVE LIBRARY</span></div>
     </aside>
   </>
 }
 
-function PromptCard({ prompt, index, saved, onToggleSave }: { prompt: Prompt; index: number; saved: boolean; onToggleSave: () => void }) {
+function PromptCard({ prompt, index, saved, engagement, onToggleSave, onCopy, onHashtag }: { prompt: Prompt; index: number; saved: boolean; engagement: EngagementCounts; onToggleSave: () => void; onCopy: () => void; onHashtag: (tag: string) => void }) {
   const [copied, setCopied] = useState(false)
   const copy = async () => {
-    try { await navigator.clipboard.writeText(prompt.promptText); setCopied(true); window.setTimeout(() => setCopied(false), 1500) } catch { setCopied(false) }
+    try { await navigator.clipboard.writeText(prompt.promptText); setCopied(true); onCopy(); window.setTimeout(() => setCopied(false), 1500) } catch { setCopied(false) }
   }
+  const tags = promptHashtags(prompt)
   return <article className="prompt-tile">
     <Link to={`/prompt/${prompt.slug}`} className={`tile-image tile-image-${index % 6}`}>
-      {prompt.image ? <img src={prompt.image} alt={prompt.imageAlt || ''} loading="lazy" /> : <span className="tile-image-fallback"><Sparkles size={28} /></span>}
+      {prompt.image ? <img {...responsiveImage(prompt.image, '(max-width: 700px) 45vw, 23vw')} alt={prompt.imageAlt || ''} loading="lazy" /> : <span className="tile-image-fallback"><Sparkles size={28} /></span>}
       <span className="tile-vignette" />
       <span className="tile-tag">{prompt.category}</span>
       {prompt.featured && <span className="tile-featured"><Sparkles size={12} /> EDITOR’S PICK</span>}
       <span className="tile-open"><ArrowUpRight size={17} /></span>
     </Link>
+    {tags.length > 0 && <div className="tile-hashtags">{tags.map((tag) => <button key={tag} className="tile-hashtag" title={`Show every ${tag} prompt`} onClick={() => onHashtag(tag)}>#{tag}</button>)}</div>}
     <div className="tile-content"><div className="tile-heading"><Link to={`/prompt/${prompt.slug}`} className="tile-title">{prompt.title}</Link><button className={`tile-save ${saved ? 'is-saved' : ''}`} onClick={onToggleSave} aria-label={saved ? 'Remove from saved' : 'Save prompt'}><Heart size={17} fill={saved ? 'currentColor' : 'none'} /></button></div>
-      <p>{prompt.description}</p><div className="tile-footer">{!prompt.sourceUrl && <span>{prompt.tool} <b>·</b> {prompt.style}</span>}<button className="tile-copy" onClick={copy}>{copied ? <Check size={13} /> : <Copy size={13} />}{copied ? 'Copied' : 'Copy prompt'}</button></div>
+      <p>{prompt.description}</p>
+      <div className="tile-stats"><span><Copy size={11} /> {formatCount(engagement.copy)} copies</span><span><Share2 size={11} /> {formatCount(engagement.share)} shares</span></div>
+      <div className="tile-footer">{!prompt.sourceUrl && <span>{prompt.tool} <b>·</b> {prompt.style}</span>}<button className="tile-copy" onClick={copy}>{copied ? <Check size={13} /> : <Copy size={13} />}{copied ? 'Copied' : 'Copy prompt'}</button></div>
     </div>
   </article>
 }
@@ -95,7 +101,7 @@ function FeatureHero({ prompts }: { prompts: Prompt[] }) {
   return <section className="feature-hero trending-hero" id="trending">
     <div className="trending-hero-heading"><div><span className="feature-eyebrow"><Flame size={14} /> TRENDING NOW</span></div><span className="trending-hero-count">TOP 04</span></div>
     <div className="trending-template-grid">{trending.map((prompt, index) => <Link className="trending-template-card" to={`/prompt/${prompt.slug}`} key={prompt.id}>
-      <div className={`trending-template-image template-image-${index}`}>{prompt.image ? <img src={prompt.image} alt={prompt.imageAlt || prompt.title} loading="lazy" /> : <Sparkles size={28} />}<span className="trending-template-rank">0{index + 1}</span><span className="trending-template-tag">{prompt.featured ? 'TRENDING' : prompt.category}</span></div>
+      <div className={`trending-template-image template-image-${index}`}>{prompt.image ? <img {...responsiveImage(prompt.image, '(max-width: 700px) 44vw, 22vw')} alt={prompt.imageAlt || prompt.title} loading="lazy" /> : <Sparkles size={28} />}<span className="trending-template-rank">0{index + 1}</span><span className="trending-template-tag">{prompt.featured ? 'TRENDING' : prompt.category}</span></div>
       <div className="trending-template-copy"><span>{prompt.tool} <b>·</b> {prompt.style}</span><h2>{prompt.title}</h2><p>{prompt.description}</p><span className="trending-template-open">View template <ArrowUpRight size={14} /></span></div>
     </Link>)}</div>
   </section>
@@ -190,9 +196,50 @@ function SocialTrendSection({ addedIds, onAdd }: { addedIds: Set<string>; onAdd:
   </section>
 }
 
-function CategoryPills({ active, onSelect }: { active: string; onSelect: (category: string) => void }) {
-  const visible = ['All', ...promptCategories.slice(0, 11)]
-  return <div className="category-pills" aria-label="Filter by category">{visible.map((category) => <button key={category} className={active === category ? 'category-pill active' : 'category-pill'} onClick={() => onSelect(category)}>{category === 'Trending' && <Flame size={14} />}{category === 'Latest' && <Clock3 size={14} />}{category !== 'Trending' && category !== 'Latest' && category !== 'All' && <span className="pill-mark">✳</span>}{category}</button>)}</div>
+interface PromptFilter { key: string; label: string; count: number }
+
+/** Labels handled by the built-in pills instead of getting one of their own. */
+const reservedFilterKeys = new Set(['all', 'trending', 'latest', 'saved', 'featured'])
+
+/** Filter choices read from the loaded prompts, so a tag the blog actually uses is never missing. */
+function collectPromptFilters(prompts: Prompt[]): PromptFilter[] {
+  const curated = promptCategories.filter((name) => name !== 'Trending' && name !== 'Latest')
+  const found = new Map<string, PromptFilter>()
+  for (const prompt of prompts) {
+    const counted = new Set<string>()
+    for (const label of promptLabels(prompt)) {
+      const key = label.toLowerCase()
+      if (counted.has(key) || reservedFilterKeys.has(key)) continue
+      counted.add(key)
+      const existing = found.get(key)
+      if (existing) existing.count += 1
+      else found.set(key, { key, label: curated.find((name) => name.toLowerCase() === key) ?? label, count: 1 })
+    }
+  }
+  const curatedRank = new Map(curated.map((name, index) => [name.toLowerCase(), index]))
+  const present = [...found.values()].sort((a, b) => (curatedRank.get(a.key) ?? 100) - (curatedRank.get(b.key) ?? 100) || b.count - a.count || a.key.localeCompare(b.key))
+  const unused = curated.filter((name) => !found.has(name.toLowerCase())).map((name) => ({ key: name.toLowerCase(), label: name, count: 0 }))
+  return [...present, ...unused]
+}
+
+/** Prompt tiles shown per page of the library grid. */
+const libraryPageSize = 24
+
+/** Current page plus at most two neighbours on each side, always including the first and last page. */
+function pageNumbers(current: number, total: number): (number | 'gap')[] {
+  const wanted = new Set([1, total, current, current - 1, current + 1, current - 2, current + 2])
+  const pages = [...wanted].filter((page) => page >= 1 && page <= total).sort((a, b) => a - b)
+  const withGaps: (number | 'gap')[] = []
+  pages.forEach((page, index) => {
+    if (index > 0 && page - pages[index - 1] > 1) withGaps.push('gap')
+    withGaps.push(page)
+  })
+  return withGaps
+}
+
+function CategoryPills({ active, categories, onSelect }: { active: string; categories: PromptFilter[]; onSelect: (category: string) => void }) {
+  const visible: PromptFilter[] = [{ key: 'all', label: 'All', count: 0 }, { key: 'trending', label: 'Trending', count: 0 }, { key: 'latest', label: 'Latest', count: 0 }, ...categories.filter((category) => category.count > 0)]
+  return <div className="category-pills" aria-label="Filter by category">{visible.map((item) => <button key={item.key} className={active.toLowerCase() === item.key ? 'category-pill active' : 'category-pill'} onClick={() => onSelect(item.label)}>{item.label === 'Trending' && <Flame size={14} />}{item.label === 'Latest' && <Clock3 size={14} />}{item.label !== 'Trending' && item.label !== 'Latest' && item.label !== 'All' && <span className="pill-mark">✳</span>}{item.label}</button>)}</div>
 }
 
 function HomePhotoPromptGenerator({ canGenerate }: { canGenerate: boolean }) {
@@ -516,30 +563,47 @@ function HomePage({ prompts, blogStatus, canGenerate, onAddTrend, menuSections, 
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [recorderOpen, setRecorderOpen] = useState(false)
   const [qrOpen, setQrOpen] = useState(false)
+  const [page, setPage] = useState(1)
+  const { counts, record } = useEngagement()
   const utilityOpen = recorderOpen || qrOpen
   const location = useLocation()
   useEffect(() => { setQuery(new URLSearchParams(location.search).get('q') ?? '') }, [location.search])
+  const filters = useMemo(() => collectPromptFilters(prompts), [prompts])
   const shown = useMemo(() => {
     const term = query.trim().toLowerCase()
+    const tag = active.toLowerCase()
     let items = prompts
-    if (active === 'Trending') items = items.filter((item) => item.featured)
+    if (active === 'Trending') items = items.filter((item) => item.featured || promptTags(item).includes('trending'))
     else if (active === 'Latest') items = [...items].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     else if (active === 'Saved') items = items.filter((item) => savedIds.includes(item.id))
-    else if (active !== 'All') items = items.filter((item) => item.category.toLowerCase() === active.toLowerCase())
-    if (term) items = items.filter((item) => `${item.title} ${item.description} ${item.category} ${item.tool} ${item.style}`.toLowerCase().includes(term))
+    else if (tag !== 'all') items = items.filter((item) => promptTags(item).includes(tag))
+    if (term) items = items.filter((item) => `${item.title} ${item.description} ${item.category} ${item.tool} ${item.style} ${promptTags(item).join(' ')}`.toLowerCase().includes(term))
     return items
   }, [active, query, savedIds, prompts])
+  useEffect(() => { setPage(1) }, [active, query, savedIds])
   const toggleSave = (id: string) => setSavedIds((ids) => ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id])
+  const totalPages = Math.max(1, Math.ceil(shown.length / libraryPageSize))
+  const currentPage = Math.min(page, totalPages)
+  const pageItems = shown.slice((currentPage - 1) * libraryPageSize, currentPage * libraryPageSize)
+  const goToPage = (next: number) => {
+    setPage(Math.min(Math.max(next, 1), totalPages))
+    document.getElementById('explore')?.scrollIntoView({ behavior: 'smooth' })
+  }
+  /** A hashtag on a tile filters the library the way a pill does, then returns to the top of the grid. */
+  const showHashtag = (tag: string) => {
+    setActive(tag)
+    document.getElementById('explore')?.scrollIntoView({ behavior: 'smooth' })
+  }
   const addedTrendIds = useMemo(() => new Set(prompts.filter((prompt) => prompt.id.startsWith('social-')).map((prompt) => prompt.id.slice('social-'.length))), [prompts])
   const title = active === 'All' ? 'All prompts' : active === 'Saved' ? 'Your saved prompts' : active === 'Trending' ? 'Trending prompts' : active === 'Latest' ? 'Latest prompts' : `${active} prompts`
-  return <div className="app-layout"><Header onMenu={() => setSidebarOpen(true)} adminLoggedIn={adminLoggedIn} /><div className="page-body"><Sidebar open={sidebarOpen} active={active} onHome={() => { setActive('All'); setQuery(''); setRecorderOpen(false); setQrOpen(false); setSidebarOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }} recorderOpen={recorderOpen} qrOpen={qrOpen} onOpenRecorder={() => { setRecorderOpen(true); setQrOpen(false); setSidebarOpen(false); window.setTimeout(() => document.getElementById('home-generator-area')?.scrollIntoView({ behavior: 'smooth' }), 0) }} onOpenQr={() => { setQrOpen(true); setRecorderOpen(false); setSidebarOpen(false); window.setTimeout(() => document.getElementById('home-generator-area')?.scrollIntoView({ behavior: 'smooth' }), 0) }} onSelect={(category) => { setActive(category); setRecorderOpen(false); setQrOpen(false); setSidebarOpen(false); document.getElementById('explore')?.scrollIntoView({ behavior: 'smooth' }) }} onClose={() => setSidebarOpen(false)} menuSections={menuSections} />
+  return <div className="app-layout"><Header onMenu={() => setSidebarOpen(true)} adminLoggedIn={adminLoggedIn} /><div className="page-body"><Sidebar open={sidebarOpen} active={active} categories={filters} onHome={() => { setActive('All'); setQuery(''); setRecorderOpen(false); setQrOpen(false); setSidebarOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }} recorderOpen={recorderOpen} qrOpen={qrOpen} onOpenRecorder={() => { setRecorderOpen(true); setQrOpen(false); setSidebarOpen(false); window.setTimeout(() => document.getElementById('home-generator-area')?.scrollIntoView({ behavior: 'smooth' }), 0) }} onOpenQr={() => { setQrOpen(true); setRecorderOpen(false); setSidebarOpen(false); window.setTimeout(() => document.getElementById('home-generator-area')?.scrollIntoView({ behavior: 'smooth' }), 0) }} onSelect={(category) => { setActive(category); setRecorderOpen(false); setQrOpen(false); setSidebarOpen(false); document.getElementById('explore')?.scrollIntoView({ behavior: 'smooth' }) }} onClose={() => setSidebarOpen(false)} menuSections={menuSections} />
     <main className={`main-content ${utilityOpen ? 'recorder-main-wide' : ''}`}><div className={`content-inner ${utilityOpen ? 'recorder-content-wide' : ''}`}><div id="home-generator-area">{recorderOpen ? null : qrOpen ? <QRCodeGenerator /> : <HomePhotoPromptGenerator canGenerate={canGenerate} />}</div>{recorderOpen && <RecorderFullscreen onClose={() => setRecorderOpen(false)} />}<FeatureHero prompts={prompts} /><ProductScroller /><SocialTrendSection addedIds={addedTrendIds} onAdd={onAddTrend} />
       <section className="browse-section" id="explore"><div className="section-topline"><div><span className="section-kicker">THE PROMPT LIBRARY</span><h2>Find your next <em>favorite.</em></h2></div><span className="collection-count">{prompts.length} IDEAS <span>↗</span></span></div>
         
         <div className="inline-search"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search prompts, styles, ideas" aria-label="Filter the prompt library" />{query && <button onClick={() => setQuery('')} aria-label="Clear search"><X size={15} /></button>}</div>
-        <CategoryPills active={active} onSelect={setActive} />
+        <CategoryPills active={active} categories={filters} onSelect={setActive} />
         <div className="results-heading"><div><span className="results-label">BROWSE THE LIBRARY</span><h3>{title}</h3></div><span className="results-number">{String(shown.length).padStart(2, '0')} <span>prompts</span></span></div>
-        {shown.length ? <div className="prompt-grid">{shown.map((prompt, index) => <PromptCard key={prompt.id} prompt={prompt} index={index} saved={savedIds.includes(prompt.id)} onToggleSave={() => toggleSave(prompt.id)} />)}</div> : <div className="no-results"><span>✳</span><h3>{blogStatus === 'connected' && prompts.length === 0 ? 'No published posts yet' : 'No prompts here yet'}</h3><p>{blogStatus === 'connected' && prompts.length === 0 ? 'Your Blogger connection is working. Publish a post on the blog and it will appear here.' : 'Try another category or search term.'}</p>{!(blogStatus === 'connected' && prompts.length === 0) && <button onClick={() => { setActive('All'); setQuery('') }}>Show all prompts <ArrowRight size={15} /></button>}</div>}
+        {shown.length ? <><div className="prompt-grid">{pageItems.map((prompt, index) => <PromptCard key={prompt.id} prompt={prompt} index={(currentPage - 1) * libraryPageSize + index} saved={savedIds.includes(prompt.id)} engagement={engagementFor(counts, prompt.id)} onToggleSave={() => toggleSave(prompt.id)} onCopy={() => record(prompt.id, 'copy')} onHashtag={showHashtag} />)}</div>{totalPages > 1 && <nav className="library-pagination" aria-label="Prompt pages"><button className="pagination-edge" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}><ArrowLeft size={15} /> Prev</button><div className="pagination-pages">{pageNumbers(currentPage, totalPages).map((entry, index) => entry === 'gap' ? <span className="pagination-gap" key={`gap-${index}`}>…</span> : <button key={entry} className={`pagination-page ${entry === currentPage ? 'is-current' : ''}`} onClick={() => goToPage(entry)} aria-current={entry === currentPage ? 'page' : undefined}>{entry}</button>)}</div><span className="pagination-range">{String((currentPage - 1) * libraryPageSize + 1).padStart(2, '0')}–{String((currentPage - 1) * libraryPageSize + pageItems.length).padStart(2, '0')} of {String(shown.length).padStart(2, '0')}</span><button className="pagination-edge" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}>Next <ArrowRight size={15} /></button></nav>}</> : <div className="no-results"><span>✳</span><h3>{blogStatus === 'connected' && prompts.length === 0 ? 'No published posts yet' : 'No prompts here yet'}</h3><p>{blogStatus === 'connected' && prompts.length === 0 ? 'Your Blogger connection is working. Publish a post on the blog and it will appear here.' : 'Try another category or search term.'}</p>{!(blogStatus === 'connected' && prompts.length === 0) && <button onClick={() => { setActive('All'); setQuery('') }}>Show all prompts <ArrowRight size={15} /></button>}</div>}
       </section>
       <footer className="page-footer"><Link to="/" className="brand"><span className="brand-symbol"><Sparkles size={15} /></span><span>Promptseen<i>.</i></span></Link><p>Good ideas like being shared.</p><div className="community-links"><strong>Join our community</strong><nav aria-label="Join our social communities">{appConfig.community.whatsappPhone && <a className="community-whatsapp" href={`https://wa.me/${appConfig.community.whatsappPhone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"><MessageCircle size={16} /> WhatsApp</a>}{appConfig.community.instagramUsername && <a className="community-instagram" href={`https://instagram.com/${encodeURIComponent(appConfig.community.instagramUsername)}`} target="_blank" rel="noreferrer"><Instagram size={16} /> Instagram</a>}{appConfig.community.facebookPageId && <a className="community-facebook" href={`https://facebook.com/${encodeURIComponent(appConfig.community.facebookPageId)}`} target="_blank" rel="noreferrer"><Facebook size={16} /> Facebook</a>}{appConfig.community.telegramUsername && <a className="community-telegram" href={`https://t.me/${encodeURIComponent(appConfig.community.telegramUsername)}`} target="_blank" rel="noreferrer"><Send size={16} /> Telegram</a>}</nav></div><span>© {new Date().getFullYear()} Promptseen</span></footer>
     </div></main></div></div>
@@ -673,6 +737,7 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
   const [copied, setCopied] = useState(false)
   const [shareMenuOpen, setShareMenuOpen] = useState(false)
   const [shareMessage, setShareMessage] = useState('')
+  const { counts, record } = useEngagement()
   const prompt = prompts.find((item) => item.slug === slug)
   useEffect(() => {
     if (!prompt) return
@@ -685,7 +750,7 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
       ['property', 'og:description', prompt.description],
       ['property', 'og:type', 'article'],
       ['property', 'og:url', `${window.location.origin}/prompt/${encodeURIComponent(prompt.slug)}`],
-      ['property', 'og:image', prompt.image ?? ''],
+      ['property', 'og:image', imageAtWidth(prompt.image, 1200) ?? ''],
       ['name', 'twitter:card', prompt.image ? 'summary_large_image' : 'summary'],
       ...hashtags.map((tag) => ['property', 'article:tag', tag] as const),
     ]
@@ -713,15 +778,17 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
     }
   }, [prompt])
   if (!prompt) return <main className="not-found"><Sparkles size={25} /><h1>This prompt is still a blank canvas.</h1><Link to="/">Back to the library <ArrowRight size={15} /></Link></main>
-  const copy = async () => { try { await navigator.clipboard.writeText(prompt.promptText); setCopied(true); window.setTimeout(() => setCopied(false), 1600) } catch { setCopied(false) } }
+  const copy = async () => { try { await navigator.clipboard.writeText(prompt.promptText); setCopied(true); record(prompt.id, 'copy'); window.setTimeout(() => setCopied(false), 1600) } catch { setCopied(false) } }
   const pageUrl = `${window.location.origin}/prompt/${encodeURIComponent(prompt.slug)}`
-  const shareText = `${prompt.title}\n\n${prompt.promptText}${prompt.image ? `\n\nImage:\n${prompt.image}` : ''}\n\n${pageUrl}`
+  const engagement = engagementFor(counts, prompt.id)
+  const shareText = `${prompt.title}\n\n${prompt.promptText}${prompt.image ? `\n\nImage:\n${imageAtWidth(prompt.image, 1200)}` : ''}\n\n${pageUrl}`
   const copyForAiTool = (label: string) => {
     if (!navigator.clipboard?.writeText) {
       setShareMessage('Clipboard is unavailable here. Copy the prompt above, then paste it into the tool.')
       return
     }
     void navigator.clipboard.writeText(prompt.promptText).then(() => {
+      record(prompt.id, 'copy')
       setShareMessage(`Prompt copied. Paste it into ${label}.`)
       window.setTimeout(() => setShareMessage(''), 3000)
     }).catch(() => {
@@ -729,11 +796,11 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
       window.setTimeout(() => setShareMessage(''), 4000)
     })
   }
-  return <div className="detail-shell"><Header onMenu={() => navigate('/')} /><main className="prompt-detail"><button className="detail-back" onClick={() => navigate(-1)}><ArrowLeft size={16} /> Back to prompts</button><div className="detail-columns"><div className="detail-cover">{prompt.image && <img src={prompt.image} alt={prompt.imageAlt || ''} />}<span>{prompt.category}</span></div><div className="detail-info">{!prompt.sourceUrl && <span className="section-kicker">{prompt.tool} · {prompt.style}</span>}<h1>{prompt.title}</h1><p>{prompt.description}</p><div className="detail-prompt-label">THE PROMPT <span>READY TO COPY</span></div><div className="detail-prompt-text">{prompt.promptText}</div><button className="copy-large" onClick={copy}>{copied ? <Check size={17} /> : <Copy size={17} />}{copied ? 'Copied to clipboard' : 'Copy prompt'} <ArrowRight size={16} /></button><section className="prompt-share-panel"><button type="button" className="prompt-share-toggle" aria-expanded={shareMenuOpen} onClick={() => setShareMenuOpen((open) => !open)}><Copy size={17} /> Share prompt <span>{shareMenuOpen ? '−' : '+'}</span></button>{shareMenuOpen && <div className="prompt-share-options"><div className="share-group"><strong>Send to someone</strong><div className="share-target-list">{appConfig.promptSharing.messaging.map((target) => {
+  return <div className="detail-shell"><Header onMenu={() => navigate('/')} /><main className="prompt-detail"><button className="detail-back" onClick={() => navigate(-1)}><ArrowLeft size={16} /> Back to prompts</button><div className="detail-columns"><div className="detail-cover">{prompt.image && <img src={imageAtWidth(prompt.image, 1000)} alt={prompt.imageAlt || ''} />}<span>{prompt.category}</span></div><div className="detail-info">{!prompt.sourceUrl && <span className="section-kicker">{prompt.tool} · {prompt.style}</span>}<h1>{prompt.title}</h1><p>{prompt.description}</p><div className="detail-prompt-label">THE PROMPT <span>READY TO COPY</span></div><div className="detail-prompt-text">{prompt.promptText}</div><button className="copy-large" onClick={copy}>{copied ? <Check size={17} /> : <Copy size={17} />}{copied ? 'Copied to clipboard' : 'Copy prompt'} <ArrowRight size={16} /></button><div className="detail-stats"><span><Copy size={13} /> {formatCount(engagement.copy)} copies</span><span><Share2 size={13} /> {formatCount(engagement.share)} shares</span></div><section className="prompt-share-panel"><button type="button" className="prompt-share-toggle" aria-expanded={shareMenuOpen} onClick={() => setShareMenuOpen((open) => !open)}><Copy size={17} /> Share prompt <span>{shareMenuOpen ? '−' : '+'}</span></button>{shareMenuOpen && <div className="prompt-share-options"><div className="share-group"><strong>Send to someone</strong><div className="share-target-list">{appConfig.promptSharing.messaging.map((target) => {
         const url = target.id === 'whatsapp'
           ? `${target.baseUrl}?text=${encodeURIComponent(shareText)}`
           : `${target.baseUrl}?url=${encodeURIComponent(prompt.image || pageUrl)}&text=${encodeURIComponent(`${prompt.title}\n\n${prompt.promptText}${prompt.image ? `\n\n${pageUrl}` : ''}`)}`
-        return <a key={target.id} className={`share-target share-${target.id}`} href={url} target="_blank" rel="noreferrer"><ArrowUpRight size={15} /> {target.label}</a>
+        return <a key={target.id} className={`share-target share-${target.id}`} href={url} target="_blank" rel="noreferrer" onClick={() => record(prompt.id, 'share')}><ArrowUpRight size={15} /> {target.label}</a>
       })}</div></div><div className="share-group"><strong>Open with prompt copied</strong><div className="share-target-list">{appConfig.promptSharing.aiTools.map((target) => <a key={target.id} className="share-target" href={target.url} target="_blank" rel="noreferrer" onClick={() => copyForAiTool(target.label)}>{target.label}<ArrowUpRight size={13} /></a>)}</div><p className="share-helper">The prompt is copied to your clipboard. Paste it into the tool after it opens.</p></div></div>}</section>{shareMessage && <p className="share-status" role="status">{shareMessage}</p>}</div></div></main></div>
 }
 
@@ -888,7 +955,11 @@ function parseHashtags(input: string): string[] {
   return [...new Set(input.split(/[\s,;]+/).map((tag) => tag.replace(/^#+/, '').replace(/[^\p{L}\p{N}_]/gu, '')).filter(Boolean))].slice(0, 12)
 }
 
-interface AdminAiModel { id: string; name: string; provider: string; model: string; configured: boolean; custom?: boolean }
+interface AdminAiModel { id: string; name: string; provider: string; model: string; configured: boolean; custom?: boolean; baseUrl?: string }
+
+const defaultCustomBaseUrl = 'https://api.zyloai.net/v1'
+const zyloModelIds = ['gemini-3.1-pro', 'zimage', 'openai/gpt-image-1.5']
+const providerLabel = (provider: string) => provider === 'custom' ? 'Custom endpoint' : provider
 
 function AiModelSettingsPage() {
   const [models, setModels] = useState<AdminAiModel[]>([
@@ -901,7 +972,11 @@ function AiModelSettingsPage() {
   const [draftProvider, setDraftProvider] = useState('openai')
   const [draftName, setDraftName] = useState('')
   const [draftModel, setDraftModel] = useState('')
+  const [draftBaseUrl, setDraftBaseUrl] = useState(defaultCustomBaseUrl)
   const [draftApiKey, setDraftApiKey] = useState('')
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [testingId, setTestingId] = useState<string | null>(null)
+  const [keyTest, setKeyTest] = useState<{ id: string; ok: boolean; detail: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -920,17 +995,55 @@ function AiModelSettingsPage() {
     void load()
     return () => { cancelled = true }
   }, [])
-  const addModel = () => {
+  const resetDraft = () => { setEditingId(null); setDraftName(''); setDraftModel(''); setDraftApiKey(''); setDraftBaseUrl(defaultCustomBaseUrl); setDraftProvider('openai') }
+  const saveDraft = () => {
     setError(''); setNotice('')
     const name = draftName.trim()
     const model = draftModel.trim()
-    const id = `${draftProvider}-${model.toLowerCase().replace(/[^a-z0-9._-]+/g, '-')}`
-    if (!name || !model || !draftApiKey.trim()) { setError('Enter the model name, model ID, and API key before adding it.'); return }
-    if (models.some((item) => item.id === id)) { setError('This provider and model ID are already in the list.'); return }
-    setModels((items) => [...items, { id, name, provider: draftProvider, model, configured: false, custom: true }])
-    setApiKeys((items) => ({ ...items, [id]: draftApiKey.trim() }))
-    setDraftName(''); setDraftModel(''); setDraftApiKey('')
-    setNotice(`${name} added. Choose its toggle and save to use it for prompt generation.`)
+    const isCustom = draftProvider === 'custom'
+    const baseUrl = isCustom ? draftBaseUrl.trim().replace(/\/+$/, '') : ''
+    if (!name || !model) { setError('Enter a display name and the model ID.'); return }
+    if (isCustom && !/^https?:\/\/\S+$/i.test(baseUrl)) { setError(`Enter the custom API base URL, for example ${defaultCustomBaseUrl}.`); return }
+    if (!editingId && !draftApiKey.trim()) { setError('Enter the provider API key before adding a model.'); return }
+    const id = editingId ?? `${draftProvider}-${model.toLowerCase().replace(/[^a-z0-9._-]+/g, '-')}`
+    const existing = models.find((item) => item.id === id)
+    if (existing && !existing.custom) { setError('That model ID belongs to a built-in model. Paste its key on that card instead.'); return }
+    const entry = { id, name, provider: draftProvider, model, ...(isCustom ? { baseUrl } : {}) }
+    setModels((items) => items.some((item) => item.id === id) ? items.map((item) => item.id === id ? { ...item, ...entry } : item) : [...items, { ...entry, configured: false, custom: true }])
+    if (draftApiKey.trim()) setApiKeys((values) => ({ ...values, [id]: draftApiKey.trim() }))
+    resetDraft()
+    setNotice(`${name} is ready. Switch it on and save to generate prompts with it.`)
+  }
+  const testKey = async (model: AdminAiModel) => {
+    setError(''); setNotice(''); setTestingId(model.id); setKeyTest(null)
+    try {
+      const response = await fetch('/api/ai-model-settings', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${getBloggerAccessToken()}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ modelId: model.id, apiKey: apiKeys[model.id] ?? '' }),
+      })
+      const result = await response.json().catch(() => ({})) as { ok?: boolean; detail?: string; error?: string }
+      if (!response.ok) throw new Error(result.error || `Could not reach the model settings API (${response.status}).`)
+      setKeyTest({ id: model.id, ok: Boolean(result.ok), detail: result.detail ?? 'The provider gave no answer.' })
+    } catch (reason) { setKeyTest({ id: model.id, ok: false, detail: reason instanceof Error ? reason.message : 'Could not test this API key.' }) }
+    finally { setTestingId(null) }
+  }
+  const editModel = (model: AdminAiModel) => {
+    setError(''); setNotice('')
+    setEditingId(model.id); setDraftProvider(model.provider); setDraftName(model.name); setDraftModel(model.model); setDraftBaseUrl(model.baseUrl || defaultCustomBaseUrl); setDraftApiKey('')
+  }
+  const removeModel = (model: AdminAiModel) => {
+    setError(''); setNotice('')
+    setModels((items) => items.filter((item) => item.id !== model.id))
+    setApiKeys((values) => { const next = { ...values }; delete next[model.id]; return next })
+    setKeyTest((current) => current?.id === model.id ? null : current)
+    setActiveModel((current) => current === model.id ? null : current)
+    if (editingId === model.id) resetDraft()
+    setNotice(`${model.name} removed. Save to apply the change.`)
+  }
+  const useZyloPreset = () => {
+    setError(''); setNotice('')
+    setEditingId(null); setDraftProvider('custom'); setDraftBaseUrl(defaultCustomBaseUrl); setDraftName('ZyloAI Gemini'); setDraftModel(zyloModelIds[0])
   }
   const save = async (event: FormEvent) => {
     event.preventDefault(); setSaving(true); setError(''); setNotice('')
@@ -938,7 +1051,7 @@ function AiModelSettingsPage() {
       const response = await fetch('/api/ai-model-settings', {
         method: 'PUT',
         headers: { Authorization: `Bearer ${getBloggerAccessToken()}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ activeModel, apiKeys, customModels: models.filter((model) => model.custom).map(({ id, name, provider, model }) => ({ id, name, provider, model })) }),
+        body: JSON.stringify({ activeModel, apiKeys, customModels: models.filter((item) => item.custom).map(({ id, name, provider, model, baseUrl }) => ({ id, name, provider, model, ...(provider === 'custom' && baseUrl ? { baseUrl } : {}) })) }),
       })
       const result = await response.json().catch(() => ({})) as { models?: AdminAiModel[]; activeModel?: string | null; error?: string }
       if (!response.ok) throw new Error(result.error || `Could not save AI model settings (${response.status}).`)
@@ -947,10 +1060,15 @@ function AiModelSettingsPage() {
     finally { setSaving(false) }
   }
   const selectedModel = models.find((model) => model.id === activeModel)
-  return <><div className="admin-page-heading"><div><span className="admin-kicker">PROMPTSEEN / AI CONFIGURATION</span><h1>AI models</h1><p>Add models and switch on one for prompt generation.</p></div><Link to="/admin" className="admin-secondary"><ArrowLeft size={15} /> Back to dashboard</Link></div><div className="ai-active-model-banner"><span className={`ai-active-model-indicator ${activeModel ? 'on' : ''}`} /><div><small>MODEL IN USE</small><strong>{loading ? 'Loading model settings…' : activeModel ? selectedModel?.name ?? activeModel : 'No model active'}</strong></div><span className="ai-active-model-provider">{activeModel ? selectedModel?.provider ?? '' : 'Prompt generation is off'}</span></div><div className="ai-settings-notice"><ShieldCheck size={17} /><span>Settings are saved in the server config file <code>data/ai-model-settings.json</code>. Provider keys are encrypted with <code>AI_SETTINGS_ENCRYPTION_KEY</code>.</span></div>{loading ? <section className="editor-panel">Loading AI model settings…</section> : <form className="ai-model-settings" onSubmit={save}>
-    <section className="ai-add-model-card"><div><span className="admin-kicker">CUSTOM PROVIDER</span><h2>Add a model</h2><p>Choose a provider, then enter its model name, model ID, and API key.</p></div><div className="ai-add-model-fields"><label>Provider<select value={draftProvider} onChange={(event) => setDraftProvider(event.target.value)}><option value="openai">OpenAI</option><option value="google">Google</option><option value="anthropic">Anthropic</option></select></label><label>Display name<input value={draftName} onChange={(event) => setDraftName(event.target.value)} placeholder="e.g. GPT-4o mini" /></label><label>Model ID<input value={draftModel} onChange={(event) => setDraftModel(event.target.value)} placeholder="e.g. gpt-4o-mini" /></label><label>API key<input type="password" autoComplete="new-password" value={draftApiKey} onChange={(event) => setDraftApiKey(event.target.value)} placeholder="Paste provider API key" /></label><button type="button" className="ai-add-model-button" onClick={addModel}><Plus size={15} /> Add model</button></div></section>
-    <div className="ai-model-grid">{models.map((model) => <section className={`ai-model-card ${activeModel === model.id ? 'active' : ''}`} key={model.id}><div className="ai-model-card-heading"><div><span>{model.provider}</span><h2>{model.name}</h2></div><button type="button" className={`ai-model-toggle ${activeModel === model.id ? 'enabled' : ''}`} role="switch" aria-checked={activeModel === model.id} aria-label={`${activeModel === model.id ? 'Deactivate' : 'Activate'} ${model.name}`} disabled={activeModel !== model.id && !model.configured && !apiKeys[model.id]?.trim()} onClick={() => setActiveModel((current) => current === model.id ? null : model.id)}><span />{activeModel === model.id ? 'ON' : 'OFF'}</button></div><p>Model ID: <code>{model.model}</code></p><label className="editor-field">API key<input type="password" autoComplete="new-password" value={apiKeys[model.id] ?? ''} onChange={(event) => setApiKeys((values) => ({ ...values, [model.id]: event.target.value }))} placeholder={model.configured ? 'Key saved securely · enter to replace' : `Paste ${model.provider} API key`} /></label><small className={model.configured || apiKeys[model.id]?.trim() ? 'ai-key-status configured' : 'ai-key-status'}>{model.configured ? 'API key configured' : apiKeys[model.id]?.trim() ? 'API key ready to save' : 'API key not configured'}</small></section>)}</div>
+  return <><div className="admin-page-heading"><div><span className="admin-kicker">PROMPTSEEN / AI CONFIGURATION</span><h1>AI models</h1><p>Add models and switch on one for prompt generation.</p></div><Link to="/admin" className="admin-secondary"><ArrowLeft size={15} /> Back to dashboard</Link></div><div className="ai-active-model-banner"><span className={`ai-active-model-indicator ${activeModel ? 'on' : ''}`} /><div><small>MODEL IN USE</small><strong>{loading ? 'Loading model settings…' : activeModel ? selectedModel?.name ?? activeModel : 'No model active'}</strong></div><span className="ai-active-model-provider">{activeModel ? providerLabel(selectedModel?.provider ?? '') : 'Prompt generation is off'}</span></div><div className="ai-settings-notice"><ShieldCheck size={17} /><span>Settings are saved in the server config file <code>data/ai-model-settings.json</code>. Provider keys are encrypted with <code>AI_SETTINGS_ENCRYPTION_KEY</code>.</span></div>{loading ? <section className="editor-panel">Loading AI model settings…</section> : <form className="ai-model-settings" onSubmit={save}>
+    <section className="ai-add-model-card"><div><span className="admin-kicker">{editingId ? 'EDIT CUSTOM MODEL' : 'CUSTOM PROVIDER'}</span><h2>{editingId ? 'Update this model' : 'Add a model'}</h2><p>Pick a provider, then enter its display name, model ID and API key. A custom endpoint works with any OpenAI-compatible API such as ZyloAI.</p><button type="button" className="ai-model-preset" onClick={useZyloPreset}><Sparkles size={14} /> Use ZyloAI</button></div><div className="ai-add-model-fields"><label>Provider<select value={draftProvider} onChange={(event) => setDraftProvider(event.target.value)}><option value="openai">OpenAI</option><option value="google">Google</option><option value="anthropic">Anthropic</option><option value="custom">ZyloAI / custom endpoint</option></select></label>{draftProvider === 'custom' && <label>API base URL<input value={draftBaseUrl} onChange={(event) => setDraftBaseUrl(event.target.value)} placeholder={defaultCustomBaseUrl} maxLength={160} /></label>}<label>Display name<input value={draftName} onChange={(event) => setDraftName(event.target.value)} placeholder="e.g. GPT-4o mini" /></label><label>Model ID<input value={draftModel} onChange={(event) => setDraftModel(event.target.value)} placeholder={draftProvider === 'custom' ? zyloModelIds[0] : 'e.g. gpt-4o-mini'} /></label>{draftProvider === 'custom' && <small className="ai-custom-endpoint-hint">POSTs to {draftBaseUrl.trim().replace(/\/+$/, '') || defaultCustomBaseUrl}/chat/completions with a Bearer key. ZyloAI model IDs: {zyloModelIds.join(', ')}.</small>}<label>API key<input type="password" autoComplete="new-password" value={draftApiKey} onChange={(event) => setDraftApiKey(event.target.value)} placeholder={editingId ? 'Leave blank to keep the saved key' : 'Paste provider API key'} /></label><button type="button" className="ai-add-model-button" onClick={saveDraft}>{editingId ? <><Check size={15} /> Update model</> : <><Plus size={15} /> Add model</>}</button>{editingId && <button type="button" className="ai-model-cancel" onClick={resetDraft}>Cancel</button>}</div></section>
+    <div className="ai-model-grid">{models.map((model) => <section className={`ai-model-card ${activeModel === model.id ? 'active' : ''}`} key={model.id}><div className="ai-model-card-heading"><div><span>{providerLabel(model.provider)}</span><h2>{model.name}</h2></div><button type="button" className={`ai-model-toggle ${activeModel === model.id ? 'enabled' : ''}`} role="switch" aria-checked={activeModel === model.id} aria-label={`${activeModel === model.id ? 'Deactivate' : 'Activate'} ${model.name}`} disabled={activeModel !== model.id && !model.configured && !apiKeys[model.id]?.trim()} onClick={() => setActiveModel((current) => current === model.id ? null : model.id)}><span />{activeModel === model.id ? 'ON' : 'OFF'}</button></div><p>Model ID: <code>{model.model}</code></p>{model.baseUrl && <p className="ai-model-endpoint">Endpoint: <code>{`${model.baseUrl}/chat/completions`}</code></p>}<label className="editor-field">API key<input type="password" autoComplete="new-password" value={apiKeys[model.id] ?? ''} onChange={(event) => setApiKeys((values) => ({ ...values, [model.id]: event.target.value }))} placeholder={model.configured ? 'Key saved securely · enter to replace' : model.provider === 'custom' ? 'Paste the endpoint API key' : `Paste ${model.provider} API key`} /></label><small className={model.configured || apiKeys[model.id]?.trim() ? 'ai-key-status configured' : 'ai-key-status'}>{model.configured ? 'API key configured' : apiKeys[model.id]?.trim() ? 'API key ready to save' : 'API key not configured'}</small><div className="ai-model-test"><button type="button" onClick={() => void testKey(model)} disabled={testingId !== null || (!model.configured && !apiKeys[model.id]?.trim())}><Zap size={14} /> {testingId === model.id ? 'Testing key…' : 'Test key'}</button>{keyTest?.id === model.id && <small className={keyTest.ok ? 'ai-key-test-result ok' : 'ai-key-test-result fail'} role="status">{keyTest.detail}</small>}</div>{model.custom && <div className="ai-model-actions"><button type="button" onClick={() => editModel(model)}>Edit</button><button type="button" className="ai-model-remove" onClick={() => removeModel(model)}><Trash2 size={14} /> Remove</button></div>}</section>)}</div>
     {activeModel === null && <p className="ai-model-off-notice" role="status">All models are off. Prompt generation is paused until you switch on a configured model.</p>}{error && <p className="editor-error" role="alert">{error}</p>}{notice && <p className="ai-settings-success" role="status">{notice}</p>}<button className="publish-button ai-settings-save" type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save model settings'} <Check size={16} /></button></form>}</>
+}
+
+function titleFromPromptText(text: string): string {
+  const firstLine = text.split('\n').map((line) => line.replace(/[#>*`]/g, '').trim()).find((line) => line.length > 0) ?? ''
+  return firstLine.slice(0, 70).trim()
 }
 
 function PromptEditor({ onPublish, customCategories }: { onPublish: (prompt: Prompt, target: { blogId: string; postId: string }) => Promise<{ id: string; url: string; published: string; imageUrl: string }>; customCategories: string[] }) {
@@ -971,9 +1089,11 @@ function PromptEditor({ onPublish, customCategories }: { onPublish: (prompt: Pro
   const [isPublishing, setIsPublishing] = useState(false)
   const [isLoadingDraft, setIsLoadingDraft] = useState(true)
   const navigate = useNavigate()
+  const effectiveTitle = title.trim() || titleFromPromptText(promptText)
   useEffect(() => {
     let cancelled = false
-    if (!bloggerPostUrl.trim()) { setIsLoadingDraft(false); setError(''); return }
+    if (!bloggerPostUrl.trim()) { setIsLoadingDraft(false); setTitle(''); setError(''); return }
+    setIsLoadingDraft(true)
     const timer = window.setTimeout(() => {
       let target: { blogId: string; postId: string }
       try { target = parseBloggerEditUrl(bloggerPostUrl) } catch (reason) {
@@ -982,7 +1102,7 @@ function PromptEditor({ onPublish, customCategories }: { onPublish: (prompt: Pro
         return
       }
       setError('')
-      setIsLoadingDraft(true)
+      setTitle('')
       getPromptBloggerDraftMetadata(target).then((draft) => {
         if (cancelled) return
         setTitle(draft.title)
@@ -1027,11 +1147,11 @@ function PromptEditor({ onPublish, customCategories }: { onPublish: (prompt: Pro
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     setError('')
-    if (!title.trim()) { setError('Add a title to the Blogger post before continuing.'); return }
     let target: { blogId: string; postId: string }
     try { target = parseBloggerEditUrl(bloggerPostUrl) } catch (reason) { setError(reason instanceof Error ? reason.message : 'Paste a valid Blogger edit link.'); return }
-    const slug = title.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || target.postId
-    const prompt: Prompt = { id: `pending-${Date.now()}`, slug, title: title.trim(), description: description.trim(), promptText: promptText.trim(), category, tool, style: style.trim() || 'Creative', featured: false, hashtags: parseHashtags(hashtagsInput), createdAt: new Date().toISOString().slice(0, 10) }
+    if (!promptText.trim()) { setError('Write the prompt first — its first line names the Blogger post when the draft has no title.'); return }
+    const slug = effectiveTitle.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || target.postId
+    const prompt: Prompt = { id: `pending-${Date.now()}`, slug, title: effectiveTitle, description: description.trim(), promptText: promptText.trim(), category, tool, style: style.trim() || 'Creative', featured: false, hashtags: parseHashtags(hashtagsInput), createdAt: new Date().toISOString().slice(0, 10) }
     setIsPublishing(true)
     try {
       const post = await onPublish(prompt, target)
@@ -1040,7 +1160,7 @@ function PromptEditor({ onPublish, customCategories }: { onPublish: (prompt: Pro
       setError(reason instanceof Error ? reason.message : 'Blogger could not publish this post.')
     } finally { setIsPublishing(false) }
   }
-  return <><div className="admin-page-heading editor-page-heading"><div><span className="admin-kicker">PROMPTSEEN / CONTENT</span><h1>Create prompt from Blogger</h1><p>Start a new Blogger post, upload its image, then complete the prompt details here.</p></div><Link to="/admin" className="admin-secondary"><ArrowLeft size={15} /> Back to dashboard</Link></div><div className="editor-preview-banner"><span className="preview-banner-icon"><ShieldCheck size={17} /></span><div><strong>1. Start a new Blogger post and upload your image. 2. Paste its saved post link here and complete the prompt fields.</strong><p>Use the Blogger post link below to choose the post. Publishing writes your title and prompt details into that post and keeps Blogger images.</p></div></div><form className="prompt-editor" onSubmit={submit}><div className="editor-main-column"><section className="editor-panel"><div className="editor-panel-heading"><div><span className="admin-kicker">01 — THE BASICS</span><h2>Prompt details</h2></div><span className="required-note">* REQUIRED</span></div><label className="editor-field">Blogger post link <b>*</b><input type="url" value={bloggerPostUrl} onChange={(event) => setBloggerPostUrl(event.target.value)} placeholder="Paste the new post link after saving it in Blogger" required /></label><div className="editor-two-fields"><label className="editor-field">Category <b>*</b><select value={category} onChange={(event) => setCategory(event.target.value)}>{categories.map((item) => <option key={item}>{item}</option>)}</select></label><label className="editor-field">AI tool<select value={tool} onChange={(event) => setTool(event.target.value)}>{['Gemini', 'ChatGPT', 'Midjourney', 'Other'].map((item) => <option key={item}>{item}</option>)}</select></label></div><label className="editor-field">Style tag<input value={style} onChange={(event) => setStyle(event.target.value)} placeholder="e.g. Film portrait" maxLength={32} /></label><label className="editor-field">Hashtags<input value={hashtagsInput} onChange={(event) => setHashtagsInput(event.target.value)} placeholder="#AIart #PortraitPrompt #Gemini" /><small>Add up to 12, separated by spaces or commas. They become Blogger labels and prompt-page metadata.</small></label></section><section className="editor-panel prompt-copy-panel"><div className="editor-panel-heading"><div><span className="admin-kicker">02 — THE PROMPT</span><h2>Write the prompt</h2></div><span className="required-note">* REQUIRED</span></div><div className="photo-prompt-generator"><div className="photo-generator-top"><div><strong>Generate from a photo</strong><small>Upload a photo and GPT-4o will write an image prompt.</small></div><ImagePlus size={19} /></div><label className="photo-generator-picker">{generatorPhoto ? <img src={generatorPhoto} alt="Selected photo preview" /> : <span><ImagePlus size={22} /> Choose a photo</span>}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => selectGeneratorPhoto(event.currentTarget.files?.[0])} /><small>{generatorPhotoName || "JPG, PNG, or WebP · up to 3 MB"}</small></label><button className="photo-generator-button" type="button" onClick={() => void generateFromPhoto()} disabled={isGenerating || !generatorPhoto}>{isGenerating ? "Generating…" : "Generate prompt"}<Sparkles size={15} /></button>{generatorError && <p className="editor-error" role="alert">{generatorError}</p>}</div><label className="editor-field">Prompt text<textarea className="prompt-textarea" value={promptText} onChange={(event) => setPromptText(event.target.value)} placeholder="Write a prompt or generate one from a photo…" rows={9} required /><small>Generated text appears here. You can edit it before publishing.</small></label></section></div><aside className="editor-side-column"><section className="editor-panel image-editor-panel"><div className="editor-panel-heading"><div><span className="admin-kicker">03 — BLOGGER BODY</span><h2>Post content and image</h2></div></div><p>Upload and save your image in Blogger. The title, description, category, AI tool, hashtags, and prompt you enter here will be added to that post.</p><a className="admin-text-link" href={`https://www.blogger.com/blog/posts/${promptBloggerDraft.blogId}`} target="_blank" rel="noreferrer">Open Blogger posts <ArrowUpRight size={14} /></a><p>Click <strong>+ NEW POST</strong> in Blogger. After saving the draft, copy its edit URL and paste it into the Blogger post link field above.</p></section><section className="editor-panel publish-panel"><span className="admin-kicker">PUBLISH</span><h2>Ready to share?</h2><p>This updates the selected Blogger post with all prompt details and publishes it.</p>{error && <p className="editor-error" role="alert">{error}</p>}<button className="publish-button" type="submit" disabled={isPublishing || isLoadingDraft}><Plus size={16} /> {isLoadingDraft ? 'Loading Blogger draft…' : isPublishing ? 'Updating and publishing…' : 'Update and publish draft'} <ArrowRight size={15} /></button></section></aside></form></>
+  return <><div className="admin-page-heading editor-page-heading"><div><span className="admin-kicker">PROMPTSEEN / CONTENT</span><h1>Create prompt from Blogger</h1><p>Start a new Blogger post, upload its image, then complete the prompt details here.</p></div><Link to="/admin" className="admin-secondary"><ArrowLeft size={15} /> Back to dashboard</Link></div><div className="editor-preview-banner"><span className="preview-banner-icon"><ShieldCheck size={17} /></span><div><strong>1. Start a new Blogger post and upload your image. 2. Paste its saved post link here and complete the prompt fields.</strong><p>Use the Blogger post link below to choose the post. Publishing keeps its Blogger title — an untitled draft is named from the first line of your prompt — and keeps Blogger images.</p></div></div><form className="prompt-editor" onSubmit={submit}><div className="editor-main-column"><section className="editor-panel"><div className="editor-panel-heading"><div><span className="admin-kicker">01 — THE BASICS</span><h2>Prompt details</h2></div><span className="required-note">* REQUIRED</span></div><label className="editor-field">Blogger post link <b>*</b><input type="url" value={bloggerPostUrl} onChange={(event) => setBloggerPostUrl(event.target.value)} placeholder="Paste the new post link after saving it in Blogger" required /></label><div className="editor-two-fields"><label className="editor-field">Category <b>*</b><select value={category} onChange={(event) => setCategory(event.target.value)}>{categories.map((item) => <option key={item}>{item}</option>)}</select></label><label className="editor-field">AI tool<select value={tool} onChange={(event) => setTool(event.target.value)}>{['Gemini', 'ChatGPT', 'Midjourney', 'Other'].map((item) => <option key={item}>{item}</option>)}</select></label></div><label className="editor-field">Style tag<input value={style} onChange={(event) => setStyle(event.target.value)} placeholder="e.g. Film portrait" maxLength={32} /></label><label className="editor-field">Hashtags<input value={hashtagsInput} onChange={(event) => setHashtagsInput(event.target.value)} placeholder="#AIart #PortraitPrompt #Gemini" /><small>Add up to 12, separated by spaces or commas. They become Blogger labels and prompt-page metadata.</small></label></section><section className="editor-panel prompt-copy-panel"><div className="editor-panel-heading"><div><span className="admin-kicker">02 — THE PROMPT</span><h2>Write the prompt</h2></div><span className="required-note">* REQUIRED</span></div><div className="photo-prompt-generator"><div className="photo-generator-top"><div><strong>Generate from a photo</strong><small>Upload a photo and GPT-4o will write an image prompt.</small></div><ImagePlus size={19} /></div><label className="photo-generator-picker">{generatorPhoto ? <img src={generatorPhoto} alt="Selected photo preview" /> : <span><ImagePlus size={22} /> Choose a photo</span>}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => selectGeneratorPhoto(event.currentTarget.files?.[0])} /><small>{generatorPhotoName || "JPG, PNG, or WebP · up to 3 MB"}</small></label><button className="photo-generator-button" type="button" onClick={() => void generateFromPhoto()} disabled={isGenerating || !generatorPhoto}>{isGenerating ? "Generating…" : "Generate prompt"}<Sparkles size={15} /></button>{generatorError && <p className="editor-error" role="alert">{generatorError}</p>}</div><label className="editor-field">Prompt text<textarea className="prompt-textarea" value={promptText} onChange={(event) => setPromptText(event.target.value)} placeholder="Write a prompt or generate one from a photo…" rows={9} required /><small>Generated text appears here. You can edit it before publishing.</small></label></section></div><aside className="editor-side-column"><section className="editor-panel image-editor-panel"><div className="editor-panel-heading"><div><span className="admin-kicker">03 — BLOGGER BODY</span><h2>Post content and image</h2></div></div><p>Upload and save your image in Blogger. Its Blogger title is kept; the category, AI tool, hashtags, and prompt you enter here are added to that post.</p><a className="admin-text-link" href={`https://www.blogger.com/blog/posts/${promptBloggerDraft.blogId}`} target="_blank" rel="noreferrer">Open Blogger posts <ArrowUpRight size={14} /></a><p>Click <strong>+ NEW POST</strong> in Blogger. After saving the draft, copy its edit URL and paste it into the Blogger post link field above.</p></section><section className="editor-panel publish-panel"><span className="admin-kicker">PUBLISH</span><h2>Ready to share?</h2><p>This updates the selected Blogger post with all prompt details and publishes it.</p><p className="publish-title-preview"><small>Blogger post title</small><strong>{effectiveTitle || 'Takes the first line of your prompt'}</strong></p>{error && <p className="editor-error" role="alert">{error}</p>}<button className="publish-button" type="submit" disabled={isPublishing || isLoadingDraft}><Plus size={16} /> {isLoadingDraft ? 'Loading Blogger draft…' : isPublishing ? 'Updating and publishing…' : 'Update and publish draft'} <ArrowRight size={15} /></button></section></aside></form></>
 }
 
 function PdfProductUploader() {

@@ -2,12 +2,15 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { isValidAdminSession } from './admin-auth.js'
+import { buildChatRequest, normalizeBaseUrl, providerFailure, readChatCompletion } from './provider-request.js'
 
 const builtInModels = [
   { id: 'openai-gpt-4o', name: 'GPT-4o', provider: 'openai', model: 'gpt-4o' },
   { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'google', model: 'gemini-2.5-flash' },
   { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', provider: 'anthropic', model: 'claude-sonnet-4-6' },
 ]
+
+const supportedProviders = ['openai', 'google', 'anthropic', 'custom']
 
 function configFile(env) {
   return path.resolve(env.AI_MODEL_CONFIG_FILE || path.join(process.cwd(), 'data', 'ai-model-settings.json'))
@@ -62,10 +65,11 @@ async function readState(env) {
   const activeModel = Object.hasOwn(config, 'activeModel') ? config.activeModel : 'openai-gpt-4o'
   return {
     activeModel,
-    models: models.map(({ id, name, provider, model, custom }) => ({
+    models: models.map(({ id, name, provider, model, custom, baseUrl }) => ({
       id, name, provider, model,
       configured: Boolean(config.apiKeys[id]) || (id === 'openai-gpt-4o' && Boolean(env.OPENAI_API_KEY)),
       ...(custom ? { custom: true } : {}),
+      ...(baseUrl ? { baseUrl } : {}),
     })),
   }
 }
@@ -76,23 +80,28 @@ export async function getAiModelSettings(env = process.env) {
 
 export async function saveAiModelSettings({ activeModel = null, apiKeys = {}, customModels = [] }, env = process.env) {
   const config = await readConfig(env)
-  const customCatalog = new Map(config.customModels.map((model) => [model.id, model]))
   if (!Array.isArray(customModels)) throw new Error('Custom models must be a list.')
+  const customCatalog = new Map()
   for (const item of customModels) {
     const provider = String(item?.provider ?? '').toLowerCase()
     const model = String(item?.model ?? '').trim()
     const name = String(item?.name ?? '').trim()
     const id = String(item?.id ?? '').trim()
-    if (!/^[a-z0-9][a-z0-9._-]{1,79}$/i.test(id) || !name || name.length > 80 || !model || model.length > 160 || !['openai', 'google', 'anthropic'].includes(provider)) throw new Error('Enter a valid provider, model name, and model ID.')
+    if (!/^[a-z0-9][a-z0-9._-]{1,79}$/i.test(id) || !name || name.length > 80 || !model || model.length > 160 || !supportedProviders.includes(provider)) throw new Error('Enter a valid provider, model name, and model ID.')
     if (builtInModels.some((builtIn) => builtIn.id === id)) throw new Error('That model ID is reserved for a built-in model.')
-    customCatalog.set(id, { id, name, provider, model })
+    const entry = { id, name, provider, model }
+    if (provider === 'custom') entry.baseUrl = normalizeBaseUrl(item?.baseUrl)
+    if (customCatalog.has(id)) throw new Error('Two custom models share the same model ID.')
+    customCatalog.set(id, entry)
   }
 
   const nextConfig = { ...config, customModels: [...customCatalog.values()] }
   const models = allModels(nextConfig)
   if (activeModel && !models.some((model) => model.id === activeModel)) throw new Error('Choose a supported AI model.')
   if (!apiKeys || typeof apiKeys !== 'object' || Array.isArray(apiKeys)) throw new Error('API keys must be a model-to-key map.')
-  const nextKeys = { ...config.apiKeys }
+  const savedKeys = { ...config.apiKeys }
+  const nextKeys = {}
+  for (const { id } of models) if (savedKeys[id]) nextKeys[id] = savedKeys[id]
   for (const { id } of models) {
     const apiKey = typeof apiKeys[id] === 'string' ? apiKeys[id].trim() : ''
     if (apiKey) nextKeys[id] = encrypt(apiKey, env)
@@ -120,6 +129,35 @@ export async function getActiveAiModel(env = process.env) {
 
 export const supportedAiModels = builtInModels
 
+/** Admin-only sanity check: one tiny completion so a key's real validity becomes visible. The key is never logged or returned. */
+export async function testAiModelKey({ modelId = '', apiKey = '' }, env = process.env) {
+  const id = String(modelId).trim()
+  if (!id) throw new Error('Choose a model to test.')
+  const config = await readConfig(env)
+  const model = allModels(config).find((item) => item.id === id)
+  if (!model) throw new Error('Save this model before testing its key.')
+  const supplied = String(apiKey).trim()
+  const stored = config.apiKeys[id] ? decrypt(config.apiKeys[id], env) : ''
+  const selected = { ...model, apiKey: supplied || stored || (id === 'openai-gpt-4o' ? env.OPENAI_API_KEY ?? '' : '') }
+  if (!selected.apiKey) throw new Error(`No API key saved for ${model.name}. Paste one, save it, then test again.`)
+  const { endpoint, headers, body } = buildChatRequest(selected, {
+    systemText: 'You are a connection test. Reply with exactly: OK',
+    userText: 'Reply with exactly: OK',
+    maxTokens: 16,
+  })
+  let response
+  let result
+  try {
+    response = await fetch(endpoint, { method: 'POST', headers, body: JSON.stringify(body), signal: AbortSignal.timeout(20000) })
+    result = await response.json().catch(() => ({}))
+  } catch (reason) {
+    return { ok: false, detail: `${model.name} could not be reached (${reason instanceof Error ? reason.message : 'network error'}).` }
+  }
+  if (!response.ok) return { ok: false, detail: providerFailure(result, response.status, model.name) }
+  const reply = readChatCompletion(selected, result)
+  return { ok: true, detail: reply ? `${model.name} replied: ${reply.slice(0, 60)}` : `${model.name} accepted the key.` }
+}
+
 async function hasBloggerAuthorization(request) {
   const token = String(request.headers.authorization ?? '').match(/^Bearer\s+(.+)$/i)?.[1]
   if (!token) return false
@@ -130,13 +168,20 @@ async function hasBloggerAuthorization(request) {
 }
 
 export default async function handler(request, response, env = process.env) {
-  if (!['GET', 'PUT'].includes(request.method)) {
-    response.setHeader('Allow', 'GET, PUT')
+  if (!['GET', 'POST', 'PUT'].includes(request.method)) {
+    response.setHeader('Allow', 'GET, POST, PUT')
     return response.status(405).json({ error: 'Method not allowed.' })
   }
   try {
     if (!isValidAdminSession(request, env) && !(await hasBloggerAuthorization(request))) return response.status(401).json({ error: 'Sign in to manage AI models.' })
     if (request.method === 'GET') return response.status(200).json(await getAiModelSettings(env))
+    if (request.method === 'POST') {
+      try {
+        return response.status(200).json(await testAiModelKey(request.body ?? {}, env))
+      } catch (error) {
+        return response.status(400).json({ error: error instanceof Error ? error.message : 'Could not test this API key.' })
+      }
+    }
     return response.status(200).json(await saveAiModelSettings(request.body ?? {}, env))
   } catch (error) {
     return response.status(500).json({ error: error instanceof Error ? error.message : 'Could not save AI model settings.' })
