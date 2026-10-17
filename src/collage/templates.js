@@ -71,6 +71,7 @@ export const PREMIUM_CATS = [
   { id: 'autumn', label: 'Autumn season' },
   { id: 'christmas', label: 'Christmas' },
   { id: 'fathers', label: "Father's day" },
+  { id: 'hearts', label: 'Hearts' },
 ];
 
 // Original seasonal sets. `bg` is applied on pick; `deco` is a procedural
@@ -113,18 +114,107 @@ export const PREMIUM_TEMPLATES = [
     [0, 0, 0.28, 0.28], [0.72, 0, 1, 0.28], [0, 0.72, 0.28, 1], [0.72, 0.72, 1, 1],
     [0.26, 0.26, 0.74, 0.74],
   ]),
+  // Heart set: every cell is masked to the shared heart silhouette, so the
+  // boxes below are the shape's bounding box rather than a visible frame.
+  P('heart-duo', 'Two hearts', 'hearts', '#fdf3f5', 'love-hearts', [
+    [0.03, 0.14, 0.50, 0.61, 'heart'], [0.50, 0.39, 0.97, 0.86, 'heart'],
+  ]),
+  P('heart-trio', 'Three hearts', 'hearts', '#fff5f6', 'love-hearts', [
+    [0.02, 0.03, 0.56, 0.57, 'heart'], [0.56, 0.30, 0.98, 0.72, 'heart'], [0.06, 0.60, 0.44, 0.98, 'heart'],
+  ]),
+  P('heart-quad', 'Four hearts', 'hearts', '#fceff2', 'love-hearts', [
+    [0.02, 0.03, 0.47, 0.48, 'heart'], [0.53, 0.03, 0.98, 0.48, 'heart'],
+    [0.02, 0.52, 0.47, 0.97, 'heart'], [0.53, 0.52, 0.98, 0.97, 'heart'],
+  ]),
+  P('heart-hero', 'Big heart + 2', 'hearts', '#fdf1f4', 'love-hearts', [
+    [0.18, 0.02, 0.82, 0.62, 'heart'], [0.04, 0.66, 0.36, 0.98, 'heart'], [0.64, 0.66, 0.96, 0.98, 'heart'],
+  ]),
 ];
 
-export function slotRects(tpl, W, H) {
+/**
+ * A slot's pixel rect. `frames` holds hearts the user dragged or resized —
+ * stored as canvas fractions so a moved heart survives a ratio switch.
+ */
+export function slotRects(tpl, W, H, frames) {
   const u = Math.min(W, H) * 0.022;
   const g = u * 0.55;
-  return tpl.cells.map(([l, t, r, b]) => {
+  return tpl.cells.map(([l, t, r, b, shape], i) => {
+    const sh = shape || 'box';
+    const f = frames && frames[i];
+    if (f && sh === 'heart') {
+      return { x: f.fx * W, y: f.fy * H, w: f.fw * W, h: f.fh * H, shape: sh };
+    }
     const x0 = l * W + (l <= 0 ? u : g / 2);
     const x1 = r * W - (r >= 1 ? u : g / 2);
     const y0 = t * H + (t <= 0 ? u : g / 2);
     const y1 = b * H - (b >= 1 ? u : g / 2);
-    return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+    return { x: x0, y: y0, w: x1 - x0, h: y1 - y0, shape: sh };
   });
+}
+
+/** Where a slot sits as canvas fractions — the starting point of a drag. */
+export const toFrame = (r, W, H) => ({ fx: r.x / W, fy: r.y / H, fw: r.w / W, fh: r.h / H });
+
+/** The square a heart really fills inside its (possibly wide) cell. */
+export function heartSquare(r) {
+  const s = Math.min(r.w, r.h);
+  return { x: r.x + (r.w - s) / 2, y: r.y + (r.h - s) / 2, s };
+}
+
+// One heart silhouette shared by every surface: the canvas clip, the editor
+// overlay and the picker thumbnails all trace these unit-space curves, so a
+// photo can never be masked into a shape that looks like a different one.
+const HEART_START = [50, 90];
+const HEART_CURVES = [
+  [19, 69, 3, 49, 3, 33],
+  [3, 17, 15, 8, 27, 8],
+  [38, 8, 46, 15, 50, 23],
+  [54, 15, 62, 8, 73, 8],
+  [85, 8, 97, 17, 97, 33],
+  [97, 49, 81, 69, 50, 90],
+];
+
+/** Unit-space heart as an SVG path, for the 0 0 100 100 overlay viewBox. */
+export const HEART_PATH_D = `M${HEART_START.join(' ')}${HEART_CURVES
+  .map((c) => `C${c.join(' ')}`).join('')}Z`;
+
+/** Trace the heart into any 2D path target (canvas context or Path2D) inside the given box. */
+export function heartPath(target, x, y, w, h) {
+  // Hearts keep their proportions: the curve is inscribed in the largest square
+  // the box offers, so a tall cell yields a centred heart rather than a stretched one.
+  const s = Math.min(w, h);
+  const ox = x + (w - s) / 2;
+  const oy = y + (h - s) / 2;
+  const px = (v) => ox + (v / 100) * s;
+  target.moveTo(px(HEART_START[0]), oy + (HEART_START[1] / 100) * s);
+  for (const curve of HEART_CURVES) {
+    target.bezierCurveTo(
+      px(curve[0]), oy + (curve[1] / 100) * s,
+      px(curve[2]), oy + (curve[3] / 100) * s,
+      px(curve[4]), oy + (curve[5] / 100) * s,
+    );
+  }
+  target.closePath();
+}
+
+/** Trace a slot's outline — rounded box by default, heart where the template asks for one. */
+export function slotPath(target, rect, radius) {
+  // Path2D starts empty and has no beginPath, so only a context needs clearing.
+  if (target.beginPath) target.beginPath();
+  if (rect.shape === 'heart') heartPath(target, rect.x, rect.y, rect.w, rect.h);
+  else {
+    const r = Math.max(0, Math.min(radius, rect.w / 2, rect.h / 2));
+    if (target.roundRect) target.roundRect(rect.x, rect.y, rect.w, rect.h, r);
+    else {
+      const { x, y, w, h } = rect;
+      target.moveTo(x + r, y);
+      target.arcTo(x + w, y, x + w, y + h, r);
+      target.arcTo(x + w, y + h, x, y + h, r);
+      target.arcTo(x, y + h, x, y, r);
+      target.arcTo(x, y, x + w, y, r);
+      target.closePath();
+    }
+  }
 }
 
 export function coverFit(sw, sh, dw, dh) {
@@ -138,3 +228,20 @@ export function containFit(sw, sh, dw, dh) {
 }
 
 export const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+// Text layers. Families are web-safe stacks so the canvas paints exactly what
+// the picker offers — no font loading, no preview/export mismatch.
+export const TEXT_FONTS = [
+  { id: 'sans', label: 'Roboto', css: '"Roboto", "Helvetica Neue", Arial, sans-serif' },
+  { id: 'serif', label: 'Georgia', css: 'Georgia, "Times New Roman", serif' },
+  { id: 'display', label: 'Impact', css: 'Impact, "Arial Black", Haettenschweiler, sans-serif' },
+  { id: 'mono', label: 'Courier', css: '"Courier New", monospace' },
+  { id: 'script', label: 'Script', css: '"Segoe Script", "Brush Script MT", cursive' },
+];
+
+export const fontCss = (id) => (TEXT_FONTS.find((f) => f.id === id) || TEXT_FONTS[0]).css;
+
+/** A text size is px measured on a 1000 px short side, so layers scale with the canvas. */
+export const textPx = (size, W, H) => Math.max(1, ((size || 40) / 1000) * Math.min(W, H));
+
+export const TEXT_COLORS = ['#1c2025', '#ffffff', '#0a9f62', '#e07a92', '#b8860b', '#33415c'];

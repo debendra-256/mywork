@@ -2,28 +2,56 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   TEMPLATES, PREMIUM_TEMPLATES, PREMIUM_CATS, RATIOS, QUALITIES,
   tplById, ratioById, qualityById, exportDims,
-  slotRects, coverFit, containFit, clamp,
+  slotRects, slotPath, heartPath, heartSquare, toFrame, HEART_PATH_D,
+  coverFit, containFit, clamp, TEXT_FONTS, TEXT_COLORS, fontCss, textPx,
 } from './templates';
 import { injectCollageStyles } from './styles';
-
-
-function rrPath(ctx, x, y, w, h, r) {
-  r = Math.max(0, Math.min(r, w / 2, h / 2));
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(x, y, w, h, r);
-  else {
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-  }
-}
 
 const BG_SWATCHES = ['#ffffff', '#101418', '#f7f0e4', '#eaf2fd', '#ecf7ef', '#fdeeee'];
 
 const defAdj = () => ({ dx: 0, dy: 0, zoom: 1, mode: 'fill' });
+
+const LINE_H = 1.22;
+
+const defText = () => ({
+  id: 0, text: 'Add your text', x: 0.5, y: 0.5,
+  size: 48, color: '#1c2025', opacity: 100, font: 'sans',
+});
+
+// Canvas measureText is the only way the editor's selection box can hug a text
+// layer the same way the painted glyphs do, so one off-screen context is shared.
+let measureCtx = null;
+const textWidth = (line, px, font) => {
+  if (typeof document === 'undefined') return line.length * px * 0.55;
+  if (!measureCtx) measureCtx = document.createElement('canvas').getContext('2d');
+  measureCtx.font = `${px}px ${fontCss(font)}`;
+  return measureCtx.measureText(line).width;
+};
+
+const textLines = (t) => String(t.text ?? '').split('\n');
+
+/** The layer's painted bounding box in canvas px. */
+function textBox(t, W, H) {
+  const px = textPx(t.size, W, H);
+  const lines = textLines(t);
+  const w = Math.max(px * 0.6, ...lines.map((l) => textWidth(l, px, t.font)));
+  return { x: t.x * W - w / 2, y: t.y * H - (lines.length * px * LINE_H) / 2, w, h: lines.length * px * LINE_H, px };
+}
+
+function drawTextLayer(ctx, W, H, t) {
+  const { px } = textBox(t, W, H);
+  const lines = textLines(t);
+  ctx.save();
+  ctx.globalAlpha = clamp((t.opacity ?? 100) / 100, 0, 1);
+  ctx.font = `${px}px ${fontCss(t.font)}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = t.color;
+  const lh = px * LINE_H;
+  const y0 = t.y * H - ((lines.length - 1) * lh) / 2;
+  lines.forEach((line, k) => ctx.fillText(line, t.x * W, y0 + k * lh));
+  ctx.restore();
+}
 
 // Deterministic procedural ornaments for premium templates — seed from the
 // template id so preview and every export frame paint the identical scene.
@@ -204,6 +232,27 @@ function drawDeco(ctx, W, H, kind) {
       flake(u * 2.2, H - u * 2.4, m * 0.016);
       flake(W - u * 2.2, H - u * 2.4, m * 0.016);
     }
+  } else if (kind === 'love-hearts') {
+    const cols = ['#e07a92', '#f2a9ba', '#0a9f62', '#f7cbd6'];
+    const spots = [
+      [u * 1.5, u * 1.5], [W - u * 1.5, u * 1.5], [u * 1.5, H - u * 1.5], [W - u * 1.5, H - u * 1.5],
+      [W / 2, u * 1.2], [W / 2, H - u * 1.2],
+    ];
+    spots.forEach(([sx, sy], i) => {
+      for (let k = 0; k < 3; k++) {
+        const s = m * (0.011 + rnd() * 0.012);
+        ctx.save();
+        ctx.translate(sx + (rnd() - 0.5) * u * 2.6, sy + (rnd() - 0.5) * u * 2.6);
+        ctx.rotate((rnd() - 0.5) * 0.7);
+        ctx.fillStyle = cols[(i + k) % cols.length];
+        ctx.globalAlpha = 0.75;
+        ctx.beginPath();
+        heartPath(ctx, -s / 2, -s / 2, s, s);
+        ctx.fill();
+        ctx.restore();
+      }
+    });
+    ctx.globalAlpha = 1;
   } else if (kind === 'dad-tie') {
     ctx.fillStyle = '#2e3d59';
     tiePath(ctx, W / 2, u * 0.7, m * 0.024);
@@ -249,17 +298,17 @@ function drawDeco(ctx, W, H, kind) {
 }
 
 function paintScene(ctx, W, H, st) {
-  const { tpl: tp, items: its, adjusts: adjs, bg: bgc } = st;
+  const { tpl: tp, items: its, adjusts: adjs, bg: bgc, frames: frs } = st;
   ctx.fillStyle = bgc;
   ctx.fillRect(0, 0, W, H);
-  const rects = slotRects(tp, W, H);
+  const rects = slotRects(tp, W, H, frs);
   const rad = Math.min(W, H) * 0.012;
   rects.forEach((r, i) => {
     const it = its[i];
     const adj = adjs[i] || {};
     const mode = adj.mode || 'fill';
     ctx.save();
-    rrPath(ctx, r.x, r.y, r.w, r.h, rad);
+    slotPath(ctx, r, rad);
     ctx.clip();
     ctx.fillStyle = '#eef1f6';
     ctx.fillRect(r.x, r.y, r.w, r.h);
@@ -286,12 +335,14 @@ function paintScene(ctx, W, H, st) {
       }
     }
     ctx.restore();
-    rrPath(ctx, r.x, r.y, r.w, r.h, rad);
+    slotPath(ctx, r, rad);
     ctx.strokeStyle = 'rgba(15,23,42,0.10)';
     ctx.lineWidth = 1;
     ctx.stroke();
   });
   if (tp && tp.deco) drawDeco(ctx, W, H, tp.deco);
+  // Text sits above ornaments and photos so what the panel shows is what exports.
+  (st.texts || []).forEach((t) => drawTextLayer(ctx, W, H, t));
 }
 
 function makeItem(file) {
@@ -314,6 +365,22 @@ const Section = ({ title, children }) => (
   </div>
 );
 
+// Picker thumbnails use the same cell maths and heart path as the canvas, so a
+// thumbnail is a true miniature of what picking it will paint.
+function TemplateCells({ cells }) {
+  return cells.map(([l, tp, r, b, shape], k) => {
+    const P = 2.2, G = 1.1;
+    const x0 = l <= 0 ? P : l * 100 + G;
+    const x1 = r >= 1 ? 100 - P : r * 100 - G;
+    const y0 = tp <= 0 ? P : tp * 100 + G;
+    const y1 = b >= 1 ? 100 - P : b * 100 - G;
+    const style = { left: `${x0}%`, top: `${y0}%`, width: `${x1 - x0}%`, height: `${y1 - y0}%` };
+    return shape === 'heart'
+      ? <svg key={k} className="cj-tplcell cj-tplheart" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" style={style} aria-hidden="true"><path d={HEART_PATH_D} /></svg>
+      : <span key={k} className="cj-tplcell" style={style} />;
+  });
+}
+
 export default function CollageStudio({ className = '', style }) {
   injectCollageStyles();
 
@@ -324,6 +391,9 @@ export default function CollageStudio({ className = '', style }) {
   const [adjusts, setAdjusts] = useState([defAdj(), defAdj(), defAdj(), defAdj()]);
   const [sel, setSel] = useState(-1);
   const [bg, setBg] = useState('#ffffff');
+  const [frames, setFrames] = useState([]);
+  const [texts, setTexts] = useState([]);
+  const [selText, setSelText] = useState(null);
   const [recDur, setRecDur] = useState(5);
   const [qualityId, setQualityId] = useState('hd');
   const [jobs, setJobs] = useState([]);
@@ -332,8 +402,12 @@ export default function CollageStudio({ className = '', style }) {
   const canvasRef = useRef(null);
   const fillRef = useRef(null);
   const slotFileRef = useRef(null);
+  const textFieldRef = useRef(null);
   const pendingSlotRef = useRef(-1);
   const dragRef = useRef(null);
+  const frameDragRef = useRef(null);
+  const textDragRef = useRef(null);
+  const textSeq = useRef(0);
   const jobSeq = useRef(0);
   const jobHandles = useRef(new Map());
   const canceledJobs = useRef(new Set());
@@ -343,6 +417,7 @@ export default function CollageStudio({ className = '', style }) {
   const quality = qualityById(qualityId);
   const dims = { w: ratio.w, h: ratio.h };
   const ed = exportDims(ratio, quality);
+  const rects = slotRects(tpl, dims.w, dims.h, frames);
   const filled = items.filter(Boolean).length;
   const filledNames = items.filter(Boolean).map((it) => it.name);
   const runningJob = jobs.find((j) => j.status === 'running') || null;
@@ -356,11 +431,12 @@ export default function CollageStudio({ className = '', style }) {
   };
 
   const S = useRef({});
-  S.current = { tpl, items, adjusts, bg };
+  S.current = { tpl, items, adjusts, bg, frames, texts };
 
   useEffect(() => {
     setItems((prev) => Array.from({ length: tpl.slots }, (_, i) => prev[i] || null));
     setAdjusts((prev) => Array.from({ length: tpl.slots }, (_, i) => prev[i] || defAdj()));
+    setFrames([]);
     setSel(-1);
   }, [tplId]);
 
@@ -411,21 +487,138 @@ export default function CollageStudio({ className = '', style }) {
     const b = canvas.getBoundingClientRect();
     const px = ((e.clientX - b.left) / b.width) * dims.w;
     const py = ((e.clientY - b.top) / b.height) * dims.h;
-    const rects = slotRects(tpl, dims.w, dims.h);
-    for (let i = 0; i < rects.length; i++) {
+    const ctx = canvas.getContext('2d');
+    // Walked back to front because dragged hearts may overlap: the silhouette
+    // the pointer is really on belongs to the top-most slot.
+    for (let i = rects.length - 1; i >= 0; i--) {
       const r = rects[i];
-      if (px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h) return i;
+      if (px < r.x || px > r.x + r.w || py < r.y || py > r.y + r.h) continue;
+      if (r.shape !== 'heart') return i;
+      // A heart owns only its silhouette, so the empty corners fall through to
+      // whatever box sits behind them.
+      const path = new Path2D();
+      slotPath(path, r, 0);
+      if (ctx.isPointInPath(path, px, py)) return i;
     }
     return -1;
   };
 
+  const frameOf = (i) => frames[i] || toFrame(rects[i], dims.w, dims.h);
+
+  const putFrame = (i, f) => setFrames((prev) => {
+    const next = prev.slice();
+    const fw = clamp(f.fw, 0.03, 1.8);
+    const fh = clamp(f.fh, 0.03, 1.8);
+    // The centre is what must stay on the canvas, so a big heart can hang over
+    // an edge without vanishing from reach.
+    const cx = clamp(f.fx + fw / 2, 0, 1);
+    const cy = clamp(f.fy + fh / 2, 0, 1);
+    next[i] = { fx: cx - fw / 2, fy: cy - fh / 2, fw, fh };
+    return next;
+  });
+
+  const moveFrame = (i, dxf, dyf) => {
+    const f = frameOf(i);
+    putFrame(i, { ...f, fx: f.fx + dxf, fy: f.fy + dyf });
+  };
+
+  /** Size a heart as a percentage of the width the template gave it. */
+  const heartPct = (i) => {
+    const base = slotRects(tpl, dims.w, dims.h)[i];
+    return Math.round((frameOf(i).fw / (base.w / dims.w)) * 100);
+  };
+
+  const scaleHeartTo = (i, pct) => {
+    const base = slotRects(tpl, dims.w, dims.h)[i];
+    const f = frameOf(i);
+    const k = ((base.w / dims.w) * (pct / 100)) / f.fw;
+    putFrame(i, { fx: f.fx + (f.fw - f.fw * k) / 2, fy: f.fy + (f.fh - f.fh * k) / 2, fw: f.fw * k, fh: f.fh * k });
+  };
+
+  const startFrameDrag = (i, mode) => (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const b = canvasRef.current.getBoundingClientRect();
+    frameDragRef.current = { i, mode, sx: e.clientX, sy: e.clientY, f: frameOf(i), b };
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (er) { /* noop */ }
+  };
+
+  const onFrameDragMove = (e) => {
+    const d = frameDragRef.current;
+    if (!d) return;
+    if (d.mode === 'move') {
+      putFrame(d.i, { ...d.f, fx: d.f.fx + (e.clientX - d.sx) / d.b.width, fy: d.f.fy + (e.clientY - d.sy) / d.b.height });
+      return;
+    }
+    // Resizing pulls the heart outward from its own centre, so the shape grows
+    // evenly instead of shearing inside a wide cell.
+    const sq = heartSquare(rects[d.i]);
+    const cx = d.b.left + ((sq.x + sq.s / 2) / dims.w) * d.b.width;
+    const cy = d.b.top + ((sq.y + sq.s / 2) / dims.h) * d.b.height;
+    const from = Math.max(10, Math.hypot(d.sx - cx, d.sy - cy));
+    const k = clamp(Math.hypot(e.clientX - cx, e.clientY - cy) / from, 0.15, 6);
+    putFrame(d.i, { fx: d.f.fx + (d.f.fw - d.f.fw * k) / 2, fy: d.f.fy + (d.f.fh - d.f.fh * k) / 2, fw: d.f.fw * k, fh: d.f.fh * k });
+  };
+
+  const endFrameDrag = (e) => {
+    frameDragRef.current = null;
+    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (er) { /* noop */ }
+  };
+
+  const patchText = (id, p) => setTexts((prev) => prev.map((t) => (t.id === id ? { ...t, ...p } : t)));
+
+  const startTextDrag = (t, e) => {
+    const b = canvasRef.current.getBoundingClientRect();
+    textDragRef.current = { id: t.id, sx: e.clientX, sy: e.clientY, x: t.x, y: t.y, b };
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (er) { /* noop */ }
+  };
+
+  const onTextDragMove = (e) => {
+    const d = textDragRef.current;
+    if (!d) return;
+    patchText(d.id, {
+      x: clamp(d.x + (e.clientX - d.sx) / d.b.width, 0, 1),
+      y: clamp(d.y + (e.clientY - d.sy) / d.b.height, 0, 1),
+    });
+  };
+
+  const endTextDrag = (e) => {
+    textDragRef.current = null;
+    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (er) { /* noop */ }
+  };
+
+  const addText = () => {
+    const id = ++textSeq.current;
+    setTexts((prev) => [...prev, { ...defText(), id, y: clamp(0.5 + prev.length * 0.07, 0, 0.93) }]);
+    setSelText(id);
+    setSel(-1);
+    setTimeout(() => { const el = textFieldRef.current; if (el) { el.focus(); el.select(); } }, 40);
+  };
+
+  const removeText = (id) => {
+    setTexts((prev) => prev.filter((t) => t.id !== id));
+    setSelText((cur) => (cur === id ? null : cur));
+  };
+
+  const clearAllTexts = () => { setTexts([]); setSelText(null); };
+
+  const resetFrame = (i) => setFrames((prev) => {
+    const next = prev.slice();
+    next[i] = null;
+    return next;
+  });
+
   const onDown = (e) => {
     const i = hitSlot(e);
     setSel(i);
+    setSelText(null);
     const it = i >= 0 ? items[i] : null;
     const adj = i >= 0 ? adjusts[i] || {} : {};
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch (er) { /* noop */ }
-    dragRef.current = { i, sx: e.clientX, sy: e.clientY, sdx: adj.dx || 0, sdy: adj.dy || 0, moved: false, has: !!it };
+    // An empty heart has no photo to pan, so dragging it moves the heart itself.
+    dragRef.current = (i >= 0 && rects[i].shape === 'heart' && !it)
+      ? { i, mode: 'frame', sx: e.clientX, sy: e.clientY, f: frameOf(i), moved: false, has: true }
+      : { i, mode: 'photo', sx: e.clientX, sy: e.clientY, sdx: adj.dx || 0, sdy: adj.dy || 0, moved: false, has: !!it };
   };
 
   const onMove = (e) => {
@@ -435,7 +628,11 @@ export default function CollageStudio({ className = '', style }) {
     if (!d.moved) return;
     const canvas = canvasRef.current;
     const b = canvas.getBoundingClientRect();
-    const r = slotRects(tpl, dims.w, dims.h)[d.i];
+    if (d.mode === 'frame') {
+      putFrame(d.i, { ...d.f, fx: d.f.fx + (e.clientX - d.sx) / b.width, fy: d.f.fy + (e.clientY - d.sy) / b.height });
+      return;
+    }
+    const r = rects[d.i];
     const dxf = ((e.clientX - d.sx) / b.width) / (r.w / dims.w);
     const dyf = ((e.clientY - d.sy) / b.height) / (r.h / dims.h);
     setAdjusts((prev) => prev.map((a, k) => (
@@ -592,16 +789,34 @@ export default function CollageStudio({ className = '', style }) {
     setQualityId('uhd');
   };
 
-  const rectsPct = slotRects(tpl, dims.w, dims.h).map((r) => ({
-    left: `${(r.x / dims.w) * 100}%`,
-    top: `${(r.y / dims.h) * 100}%`,
-    width: `${(r.w / dims.w) * 100}%`,
-    height: `${(r.h / dims.h) * 100}%`,
-  }));
+  const pctStyle = (x, y, w, h) => ({
+    left: `${(x / dims.w) * 100}%`,
+    top: `${(y / dims.h) * 100}%`,
+    width: `${(w / dims.w) * 100}%`,
+    height: `${(h / dims.h) * 100}%`,
+  });
+
+  const rectsPct = rects.map((r) => ({ shape: r.shape, style: pctStyle(r.x, r.y, r.w, r.h) }));
+
+  // The move and resize grips anchor to the square the selected heart actually
+  // fills, so they read as part of the shape instead of its invisible cell.
+  const selRect = sel >= 0 ? rects[sel] : null;
+  const grips = (() => {
+    if (!selRect || selRect.shape !== 'heart') return null;
+    const sq = heartSquare(selRect);
+    const at = (x, y) => ({ left: `${(x / dims.w) * 100}%`, top: `${(y / dims.h) * 100}%` });
+    return { move: at(sq.x, sq.y), size: at(sq.x + sq.s, sq.y + sq.s) };
+  })();
+
+  const textPct = texts.map((t) => {
+    const bx = textBox(t, dims.w, dims.h);
+    return { t, style: pctStyle(bx.x, bx.y, bx.w, bx.h) };
+  });
 
   const selItem = sel >= 0 ? items[sel] : null;
   const selAdj = sel >= 0 ? adjusts[sel] || {} : {};
   const selMode = selAdj.mode || 'fill';
+  const selTextObj = texts.find((t) => t.id === selText) || null;
 
   return (
     <div className={`cj-page ${className}`} style={style}>
@@ -619,20 +834,7 @@ export default function CollageStudio({ className = '', style }) {
                       title={`${t.label} — ${t.slots} box${t.slots > 1 ? 'es' : ''}`}
                       onClick={() => setTplId(t.id)}
                     >
-                      {t.cells.map(([l, tp, r, b], k) => {
-                        const P = 2.2, G = 1.1;
-                        const x0 = l <= 0 ? P : l * 100 + G;
-                        const x1 = r >= 1 ? 100 - P : r * 100 - G;
-                        const y0 = tp <= 0 ? P : tp * 100 + G;
-                        const y1 = b >= 1 ? 100 - P : b * 100 - G;
-                        return (
-                          <span
-                            key={k}
-                            className="cj-tplcell"
-                            style={{ left: `${x0}%`, top: `${y0}%`, width: `${x1 - x0}%`, height: `${y1 - y0}%` }}
-                          />
-                        );
-                      })}
+                      <TemplateCells cells={t.cells} />
                     </button>
                     <span className="cj-tplname">{t.label}</span>
                   </div>
@@ -665,26 +867,13 @@ export default function CollageStudio({ className = '', style }) {
                       title={`${t.label} — ${t.slots} box${t.slots > 1 ? 'es' : ''}`}
                       onClick={() => pickPremium(t)}
                     >
-                      {t.cells.map(([l, tp, r, b], k) => {
-                        const P = 2.2, G = 1.1;
-                        const x0 = l <= 0 ? P : l * 100 + G;
-                        const x1 = r >= 1 ? 100 - P : r * 100 - G;
-                        const y0 = tp <= 0 ? P : tp * 100 + G;
-                        const y1 = b >= 1 ? 100 - P : b * 100 - G;
-                        return (
-                          <span
-                            key={k}
-                            className="cj-tplcell"
-                            style={{ left: `${x0}%`, top: `${y0}%`, width: `${x1 - x0}%`, height: `${y1 - y0}%` }}
-                          />
-                        );
-                      })}
+                      <TemplateCells cells={t.cells} />
                     </button>
                     <span className="cj-tplname">{t.label}</span>
                   </div>
                 ))}
               </div>
-              <p className="cj-note">Seasonal sets apply a matching background and hand-drawn frame ornaments automatically.</p>
+              <p className="cj-note">Premium sets apply a matching background and hand-drawn ornaments automatically. Heart sets mask every photo to the heart outline.</p>
             </Section>
 
             <Section title="Canvas size">
@@ -716,8 +905,102 @@ export default function CollageStudio({ className = '', style }) {
               {filledNames.length > 0 && <div className="cj-fileinfo" style={{ marginTop: 8 }}>{filledNames.join(', ')}</div>}
             </Section>
 
+            <Section title="Text">
+              <div className="cj-row">
+                <button type="button" className="cj-btn primary" onClick={addText}>+ Add text</button>
+                {texts.length > 0 && (
+                  <button type="button" className="cj-btn" onClick={clearAllTexts}>Remove all</button>
+                )}
+              </div>
+              {texts.length > 0 && (
+                <div className="cj-chiprow" style={{ marginTop: 8 }}>
+                  {texts.map((t) => (
+                    <button
+                      key={t.id} type="button"
+                      className={`cj-chip${selText === t.id ? ' on' : ''}`}
+                      onClick={() => { setSelText(t.id); setSel(-1); }}
+                    >{(String(t.text).split('\n')[0] || 'Text').slice(0, 14)}</button>
+                  ))}
+                </div>
+              )}
+              <p className="cj-note">
+                {texts.length
+                  ? 'Drag a text layer on the canvas to place it. Text is painted into the exported image and video.'
+                  : 'No text layers yet — add one to write over the collage.'}
+              </p>
+            </Section>
+
+            {selTextObj && (
+              <Section title="Edit text">
+                <textarea
+                  ref={textFieldRef} className="cj-textarea" rows={2} value={selTextObj.text}
+                  onChange={(e) => patchText(selTextObj.id, { text: e.target.value })}
+                  placeholder="Type your text"
+                />
+                <div className="cj-fieldRow">
+                  <label className="cj-field">
+                    <span className="cj-fieldLabel">Font</span>
+                    <select
+                      className="cj-select" style={{ fontFamily: fontCss(selTextObj.font) }}
+                      value={selTextObj.font}
+                      onChange={(e) => patchText(selTextObj.id, { font: e.target.value })}
+                    >
+                      {TEXT_FONTS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+                    </select>
+                  </label>
+                  <label className="cj-field">
+                    <span className="cj-fieldLabel">Font size</span>
+                    <input
+                      className="cj-input" type="number" min={8} max={220} step={2} value={selTextObj.size}
+                      onChange={(e) => patchText(selTextObj.id, { size: clamp(parseInt(e.target.value, 10) || 8, 8, 220) })}
+                    />
+                  </label>
+                </div>
+                <div className="cj-fieldRow">
+                  <label className="cj-field">
+                    <span className="cj-fieldLabel">Colour</span>
+                    <span className="cj-colorRow">
+                      <input
+                        className="cj-colorInput" type="color" value={selTextObj.color}
+                        onChange={(e) => patchText(selTextObj.id, { color: e.target.value })}
+                      />
+                      <span className="cj-hexval">{selTextObj.color}</span>
+                    </span>
+                  </label>
+                  <label className="cj-field">
+                    <span className="cj-fieldLabel">Opacity</span>
+                    <span className="cj-colorRow">
+                      <input
+                        className="cj-range" type="range" min={10} max={100} step={1} value={selTextObj.opacity ?? 100}
+                        onChange={(e) => patchText(selTextObj.id, { opacity: parseInt(e.target.value, 10) })}
+                      />
+                      <span className="cj-hexval">{selTextObj.opacity ?? 100}%</span>
+                    </span>
+                  </label>
+                </div>
+                <div className="cj-swrow" style={{ marginTop: 8 }}>
+                  {TEXT_COLORS.map((c) => (
+                    <button
+                      key={c} type="button" className={`cj-sw${selTextObj.color === c ? ' on' : ''}`}
+                      style={{ background: c }} title={c} onClick={() => patchText(selTextObj.id, { color: c })}
+                    />
+                  ))}
+                </div>
+                <div className="cj-nudgerow" style={{ marginTop: 8 }}>
+                  <button type="button" className="cj-btn" title="Move left" onClick={() => patchText(selTextObj.id, { x: clamp(selTextObj.x - 0.02, 0, 1) })}>←</button>
+                  <button type="button" className="cj-btn" title="Centre" onClick={() => patchText(selTextObj.id, { x: 0.5, y: 0.5 })}>⊙</button>
+                  <button type="button" className="cj-btn" title="Move right" onClick={() => patchText(selTextObj.id, { x: clamp(selTextObj.x + 0.02, 0, 1) })}>→</button>
+                  <button type="button" className="cj-btn" title="Move up" onClick={() => patchText(selTextObj.id, { y: clamp(selTextObj.y - 0.02, 0, 1) })}>↑</button>
+                  <button type="button" className="cj-btn" title="Move down" onClick={() => patchText(selTextObj.id, { y: clamp(selTextObj.y + 0.02, 0, 1) })}>↓</button>
+                </div>
+                <div className="cj-row" style={{ marginTop: 8 }}>
+                  <button type="button" className="cj-btn" onClick={() => removeText(selTextObj.id)}>Delete text</button>
+                </div>
+              </Section>
+            )}
+
             {sel >= 0 && (
-              <Section title={`Box ${sel + 1} — ${selItem ? (selItem.kind === 'video' ? 'video' : 'photo') : 'empty'}`}>
+              <Section title={`${selRect && selRect.shape === 'heart' ? 'Heart' : 'Box'} ${sel + 1} — ${selItem ? (selItem.kind === 'video' ? 'video' : 'photo') : 'empty'}`}>
                 {selItem && (
                   <>
                     <div className="cj-fitrow">
@@ -742,6 +1025,27 @@ export default function CollageStudio({ className = '', style }) {
                     </div>
                   </>
                 )}
+                {selRect && selRect.shape === 'heart' && (
+                  <>
+                    <div className="cj-sliderRow">
+                      <label htmlFor="cj-heartSize">Size</label>
+                      <input
+                        id="cj-heartSize" type="range" min={25} max={200} step={1}
+                        value={heartPct(sel)}
+                        onChange={(e) => scaleHeartTo(sel, parseInt(e.target.value, 10))}
+                      />
+                      <span className="cj-val">{heartPct(sel)}%</span>
+                    </div>
+                    <div className="cj-nudgerow">
+                      <button type="button" className="cj-btn" title="Move left" onClick={() => moveFrame(sel, -0.02, 0)}>←</button>
+                      <button type="button" className="cj-btn" title="Snap back to the template spot" onClick={() => resetFrame(sel)}>⊙</button>
+                      <button type="button" className="cj-btn" title="Move right" onClick={() => moveFrame(sel, 0.02, 0)}>→</button>
+                      <button type="button" className="cj-btn" title="Move up" onClick={() => moveFrame(sel, 0, -0.02)}>↑</button>
+                      <button type="button" className="cj-btn" title="Move down" onClick={() => moveFrame(sel, 0, 0.02)}>↓</button>
+                    </div>
+                    <p className="cj-note">Drag the ✥ grip to move the heart and the ◢ grip to resize it. Hearts can overlap each other and sit anywhere on the canvas; ⊙ snaps one back to its template spot.</p>
+                  </>
+                )}
                 <div className="cj-row" style={{ marginTop: 8 }}>
                   <button type="button" className="cj-btn" onClick={() => resetAdj(sel)}>Reset position</button>
                   {selItem && <button type="button" className="cj-btn" onClick={() => clearSlot(sel)}>Empty box</button>}
@@ -760,8 +1064,13 @@ export default function CollageStudio({ className = '', style }) {
           <div className="cj-canvasWrap">
             <canvas ref={canvasRef} className="cj-canvas" style={{ aspectRatio: `${dims.w} / ${dims.h}` }} />
             <div className="cj-overlay" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp}>
-              {rectsPct.map((st, i) => (
-                <div key={i} role="button" aria-label={`Box ${i + 1}`} className={`cj-slotcell${sel === i ? ' sel' : ''}`} style={st}>
+              {rectsPct.map(({ shape, style }, i) => (
+                <div key={i} role="button" aria-label={`Box ${i + 1}`} className={`cj-slotcell${shape === 'heart' ? ' shape-heart' : ''}${sel === i ? ' sel' : ''}`} style={style}>
+                  {shape === 'heart' && (
+                    <svg className="cj-slotshape" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                      <path d={HEART_PATH_D} />
+                    </svg>
+                  )}
                   {!items[i] && (
                     <button
                       type="button" className="cj-slotadd" title="Add photo / video"
@@ -779,10 +1088,33 @@ export default function CollageStudio({ className = '', style }) {
                   <span className="cj-slotnum">{i + 1}</span>
                 </div>
               ))}
+              {grips && (
+                <React.Fragment>
+                  <button
+                    type="button" className="cj-grip cj-grip-move" style={grips.move} title="Drag to move this heart"
+                    onPointerDown={startFrameDrag(sel, 'move')} onPointerMove={onFrameDragMove}
+                    onPointerUp={endFrameDrag} onPointerCancel={endFrameDrag}
+                  >✥</button>
+                  <button
+                    type="button" className="cj-grip cj-grip-size" style={grips.size} title="Drag to resize this heart"
+                    onPointerDown={startFrameDrag(sel, 'size')} onPointerMove={onFrameDragMove}
+                    onPointerUp={endFrameDrag} onPointerCancel={endFrameDrag}
+                  >◢</button>
+                </React.Fragment>
+              )}
+              {textPct.map(({ t, style }) => (
+                <div
+                  key={t.id} role="button" aria-label={`Text layer ${t.text}`}
+                  className={`cj-textcell${selText === t.id ? ' sel' : ''}`} style={style}
+                  onPointerDown={(e) => { e.stopPropagation(); setSel(-1); setSelText(t.id); startTextDrag(t, e); }}
+                  onPointerMove={onTextDragMove} onPointerUp={endTextDrag} onPointerCancel={endTextDrag}
+                  onDoubleClick={() => { const el = textFieldRef.current; if (el) { el.focus(); el.select(); } }}
+                />
+              ))}
             </div>
           </div>
           <p className="cj-note" style={{ marginTop: 10 }}>
-            Click a box to select it, drag to move, use Fill/Fit and nudge arrows from the left panel. Drop files anywhere on the canvas.
+            Click a box to select it, drag to move, use Fill/Fit and nudge arrows from the left panel. Select a heart to drag or resize it with its corner grips. Add text from the left panel, then drag it into place. Drop files anywhere on the canvas.
           </p>
         </main>
 

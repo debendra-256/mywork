@@ -88,6 +88,41 @@ const CSS = `
 .cj-tplthumb.on.pj-autumn .cj-tplcell{background:#d9731f}
 .cj-tplthumb.on.pj-christmas .cj-tplcell{background:#4caf7d}
 .cj-tplthumb.on.pj-fathers .cj-tplcell{background:#5b7bc0}
+.cj-slotcell.shape-heart{border-color:transparent;border-radius:0}
+.cj-slotcell.shape-heart:hover{border-color:transparent}
+.cj-slotcell.shape-heart.sel{border-color:transparent;box-shadow:none}
+.cj-slotshape{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.cj-slotshape path{fill:none;stroke:rgba(10,159,98,.5);stroke-width:1.6;stroke-dasharray:6 5;vector-effect:non-scaling-stroke;transition:stroke .12s}
+.cj-slotcell.shape-heart:hover .cj-slotshape path{stroke:rgba(10,159,98,.8)}
+.cj-slotcell.shape-heart.sel .cj-slotshape path{stroke:#0a9f62;stroke-width:2.4;stroke-dasharray:none}
+.cj-slotcell.shape-heart .cj-slotadd{border-radius:0;background:none}
+.cj-slotcell.shape-heart .cj-slotadd:hover{background:none;color:#07864f}
+.cj-slotcell.shape-heart .cj-swapbtn{top:14%;right:14%}
+.cj-slotcell.shape-heart .cj-slotnum{left:50%;transform:translateX(-50%)}
+.cj-tplheart{background:none!important;overflow:visible}
+.cj-tplheart path{fill:#cdd7d1}
+.cj-tplthumb.on .cj-tplheart path{fill:#4bbd85}
+.pj-hearts{background:linear-gradient(160deg,#fdf3f5,#f6d9e0)}
+.pj-hearts .cj-tplcell{background:#e294a7}
+.pj-hearts .cj-tplheart path{fill:#e294a7}
+.cj-tplthumb.on.pj-hearts .cj-tplcell,.cj-tplthumb.on.pj-hearts .cj-tplheart path{background:#c65f7d;fill:#c65f7d}
+.cj-grip{position:absolute;z-index:3;width:24px;height:24px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid rgba(10,159,98,.45);background:#fff;color:#087447;font-size:12px;line-height:1;cursor:move;box-shadow:0 2px 8px rgba(15,23,42,.18);transform:translate(-50%,-50%)}
+.cj-grip:hover{background:#f2fbf6;border-color:#0a9f62}
+.cj-grip-size{border-radius:8px 8px 8px 3px;cursor:nwse-resize}
+.cj-textcell{position:absolute;z-index:2;border:1.5px dashed transparent;border-radius:6px;cursor:move}
+.cj-textcell:hover{border-color:rgba(10,159,98,.35)}
+.cj-textcell.sel{border-color:#0a9f62;background:rgba(10,159,98,.06)}
+.cj-textarea{width:100%;box-sizing:border-box;border:1px solid #dce7df;border-radius:8px;padding:8px 10px;font:inherit;font-size:13px;color:#1c2025;background:#fff;resize:vertical}
+.cj-textarea:focus{outline:none;border-color:#0a9f62;box-shadow:0 0 0 3px rgba(10,159,98,.14)}
+.cj-fieldRow{display:flex;gap:8px;margin-top:8px}
+.cj-field{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.cj-fieldLabel{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#87909a}
+.cj-select,.cj-input{width:100%;box-sizing:border-box;border:1px solid #dce7df;border-radius:8px;padding:6px 8px;font:inherit;font-size:13px;color:#1c2025;background:#fff}
+.cj-select:focus,.cj-input:focus{outline:none;border-color:#0a9f62;box-shadow:0 0 0 3px rgba(10,159,98,.14)}
+.cj-colorRow{display:flex;align-items:center;gap:6px;border:1px solid #dce7df;border-radius:8px;padding:4px 6px;background:#fff}
+.cj-colorInput{width:26px;height:22px;padding:0;border:none;background:none;cursor:pointer}
+.cj-hexval{font-size:11px;color:#536057;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cj-range{flex:1;min-width:0;accent-color:#07864f}
 @media (max-width:1150px){.cj-body{flex-direction:column}.cj-side{width:100%;max-height:none;position:static}.cj-stage{min-height:420px;width:100%}}
 `;
 
