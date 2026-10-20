@@ -48,5 +48,6 @@ declare module 'lucide-react' {
   export const Trash2: LucideIcon
   export const Video: LucideIcon
   export const X: LucideIcon
+  export const Youtube: LucideIcon
   export const Zap: LucideIcon
 }

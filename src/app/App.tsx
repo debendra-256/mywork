@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Camera, Check, ChevronDown, Clock3, Copy, DatabaseBackup, Download, Facebook, Flame, Headphones, Heart, Home, ImagePlus, Images, Instagram, KeyRound, LayoutDashboard, Lock, LockOpen, LogOut, Menu, MessageCircle, Mic, MicOff, Monitor, Pause, Play, Plus, QrCode, Search, Send, Share2, ShieldCheck, SlidersHorizontal, Sparkles, Square, Store, Trash2, Video, X, Zap } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Camera, Check, ChevronDown, Clock3, Copy, DatabaseBackup, Download, Facebook, Flame, Headphones, Heart, Home, ImagePlus, Images, Instagram, KeyRound, LayoutDashboard, Lock, LockOpen, LogOut, Menu, MessageCircle, Mic, MicOff, Monitor, Pause, Play, Plus, QrCode, Search, Send, Share2, ShieldCheck, SlidersHorizontal, Sparkles, Square, Store, Trash2, Video, X, Youtube, Zap } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { appConfig } from '../config/app.config'
 import { QRCodeCanvas } from 'qrcode.react'
@@ -17,6 +17,7 @@ import { WATERMARK_BENEFIT, productPrice, type StoreFeature, type StoreProduct, 
 import { createMenuItemId, defaultSideMenus, type SideMenuSection } from '../data/side-menus'
 import { promptHashtags, promptLabels, promptTags, type Prompt } from '../domain/prompt'
 import CollageStudio from '../collage/CollageStudio'
+import ShortsCreator from '../shorts/ShortsCreator'
 
 const promptRepository = createPromptRepository({
   contentProvider: appConfig.contentProvider,
@@ -59,6 +60,7 @@ function Sidebar({ open, active, categories, onSelect, onHome, onClose, menuSect
         <button className={`side-item ${qrOpen ? 'selected' : ''}`} onClick={onOpenQr}><QrCode size={17} />QR Code Generator</button>
         <button className={`side-item ${active === 'Trending' ? 'selected' : ''}`} onClick={() => onSelect('Trending')}><Flame size={17} />Trending prompts<span className="side-live-dot" /></button>
         <Link className="side-item" to="/collage" onClick={onClose}><Images size={17} />Photo and Video Editor</Link>
+        <Link className="side-item" to="/shorts" onClick={onClose}><Youtube size={17} />YouTube to Shorts Maker</Link>
         <button className={`side-item ${active === 'Latest' ? 'selected' : ''}`} onClick={() => onSelect('Latest')}><Clock3 size={17} />Latest prompts</button>
         <button className="side-item" onClick={() => onSelect('Saved')}><Bookmark size={17} />Saved collection</button>
       </div>
@@ -731,6 +733,10 @@ function CollagePage() {
   return <div className="detail-shell"><Header onMenu={() => {}} /><CollageStudio /></div>
 }
 
+function ShortsPage() {
+  return <div className="detail-shell"><Header onMenu={() => {}} /><ShortsCreator /></div>
+}
+
 function PromptPage({ prompts }: { prompts: Prompt[] }) {
   const { slug = '' } = useParams()
   const navigate = useNavigate()
@@ -1319,6 +1325,6 @@ export default function App() {
   useEffect(() => { document.title = `${appConfig.appName || 'Promptseen'} — AI prompt library` }, [])
   useEffect(() => { void loadCustomerSession() }, [])
   const adminAllowed = bloggerConnected || adminAuthenticated
-  return <Routes><Route path="/" element={<HomePage prompts={prompts} blogStatus={blogStatus} canGenerate={true} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /><Route path="/store" element={<StorePage />} /><Route path="/collage" element={<CollagePage />} /><Route path="/checkout/:productId" element={<CheckoutPage />} /><Route path="/prompt/:slug" element={<PromptPage prompts={prompts} />} /><Route path="/account" element={<AccountPage />} /><Route path="/login" element={<LoginPage onConnected={() => setBloggerConnected(true)} onAdminLogin={() => { setAdminAuthenticated(true); setAdminAuthReady(true) }} />} /><Route path="/admin/upload-pdf" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="/admin/*" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="*" element={<HomePage prompts={prompts} blogStatus={blogStatus} canGenerate={bloggerConnected} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /></Routes>
+  return <Routes><Route path="/" element={<HomePage prompts={prompts} blogStatus={blogStatus} canGenerate={true} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /><Route path="/store" element={<StorePage />} /><Route path="/collage" element={<CollagePage />} /><Route path="/shorts" element={<ShortsPage />} /><Route path="/checkout/:productId" element={<CheckoutPage />} /><Route path="/prompt/:slug" element={<PromptPage prompts={prompts} />} /><Route path="/account" element={<AccountPage />} /><Route path="/login" element={<LoginPage onConnected={() => setBloggerConnected(true)} onAdminLogin={() => { setAdminAuthenticated(true); setAdminAuthReady(true) }} />} /><Route path="/admin/upload-pdf" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="/admin/*" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="*" element={<HomePage prompts={prompts} blogStatus={blogStatus} canGenerate={bloggerConnected} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /></Routes>
 }
 
