@@ -9,6 +9,7 @@ import adminAuthHandler from './api/admin-auth.js'
 import adminStoreHandler from './api/admin-store.js'
 import accountHandler from './api/account.js'
 import socialAuthHandler from './api/social-auth.js'
+import posterPhotoHandler from './api/poster-photo.js'
 
 type ApiHandler = (request: any, response: any, env: Record<string, string>) => Promise<unknown>
 
@@ -43,6 +44,7 @@ function localSocialTrendsApi() {
       server.middlewares.use('/api/admin-store', jsonApi(adminStoreHandler))
       server.middlewares.use('/api/account', jsonApi(accountHandler))
       server.middlewares.use('/api/social-auth', jsonApi(socialAuthHandler))
+      server.middlewares.use('/api/poster-photo', posterPhotoHandler)
       server.middlewares.use('/api/admin-auth', async (request, response) => {
         let body = ''
         await new Promise<void>((resolve, reject) => {

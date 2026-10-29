@@ -44,6 +44,14 @@ export function promptHashtags(prompt: Prompt, limit = 4): string[] {
     .slice(0, limit)
 }
 
+/** Blogger label that marks a photo post made by the poster splitter. */
+export const posterLabel = 'CreativePoster'
+
+/** Photo posts carry a picture and a poster-editor link, never prompt copy. */
+export function isPosterPrompt(prompt: Prompt): boolean {
+  return promptTags(prompt).includes(posterLabel.toLowerCase())
+}
+
 export interface PromptQuery {
   search?: string
   category?: string

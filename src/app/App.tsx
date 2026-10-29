@@ -15,9 +15,12 @@ import { loadCustomerSession, redeemLicenseCode, signIn, signInWithProvider, sig
 import { loadSocialProviders, mountGoogleSignInButton, requestFacebookToken, type SocialProviderFlags } from '../data/social-login'
 import { WATERMARK_BENEFIT, productPrice, type StoreFeature, type StoreProduct, type StoreSnapshot } from '../domain/store'
 import { createMenuItemId, defaultSideMenus, type SideMenuSection } from '../data/side-menus'
-import { promptHashtags, promptLabels, promptTags, type Prompt } from '../domain/prompt'
+import { isPosterPrompt, promptHashtags, promptLabels, promptTags, type Prompt } from '../domain/prompt'
 import CollageStudio from '../collage/CollageStudio'
 import ShortsCreator from '../shorts/ShortsCreator'
+import CreatePoster from '../poster/CreatePoster'
+import ElementScanner from '../poster/ElementScanner'
+import PosterSplitter from '../poster/PosterSplitter'
 
 const promptRepository = createPromptRepository({
   contentProvider: appConfig.contentProvider,
@@ -61,6 +64,8 @@ function Sidebar({ open, active, categories, onSelect, onHome, onClose, menuSect
         <button className={`side-item ${active === 'Trending' ? 'selected' : ''}`} onClick={() => onSelect('Trending')}><Flame size={17} />Trending prompts<span className="side-live-dot" /></button>
         <Link className="side-item" to="/collage" onClick={onClose}><Images size={17} />Photo and Video Editor</Link>
         <Link className="side-item" to="/shorts" onClick={onClose}><Youtube size={17} />YouTube to Shorts Maker</Link>
+        <Link className="side-item" to="/poster" onClick={onClose}><ImagePlus size={17} />Create Poster</Link>
+        <button className="side-item" type="button" disabled title="Temporarily disabled"><Download size={17} />Video Downloader</button>
         <button className={`side-item ${active === 'Latest' ? 'selected' : ''}`} onClick={() => onSelect('Latest')}><Clock3 size={17} />Latest prompts</button>
         <button className="side-item" onClick={() => onSelect('Saved')}><Bookmark size={17} />Saved collection</button>
       </div>
@@ -76,6 +81,16 @@ function Sidebar({ open, active, categories, onSelect, onHome, onClose, menuSect
 
 function PromptCard({ prompt, index, saved, engagement, onToggleSave, onCopy, onHashtag }: { prompt: Prompt; index: number; saved: boolean; engagement: EngagementCounts; onToggleSave: () => void; onCopy: () => void; onHashtag: (tag: string) => void }) {
   const [copied, setCopied] = useState(false)
+  if (isPosterPrompt(prompt)) {
+    const target = prompt.image ? `/poster?photo=${encodeURIComponent(prompt.image)}` : '/poster'
+    return <article className="prompt-tile poster-tile">
+      <Link to={target} tabIndex={-1} className={`tile-image tile-image-${index % 6}`} aria-label="Open this photo in the poster editor">
+        {prompt.image ? <img {...responsiveImage(prompt.image, '(max-width: 700px) 45vw, 23vw')} alt="" loading="lazy" /> : <span className="tile-image-fallback"><ImagePlus size={28} /></span>}
+        <span className="tile-vignette" />
+      </Link>
+      <div className="tile-content poster-tile-content"><Link to={target} className="poster-create-button"><ImagePlus size={14} /> Create your poster</Link></div>
+    </article>
+  }
   const copy = async () => {
     try { await navigator.clipboard.writeText(prompt.promptText); setCopied(true); onCopy(); window.setTimeout(() => setCopied(false), 1500) } catch { setCopied(false) }
   }
@@ -98,7 +113,8 @@ function PromptCard({ prompt, index, saved, engagement, onToggleSave, onCopy, on
 }
 
 function FeatureHero({ prompts }: { prompts: Prompt[] }) {
-  const source = prompts.length >= 4 ? prompts : [...prompts, ...promptCatalog.filter((item) => !prompts.some((prompt) => prompt.id === item.id))]
+  const ideas = prompts.filter((prompt) => !isPosterPrompt(prompt))
+  const source = ideas.length >= 4 ? ideas : [...ideas, ...promptCatalog.filter((item) => !ideas.some((prompt) => prompt.id === item.id))]
   const trending = [...source].sort((a, b) => Number(b.featured) - Number(a.featured) || b.createdAt.localeCompare(a.createdAt)).slice(0, 4)
   return <section className="feature-hero trending-hero" id="trending">
     <div className="trending-hero-heading"><div><span className="feature-eyebrow"><Flame size={14} /> TRENDING NOW</span></div><span className="trending-hero-count">TOP 04</span></div>
@@ -737,6 +753,10 @@ function ShortsPage() {
   return <div className="detail-shell"><Header onMenu={() => {}} /><ShortsCreator /></div>
 }
 
+function PosterPage() {
+  return <div className="detail-shell"><Header onMenu={() => {}} /><CreatePoster /></div>
+}
+
 function PromptPage({ prompts }: { prompts: Prompt[] }) {
   const { slug = '' } = useParams()
   const navigate = useNavigate()
@@ -843,7 +863,9 @@ function AdminShell({ onLogout, bloggerConnected, children }: { onLogout: () => 
   const isPdfUpload = location.pathname.endsWith('/upload-pdf')
   const isAiModels = location.pathname.endsWith('/ai-models')
   const isProducts = location.pathname.endsWith('/products')
-  return <div className="admin-shell"><header className="admin-topbar"><Link to="/" className="brand"><span className="brand-symbol"><Sparkles size={17} /></span><span>{appConfig.appName}<i>.</i></span></Link><div className="admin-topbar-right">{!bloggerConnected && <Link className="admin-connect-blogger" to="/login">Connect Blogger</Link>}<Link className="admin-view-site" to="/">View site <ArrowUpRight size={14} /></Link><button className="admin-header-logout" onClick={onLogout}><LogOut size={15} />Logout</button><button className="admin-avatar" aria-label={`${appConfig.adminDisplayName} profile`}>{appConfig.adminDisplayName.slice(0, 1).toUpperCase()}</button></div></header><div className="admin-body"><aside className="admin-nav"><span className="admin-nav-title">WORKSPACE</span><Link to="/admin" className={!isCreate && !isMenus && !isPdfUpload && !isAiModels && !isProducts ? 'admin-nav-link active' : 'admin-nav-link'}><LayoutDashboard size={17} />Overview</Link><Link to="/admin/new" onClick={openNewBloggerPost} className={isCreate ? 'admin-nav-link active' : 'admin-nav-link'}><Plus size={18} />Create prompt</Link><Link to="/admin/ai-models" className={isAiModels ? 'admin-nav-link active' : 'admin-nav-link'}><Sparkles size={17} />AI models</Link><Link to="/admin/products" className={isProducts ? 'admin-nav-link active' : 'admin-nav-link'}><Store size={17} />Digital store</Link><Link to="/admin/upload-pdf" className={isPdfUpload ? 'admin-nav-link active' : 'admin-nav-link'}><Copy size={17} />Upload PDF product</Link><Link to="/admin/menus" className={isMenus ? 'admin-nav-link active' : 'admin-nav-link'}><SlidersHorizontal size={17} />Manage menus</Link><a className="admin-nav-link" href="/#categories"><SlidersHorizontal size={17} />Categories</a><div className="admin-nav-bottom"><div className="admin-preview-note"><ShieldCheck size={17} /><strong>Blogger publishing</strong><p>Your connection stays active in this tab until the access token expires.</p></div><button className="admin-nav-link logout-link" onClick={onLogout}><LogOut size={17} />Sign out</button></div></aside><main className="admin-main"><div className="admin-main-inner">{children}</div></main></div></div>
+  const isElements = location.pathname.endsWith('/elements')
+  const isPosters = location.pathname.endsWith('/poster-split')
+  return <div className="admin-shell"><header className="admin-topbar"><Link to="/" className="brand"><span className="brand-symbol"><Sparkles size={17} /></span><span>{appConfig.appName}<i>.</i></span></Link><div className="admin-topbar-right">{!bloggerConnected && <Link className="admin-connect-blogger" to="/login">Connect Blogger</Link>}<Link className="admin-view-site" to="/">View site <ArrowUpRight size={14} /></Link><button className="admin-header-logout" onClick={onLogout}><LogOut size={15} />Logout</button><button className="admin-avatar" aria-label={`${appConfig.adminDisplayName} profile`}>{appConfig.adminDisplayName.slice(0, 1).toUpperCase()}</button></div></header><div className="admin-body"><aside className="admin-nav"><span className="admin-nav-title">WORKSPACE</span><Link to="/admin" className={!isCreate && !isMenus && !isPdfUpload && !isAiModels && !isProducts && !isElements && !isPosters ? 'admin-nav-link active' : 'admin-nav-link'}><LayoutDashboard size={17} />Overview</Link><Link to="/admin/new" onClick={openNewBloggerPost} className={isCreate ? 'admin-nav-link active' : 'admin-nav-link'}><Plus size={18} />Create prompt</Link><Link to="/admin/ai-models" className={isAiModels ? 'admin-nav-link active' : 'admin-nav-link'}><Sparkles size={17} />AI models</Link><Link to="/admin/products" className={isProducts ? 'admin-nav-link active' : 'admin-nav-link'}><Store size={17} />Digital store</Link><Link to="/admin/elements" className={isElements ? 'admin-nav-link active' : 'admin-nav-link'}><ImagePlus size={17} />Element scanner</Link><Link to="/admin/poster-split" className={isPosters ? 'admin-nav-link active' : 'admin-nav-link'}><Images size={17} />Poster split</Link><Link to="/admin/upload-pdf" className={isPdfUpload ? 'admin-nav-link active' : 'admin-nav-link'}><Copy size={17} />Upload PDF product</Link><Link to="/admin/menus" className={isMenus ? 'admin-nav-link active' : 'admin-nav-link'}><SlidersHorizontal size={17} />Manage menus</Link><a className="admin-nav-link" href="/#categories"><SlidersHorizontal size={17} />Categories</a><div className="admin-nav-bottom"><div className="admin-preview-note"><ShieldCheck size={17} /><strong>Blogger publishing</strong><p>Your connection stays active in this tab until the access token expires.</p></div><button className="admin-nav-link logout-link" onClick={onLogout}><LogOut size={17} />Sign out</button></div></aside><main className="admin-main"><div className="admin-main-inner">{children}</div></main></div></div>
 }
 
 interface ProductDraft { id: string; title: string; type: 'software' | 'pdf'; description: string; price: string; currency: string; watermarkText: string; premium: boolean; sortOrder: number }
@@ -1223,10 +1245,12 @@ function AdminGate({ allowed, authReady, bloggerConnected, prompts, blogStatus, 
   const menusPage = useLocation().pathname.endsWith('/menus')
   const aiModelsPage = useLocation().pathname.endsWith('/ai-models')
   const productsPage = useLocation().pathname.endsWith('/products')
+  const elementsPage = useLocation().pathname.endsWith('/elements')
+  const postersPage = useLocation().pathname.endsWith('/poster-split')
   if (!authReady) return <main className="auth-page"><p className="auth-subtitle">Checking sign-in…</p></main>
   if (!allowed) return <Navigate to="/login" replace />
   const customCategories = menuSections.flatMap((section) => section.items.map((item) => item.name))
-  return <AdminShell bloggerConnected={bloggerConnected} onLogout={onLogout}>{pdfUploadPage ? <PdfProductUploader /> : productsPage ? <ProductManager /> : aiModelsPage ? <AiModelSettingsPage /> : menusPage ? <MenuManager menuSections={menuSections} onChange={onChangeMenus} /> : createPage ? <PromptEditor onPublish={onPublish} customCategories={customCategories} /> : <AdminOverview prompts={prompts} blogStatus={blogStatus} />}</AdminShell>
+  return <AdminShell bloggerConnected={bloggerConnected} onLogout={onLogout}>{pdfUploadPage ? <PdfProductUploader /> : productsPage ? <ProductManager /> : elementsPage ? <ElementScanner /> : postersPage ? <PosterSplitter /> : aiModelsPage ? <AiModelSettingsPage /> : menusPage ? <MenuManager menuSections={menuSections} onChange={onChangeMenus} /> : createPage ? <PromptEditor onPublish={onPublish} customCategories={customCategories} /> : <AdminOverview prompts={prompts} blogStatus={blogStatus} />}</AdminShell>
 }
 
 function loadSideMenus(): SideMenuSection[] {
@@ -1325,6 +1349,6 @@ export default function App() {
   useEffect(() => { document.title = `${appConfig.appName || 'Promptseen'} — AI prompt library` }, [])
   useEffect(() => { void loadCustomerSession() }, [])
   const adminAllowed = bloggerConnected || adminAuthenticated
-  return <Routes><Route path="/" element={<HomePage prompts={prompts} blogStatus={blogStatus} canGenerate={true} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /><Route path="/store" element={<StorePage />} /><Route path="/collage" element={<CollagePage />} /><Route path="/shorts" element={<ShortsPage />} /><Route path="/checkout/:productId" element={<CheckoutPage />} /><Route path="/prompt/:slug" element={<PromptPage prompts={prompts} />} /><Route path="/account" element={<AccountPage />} /><Route path="/login" element={<LoginPage onConnected={() => setBloggerConnected(true)} onAdminLogin={() => { setAdminAuthenticated(true); setAdminAuthReady(true) }} />} /><Route path="/admin/upload-pdf" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="/admin/*" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="*" element={<HomePage prompts={prompts} blogStatus={blogStatus} canGenerate={bloggerConnected} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /></Routes>
+  return <Routes><Route path="/" element={<HomePage prompts={prompts} blogStatus={blogStatus} canGenerate={true} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /><Route path="/store" element={<StorePage />} /><Route path="/collage" element={<CollagePage />} /><Route path="/shorts" element={<ShortsPage />} /><Route path="/poster" element={<PosterPage />} /><Route path="/checkout/:productId" element={<CheckoutPage />} /><Route path="/prompt/:slug" element={<PromptPage prompts={prompts} />} /><Route path="/account" element={<AccountPage />} /><Route path="/login" element={<LoginPage onConnected={() => setBloggerConnected(true)} onAdminLogin={() => { setAdminAuthenticated(true); setAdminAuthReady(true) }} />} /><Route path="/admin/upload-pdf" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="/admin/*" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="*" element={<HomePage prompts={prompts} blogStatus={blogStatus} canGenerate={bloggerConnected} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /></Routes>
 }
 

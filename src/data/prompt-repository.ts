@@ -1,4 +1,5 @@
-import { promptTags, type Prompt, type PromptQuery, type PromptRepository } from '../domain/prompt'
+import { isPosterPrompt, posterLabel, promptTags, type Prompt, type PromptQuery, type PromptRepository } from '../domain/prompt'
+import { posterPhotoUrl } from './blogger-poster-split'
 import { getBloggerAccessTokenIfAvailable } from './blogger-auth'
 import { demoPrompts } from './demo-prompts'
 
@@ -45,6 +46,34 @@ function mapPost(post: WordPressPost): Prompt {
     category: terms[0]?.name ?? 'Articles', tool: 'AI tool', style: 'Creative',
     featured: false, createdAt: post.date, image: media?.source_url, imageAlt: media?.alt_text,
     labels: terms.map((term) => term.name),
+  }
+}
+
+const posterTag = `#${posterLabel}`
+
+/** Poster photo posts are listed as photo tiles, never as prompt cards. */
+function isPosterPost(post: BloggerPost): boolean {
+  return (post.labels ?? []).some((label) => label.toLowerCase() === posterTag.toLowerCase())
+}
+
+/** Poster photo posts map to photo tiles: no title, no prompt copy, no category. */
+function mapPosterPost(post: BloggerPost): Prompt {
+  const pathParts = new URL(post.url).pathname.split('/').filter(Boolean)
+  return {
+    id: post.id,
+    slug: pathParts.at(-1) || post.id,
+    title: '',
+    description: '',
+    promptText: '',
+    category: posterLabel,
+    tool: 'Blogger',
+    style: 'Poster',
+    featured: false,
+    createdAt: post.published,
+    // The post's own markup holds the large rendition the splitter wrote; Blogger's image list can return a thumbnail.
+    image: posterPhotoUrl(post.content, post.images?.[0]?.url ?? ''),
+    labels: [...(post.labels ?? []), posterTag],
+    sourceUrl: post.url,
   }
 }
 
@@ -138,7 +167,7 @@ class BloggerPromptRepository implements PromptRepository {
       throw new Error(body.error?.message ?? `Blogger API returned ${response.status}. Check the blog ID and access permissions.`)
     }
     const result = await response.json() as { items?: BloggerPost[] }
-    const posts = (result.items ?? []).map(mapBloggerPost)
+    const posts = (result.items ?? []).map((post) => (isPosterPost(post) ? mapPosterPost(post) : mapBloggerPost(post)))
     return query.category ? posts.filter((post) => promptTags(post).includes(query.category!.toLowerCase())) : posts
   }
 
@@ -151,7 +180,7 @@ class BloggerPromptRepository implements PromptRepository {
 
   async categories() {
     const posts = await this.fetchPosts({}, 100)
-    return [...new Set(posts.map((post) => post.category))]
+    return [...new Set(posts.filter((post) => !isPosterPrompt(post)).map((post) => post.category))]
   }
 }
 
