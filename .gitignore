@@ -9,3 +9,6 @@ dist
 /data/ai-model-settings.json.*.tmp
 .local-db
 .local-db/
+
+# Local-only experiment, not wired into the app
+/src/videodownloader/
