@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
-import { Copy, Redo, Trash, Undo, ZoomIn, ZoomOut } from './Icons.jsx'
-import { SHAPE_GEOMETRY, SHAPE_TOOLS, BRUSH_PRESETS } from '../data/shapes.js'
+import { Copy, Redo, Trash, Undo } from './Icons.jsx'
+import { SHAPE_GEOMETRY, SHAPE_TOOLS } from '../data/shapes.js'
+import PhotoshopRail from './PhotoshopRail.jsx'
+import ToolOptions from './ToolOptions.jsx'
 
 const TIcon = ({ children, size = 18 }) => (
   <svg
@@ -18,27 +20,8 @@ const TIcon = ({ children, size = 18 }) => (
   </svg>
 )
 
-const CursorIcon = () => (
-  <TIcon><path d="M5 3.5 11.5 20l2.3-6.4 6.2-2.3L5 3.5Z" /></TIcon>
-)
 const DeselectIcon = () => (
   <TIcon><rect x="4" y="4" width="16" height="16" rx="2.5" strokeDasharray="3 2.6" /></TIcon>
-)
-const MarqueeIcon = () => (
-  <TIcon>
-    <path d="M4 8V5.6A1.6 1.6 0 0 1 5.6 4H8" />
-    <path d="M16 4h2.4A1.6 1.6 0 0 1 20 5.6V8" />
-    <path d="M20 16v2.4a1.6 1.6 0 0 1-1.6 1.6H16" />
-    <path d="M8 20H5.6A1.6 1.6 0 0 1 4 18.4V16" />
-    <path d="M8.5 12h7M12 8.5v7" strokeDasharray="2 2" />
-  </TIcon>
-)
-const LassoIcon = () => (
-  <TIcon>
-    <path d="M7.5 5.2c3.6-1 6.6 1.3 7.6 4 .7 2.2-.5 4.2-2.4 4.8-1.7.5-3.3-.5-3.5-2-.2-1.6 1.1-2.7 2.5-2.5" />
-    <path d="M9 14.2c-.4 1.8-.9 3-1.6 3.6" />
-    <circle cx="6.2" cy="19" r="1.8" />
-  </TIcon>
 )
 const SelectAllIcon = () => (
   <TIcon>
@@ -123,33 +106,6 @@ const ExpandIcon = () => (
     <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5" />
   </TIcon>
 )
-const PenIcon = () => (
-  <TIcon>
-    <path d="M4 20l4.2-1 10.3-10.3a2 2 0 0 0 0-2.8l-.4-.4a2 2 0 0 0-2.8 0L5 15.8 4 20Z" />
-    <path d="m12.8 5.9 3.3 3.3M4.8 15.4l3.8 3.8" />
-  </TIcon>
-)
-const BrushIcon = () => (
-  <TIcon>
-    <path d="M14.5 3.5 20.5 9.5 12 18l-6-6 8.5-8.5Z" />
-    <path d="M9 15c-1 2-2 3-4 4 .4-2.6 1.4-4.3 3-5.5" />
-  </TIcon>
-)
-const TextIcon = () => (
-  <TIcon><path d="M5 20 12 4l7 16M8 14h8" /></TIcon>
-)
-const EraserIcon = () => (
-  <TIcon>
-    <path d="m4 16 7.5-7.5 7 7L14 20H8l-4-4Z" />
-    <path d="M9 20h11" />
-  </TIcon>
-)
-const PickerIcon = () => (
-  <TIcon>
-    <path d="m4 20 2-6 8.5-8.5a2.1 2.1 0 0 1 3 0l1 1a2.1 2.1 0 0 1 0 3L10 18l-6 2Z" />
-    <path d="m13 6.5 4.5 4.5" />
-  </TIcon>
-)
 const ShapeGlyph = ({ shape }) => {
   const geo = SHAPE_GEOMETRY[shape]
   if (!geo) return null
@@ -159,12 +115,6 @@ const ShapeGlyph = ({ shape }) => {
     </svg>
   )
 }
-const BrushGlyph = ({ weight }) => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-    <path d="M4 17c4 3 8-1 11-5s4-7 5-8" strokeWidth={weight} />
-  </svg>
-)
-
 const DuplicateIcon = () => (
   <TIcon>
     <rect x="3.5" y="3.5" width="10" height="10" rx="2" />
@@ -205,8 +155,6 @@ const FILTERS = [
 export default function ToolBar({
   tool = 'select',
   onTool,
-  brush,
-  onBrush,
   selected,
   selectionCount = 0,
   onReplacePhoto,
@@ -231,11 +179,21 @@ export default function ToolBar({
   onRedo,
   canUndo,
   canRedo,
-  onPickColor,
   onZoom,
   onDeselect,
   onBegin,
   onEnd,
+  settings,
+  onSettings,
+  doc,
+  onExportSlices,
+  onClearSlices,
+  onClearAnnotations,
+  annotationCount = 0,
+  viewRotation = 0,
+  onRotate,
+  onResetRotation,
+  onNotice,
 }) {
   const [adjustOpen, setAdjustOpen] = useState(false)
   const [opacityOpen, setOpacityOpen] = useState(false)
@@ -244,31 +202,21 @@ export default function ToolBar({
   const filters = selected?.filters || {}
   const adjustVisible = adjustOpen && photoSelected
   const opacityVisible = opacityOpen && selectionCount > 0
-  const selecting = tool === 'marquee' || tool === 'lasso'
   const opacityValue = selected ? Math.round((selected.opacity ?? 1) * 100) : 100
   const many = selectionCount > 1
 
   return (
     <aside className="ts-toolbar-rail">
       <div className="ts-toolbar" role="toolbar" aria-label="Editing tools">
+        <PhotoshopRail
+          tool={tool}
+          onTool={onTool}
+          settings={settings}
+          onSettings={onSettings}
+          onNotice={(tip) => tip && onNotice?.(tip)}
+        />
+
         <Group label={many ? `Selection · ${selectionCount}` : 'Selection'}>
-          <ToolButton title="Select and move (V)" active={tool === 'select'} onClick={() => onTool?.('select')}>
-            <CursorIcon />
-          </ToolButton>
-          <ToolButton
-            title="Rectangular selection (M) — drag a box around elements to select, move, copy, cut, or delete"
-            active={tool === 'marquee'}
-            onClick={() => onTool?.('marquee')}
-          >
-            <MarqueeIcon />
-          </ToolButton>
-          <ToolButton
-            title="Free-form select (L) — draw around the elements"
-            active={tool === 'lasso'}
-            onClick={() => onTool?.('lasso')}
-          >
-            <LassoIcon />
-          </ToolButton>
           <ToolButton title="Select all (Ctrl+A)" onClick={onSelectAll}>
             <SelectAllIcon />
           </ToolButton>
@@ -329,46 +277,6 @@ export default function ToolBar({
           </ToolButton>
         </Group>
 
-        <Group label="Tools">
-          <ToolButton title="Pen — add a line" onClick={() => onAddShape?.('line')}>
-            <PenIcon />
-          </ToolButton>
-          <ToolButton title="Brush (B)" active={tool === 'brush'} onClick={() => onTool?.('brush')}>
-            <BrushIcon />
-          </ToolButton>
-          <ToolButton title="Text (T) — click the page to place text" active={tool === 'text'} onClick={() => onTool?.('text')}>
-            <TextIcon />
-          </ToolButton>
-          <ToolButton title="Eraser — delete the selected layer" disabled={!selectionCount} onClick={onDelete}>
-            <EraserIcon />
-          </ToolButton>
-          <ToolButton title="Pick a colour from the screen" onClick={onPickColor}>
-            <PickerIcon />
-          </ToolButton>
-          <ToolButton title="Zoom out" onClick={() => onZoom?.(-0.1)}>
-            <ZoomOut size={18} />
-          </ToolButton>
-          <ToolButton title="Zoom in" onClick={() => onZoom?.(0.1)}>
-            <ZoomIn size={18} />
-          </ToolButton>
-        </Group>
-
-        <Group label="Brushes">
-          {BRUSH_PRESETS.map((preset) => (
-            <ToolButton
-              key={preset.id}
-              title={`${preset.label} brush`}
-              active={tool === 'brush' && brush?.preset === preset.id}
-              onClick={() => {
-                onBrush?.({ ...brush, preset: preset.id, size: preset.size, opacity: preset.opacity })
-                onTool?.('brush')
-              }}
-            >
-              <BrushGlyph weight={preset.size + 0.6} />
-            </ToolButton>
-          ))}
-        </Group>
-
         <Group label="Shapes">
           {SHAPE_TOOLS.map((shape) => (
             <ToolButton key={shape.id} title={`Add ${shape.title.toLowerCase()}`} onClick={() => onAddShape?.(shape.id)}>
@@ -402,55 +310,29 @@ export default function ToolBar({
         </Group>
       </div>
 
-      {(selecting || (tool === 'brush' && brush) || adjustVisible || opacityVisible) && (
+      <ToolOptions
+        tool={tool}
+        settings={settings}
+        onSettings={onSettings}
+        doc={doc}
+        selected={selected}
+        selectionCount={selectionCount}
+        transparentSelect={transparentSelect}
+        onTransparentSelect={onTransparentSelect}
+        onExportSlices={onExportSlices}
+        onClearSlices={onClearSlices}
+        onClearAnnotations={onClearAnnotations}
+        annotationCount={annotationCount}
+        viewRotation={viewRotation}
+        onRotate={onRotate}
+        onResetRotation={onResetRotation}
+        onZoom={onZoom}
+        onSelectAll={onSelectAll}
+        onDeselect={onDeselect}
+      />
+
+      {(adjustVisible || opacityVisible) && (
         <div className="ts-tool-options-stack">
-          {selecting && (
-            <div className="ts-tool-options">
-              <span className="ts-tool-options-title">
-                {tool === 'lasso' ? 'Free-form select' : 'Rectangular selection'}
-              </span>
-              <span className="ts-tool-option ts-tool-tip">
-                Drag on page to draw rectangle · Move: drag inside box · Copy: Ctrl+C · Cut: Ctrl+X · Delete: Del · Paste: Ctrl+V
-              </span>
-            </div>
-          )}
-
-          {tool === 'brush' && brush && (
-            <div className="ts-tool-options">
-              <span className="ts-tool-options-title">Brush</span>
-              <span className="ts-tool-option">{BRUSH_PRESETS.find((p) => p.id === brush.preset)?.label || 'Brush'}</span>
-              <label className="ts-tool-option">
-                Size
-                <input
-                  type="range"
-                  min="0.3"
-                  max="8"
-                  step="0.1"
-                  value={brush.size}
-                  onChange={(e) => onBrush?.({ ...brush, size: Number(e.target.value) })}
-                />
-                <span className="ts-tool-scale">{Number(brush.size).toFixed(1)}</span>
-              </label>
-              <label className="ts-tool-option">
-                Opacity
-                <input
-                  type="range"
-                  min="10"
-                  max="100"
-                  step="1"
-                  value={Math.round(brush.opacity * 100)}
-                  onChange={(e) => onBrush?.({ ...brush, opacity: Number(e.target.value) / 100 })}
-                />
-                <span className="ts-tool-scale">{Math.round(brush.opacity * 100)}%</span>
-              </label>
-              <label className="ts-tool-option">
-                Colour
-                <input type="color" value={brush.color} onChange={(e) => onBrush?.({ ...brush, color: e.target.value })} />
-              </label>
-              <span className="ts-tool-option ts-tool-tip">Drag on the page to paint · V returns to Select</span>
-            </div>
-          )}
-
           {adjustVisible && (
             <div className="ts-tool-options">
               <span className="ts-tool-options-title">Adjust photo</span>

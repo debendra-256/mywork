@@ -89,6 +89,40 @@ export function makeInk(overrides = {}) {
   }
 }
 
+// A full-page pixel layer for the Photoshop-style paint and retouch tools.
+export function makeRaster({ src = '' } = {}, overrides = {}) {
+  return {
+    id: uid('rl'),
+    type: 'raster',
+    role: 'paint',
+    src,
+    x: 0,
+    y: 0,
+    w: 100,
+    opacity: 1,
+    blend: 'normal',
+    rotation: 0,
+    ...overrides,
+  }
+}
+
+// Notes and count markers live on the page while editing but never export.
+export function makeAnnotation(kind = 'note', overrides = {}) {
+  return {
+    id: uid('an'),
+    type: 'annotation',
+    kind,
+    x: 50,
+    y: 50,
+    text: kind === 'note' ? 'Note' : '',
+    index: 1,
+    color: kind === 'count' ? '#b03a2e' : '#f0c94a',
+    opacity: 1,
+    rotation: 0,
+    ...overrides,
+  }
+}
+
 export function makeBanner(overrides = {}) {
   return {
     id: uid('bn'),
@@ -316,6 +350,8 @@ export function layerLabel(el) {
   if (el.type === 'social') return socialName(el.platform)
   if (el.type === 'footer') return el.blank ? 'Blank footer' : 'Social footer'
   if (el.type === 'shape') return el.shape === 'line' ? 'Line' : el.shape
+  if (el.type === 'raster') return 'Paint & retouch'
+  if (el.type === 'annotation') return el.kind === 'count' ? `Count ${el.index}` : 'Note'
   return el.ornament
 }
 

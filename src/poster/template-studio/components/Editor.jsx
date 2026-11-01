@@ -4,13 +4,17 @@ import TemplateCanvas from './TemplateCanvas.jsx'
 import Inspector from './Inspector.jsx'
 import ToolBar from './ToolBar.jsx'
 import {
-  aspectOf, applyPalette, cloneDoc, makeBanner, makeContactCard, makeFooter, makeInk, makeNameCard, makeOrnament, makePhoto, makeShape, makeSocial, makeSticker, makeText, saveDesign, uid,
+  aspectOf, applyPalette, cloneDoc, makeAnnotation, makeBanner, makeContactCard, makeFooter, makeInk, makeNameCard, makeOrnament, makePhoto, makeRaster, makeShape, makeSocial, makeSticker, makeText, saveDesign, uid,
 } from '../model.js'
 import { SHAPE_DEFAULTS } from '../data/shapes.js'
 import { POSTER_LOGOS, POSTER_TEMPLATES } from '../data/poster-templates.js'
 import { loadElements } from '../../elements.js'
-import { downloadPng } from '../export.js'
+import { downloadPng, downloadSlices } from '../export.js'
 import { preparePhotoFile, removePhotoBackground } from '../photo.js'
+import {
+  DEFAULT_TOOL_SETTINGS, PRIMARY_TOOL_OF_GROUP, SHORTCUT_GROUPS, nextToolInGroup,
+} from '../tools/registry.js'
+import { createCanvas, layerDataUrl, loadImage } from '../tools/raster.js'
 import {
   ArrowLeft, Close, Download, Layers, Redo, Save, Undo, ZoomIn, ZoomOut,
 } from './Icons.jsx'
@@ -51,7 +55,10 @@ export default function Editor({
   // Paint's "Transparent selection": marquee and lasso hit-test the visible
   // artwork instead of the empty box around it.
   const [transparentSelect, setTransparentSelect] = useState(false)
-  const [brush, setBrush] = useState({ preset: 'marker', color: '#1c2025', size: 1.8, opacity: 0.9 })
+  // Photoshop-style tool options live outside the document so switching tools
+  // keeps your brush size, colours and tolerance.
+  const [settings, setSettings] = useState(DEFAULT_TOOL_SETTINGS)
+  const [viewRotation, setViewRotation] = useState(0)
   const [panelOpen, setPanelOpen] = useState(() => (
     typeof window === 'undefined' ? true : window.innerWidth > 760
   ))
@@ -215,9 +222,6 @@ export default function Editor({
     const preset = SHAPE_DEFAULTS[shape] || SHAPE_DEFAULTS.triangle
     addElement(placedAt(makeShape(shape, preset), at))
   }
-  const addInk = useCallback((ink) => {
-    addElement(makeInk(ink))
-  }, [addElement])
   const addTextAt = useCallback((xPct, yPct) => {
     addElement(makeText({
       size: 4.6,
@@ -559,6 +563,205 @@ export default function Editor({
     })
   }, [mutate])
 
+  /* ---------- Photoshop tool plumbing ---------- */
+
+  const commitPaintLayer = useCallback(({ src }) => {
+    mutate((d) => {
+      const layer = d.elements.find((el) => el.type === 'raster' && el.role === 'paint')
+      if (layer) {
+        return { ...d, elements: d.elements.map((el) => (el.id === layer.id ? { ...el, src } : el)) }
+      }
+      return { ...d, elements: [makeRaster({ src }), ...d.elements] }
+    })
+  }, [mutate])
+
+  const addShapeBox = useCallback((box, toolId) => {
+    const ratio = aspectOf(docRef.current) || 1
+    const sides = Number(settings.shapeSides) || 6
+    const shape =
+      toolId === 'shape-ellipse' ? 'circle'
+        : toolId === 'shape-line' ? 'line'
+          : toolId === 'shape-polygon'
+            ? (sides <= 3 ? 'triangle' : sides === 4 ? 'diamond' : sides === 5 ? 'pentagon' : 'hexagon')
+            : 'rect'
+    const preset = SHAPE_DEFAULTS[shape] || SHAPE_DEFAULTS.rect
+    const fill = shape === 'line' && settings.shapeFill === 'none' ? settings.shapeStroke : settings.shapeFill
+    addElement(makeShape(shape, {
+      ...preset,
+      x: box.x,
+      y: box.y,
+      w: Math.max(1, box.w),
+      h: Math.max(0.2, box.h / ratio),
+      fill,
+      stroke: settings.shapeStroke,
+      strokeWidth: settings.shapeStroke === 'none' ? 0 : (preset.strokeWidth ?? 0.3),
+    }))
+  }, [addElement, settings.shapeFill, settings.shapeSides, settings.shapeStroke])
+
+  const addFrameBox = useCallback((box) => {
+    const ratio = aspectOf(docRef.current) || 1
+    addElement(makePhoto({
+      x: box.x,
+      y: box.y,
+      w: Math.max(4, box.w),
+      h: Math.max(4, box.h / ratio),
+      src: '',
+      role: 'frame',
+      backdrop: 'none',
+      tint: 'none',
+      borderWidth: 1,
+      borderColor: settings.shapeStroke === 'none' ? 'accent' : settings.shapeStroke,
+      shape: 'rounded',
+      radius: 1.2,
+    }))
+    onToast?.('Frame added — switch to Move and double-click it to add a photo')
+  }, [addElement, onToast, settings.shapeStroke])
+
+  const addNoteAt = useCallback((x, y, text) => {
+    addElement(makeAnnotation('note', { x, y, text, color: settings.foreground }))
+    onToast?.('Note added — notes never export')
+  }, [addElement, onToast, settings.foreground])
+
+  const addCountAt = useCallback((x, y) => {
+    const next = docRef.current.elements.reduce(
+      (max, el) => (el.type === 'annotation' && el.kind === 'count' ? Math.max(max, el.index || 0) : max),
+      0
+    ) + 1
+    addElement(makeAnnotation('count', { x, y, index: next, color: settings.foreground }))
+  }, [addElement, settings.foreground])
+
+  const penCommit = useCallback((path) => {
+    addElement(makeInk({ ...path, color: settings.foreground, size: settings.size, opacity: 1 }))
+    onToast?.('Path added to the page')
+  }, [addElement, onToast, settings.foreground, settings.size])
+
+  const updateDirectPoints = useCallback((id, points) => {
+    patchEl(id, { points }, { history: false })
+  }, [patchEl])
+
+  const sampleColor = useCallback((hex) => {
+    setSettings((s) => ({ ...s, foreground: hex }))
+    onToast?.(`Foreground set to ${hex}`)
+  }, [onToast])
+
+  const setCloneSource = useCallback((point) => {
+    setSettings((s) => ({ ...s, cloneSource: point }))
+  }, [])
+
+  const rotateView = useCallback((deg) => {
+    let next = Math.round(((deg % 360) + 360) % 360)
+    if (next > 180) next -= 360
+    setViewRotation(next)
+  }, [])
+
+  const zoomAt = useCallback((delta) => {
+    setZoom((z) => Math.max(0.4, Math.min(2.4, Math.round((z + delta) * 10) / 10)))
+  }, [])
+
+  const addSlice = useCallback((slice) => {
+    mutate((d) => ({ ...d, slices: [...(d.slices || []), { id: uid('slice'), ...slice }] }))
+  }, [mutate])
+
+  const removeSlice = useCallback((id) => {
+    mutate((d) => ({ ...d, slices: (d.slices || []).filter((slice) => slice.id !== id) }))
+  }, [mutate])
+
+  const clearSlices = useCallback(() => {
+    mutate((d) => ({ ...d, slices: [] }))
+  }, [mutate])
+
+  const annotationCount = doc.elements.filter((el) => el.type === 'annotation').length
+
+  const clearAnnotations = useCallback(() => {
+    mutate((d) => ({ ...d, elements: d.elements.filter((el) => el.type !== 'annotation') }))
+  }, [mutate])
+
+  const exportSliceSet = async () => {
+    const slices = docRef.current.slices || []
+    if (!slices.length) {
+      onToast?.('Draw at least one slice first')
+      return
+    }
+    setExporting(true)
+    try {
+      const count = await downloadSlices(docRef.current, slices, 2400)
+      onToast?.(`${count} slice${count === 1 ? '' : 's'} exported`)
+    } catch {
+      onToast?.('Could not export the slices')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  // Crop re-projects every layer into the kept rectangle, so the page keeps
+  // its artwork instead of leaving elements outside the new canvas.
+  const applyCropBox = async ({ x0, y0, x1, y1 }) => {
+    const d = docRef.current
+    const ratio = aspectOf(d) || 1
+    const pageH = 100 / ratio
+    const left = x0 * 100
+    const top = y0 * pageH
+    const width = Math.max(2, (x1 - x0) * 100)
+    const height = Math.max(2, (y1 - y0) * pageH)
+    const nextRatio = width / height
+    const scale = 100 / width
+    const snap = (v) => Math.round(v * 10) / 10
+    const clampTo = (v, lo, hi) => Math.min(Math.max(lo, v), Math.max(lo, hi))
+    const remapX = (x) => (x - left) * scale
+    const remapY = (y) => ((y / 100) * pageH - top) * (100 / height)
+
+    const mapSlice = (slice) => ({
+      ...slice,
+      x: snap(((slice.x / 100 - x0) / Math.max(0.0001, x1 - x0)) * 100),
+      y: snap(((slice.y / 100 - y0) / Math.max(0.0001, y1 - y0)) * 100),
+      w: snap(slice.w / (x1 - x0)),
+      h: snap(slice.h / (y1 - y0)),
+    })
+
+    let croppedSrc = null
+    const raster = d.elements.find((el) => el.type === 'raster' && el.src)
+    if (raster) {
+      try {
+        const img = await loadImage(raster.src)
+        const iw = img.naturalWidth || img.width
+        const ih = img.naturalHeight || img.height
+        const canvas = createCanvas(Math.round(iw * (x1 - x0)), Math.round(ih * (y1 - y0)))
+        canvas.getContext('2d').drawImage(
+          img,
+          iw * x0, ih * y0, iw * (x1 - x0), ih * (y1 - y0),
+          0, 0, canvas.width, canvas.height
+        )
+        croppedSrc = await layerDataUrl(canvas)
+      } catch {
+        croppedSrc = null
+      }
+    }
+
+    mutate((current) => {
+      const elements = current.elements.map((el) => {
+        if (el.type === 'raster') return croppedSrc ? { ...el, src: croppedSrc } : el
+        if (el.type === 'annotation') return { ...el, x: snap(remapX(el.x)), y: snap(remapY(el.y)) }
+        const w = el.w != null ? snap(el.w * scale) : el.w
+        const h = el.h != null ? snap(el.h * scale) : el.h
+        const yMax = h != null ? 100 - h * nextRatio : 100
+        return {
+          ...el,
+          x: snap(clampTo(remapX(el.x), 0, 100 - (w ?? 0))),
+          y: snap(clampTo(remapY(el.y), 0, yMax)),
+          ...(w != null ? { w } : {}),
+          ...(h != null ? { h } : {}),
+        }
+      })
+      return {
+        ...current,
+        aspect: Math.round(nextRatio * 1000) / 1000,
+        elements,
+        slices: (current.slices || []).map(mapSlice).filter((slice) => slice.w > 0 && slice.h > 0 && slice.x < 100 && slice.y < 100),
+      }
+    })
+    onToast?.(`Cropped to ${Math.round(nextRatio * 100)}:100`)
+  }
+
   const handleSave = async () => {
     if (onSave) {
       setSaving(true)
@@ -636,19 +839,23 @@ export default function Editor({
         if (!selectionRef.current.length) return
         e.preventDefault()
         removeMany(selectionRef.current)
-      } else if (!meta && e.key.toLowerCase() === 'v') {
-        setActiveTool('select')
-      } else if (!meta && e.key.toLowerCase() === 'b') {
-        setActiveTool('brush')
-      } else if (!meta && e.key.toLowerCase() === 't') {
-        setActiveTool('text')
-      } else if (!meta && e.key.toLowerCase() === 'm') {
-        setActiveTool('marquee')
-      } else if (!meta && e.key.toLowerCase() === 'l') {
-        setActiveTool('lasso')
-      } else if (!meta && e.key.toLowerCase() === 'e' && selectedId) {
+      } else if (!meta && (e.key === '[' || e.key === ']')) {
         e.preventDefault()
-        removeMany(selectionRef.current)
+        const step = e.key === ']' ? 1 : -1
+        setSettings((s) => ({ ...s, size: Math.max(0.4, Math.min(30, Math.round((s.size + step * 0.4) * 10) / 10)) }))
+      } else if (!meta && e.key.toLowerCase() === 'k') {
+        setActiveTool('frame')
+      } else if (!meta && e.key.toLowerCase() === 'y') {
+        setActiveTool('history-brush')
+      } else if (!meta && SHORTCUT_GROUPS[e.key.toLowerCase()]) {
+        e.preventDefault()
+        const group = SHORTCUT_GROUPS[e.key.toLowerCase()]
+        // Pressing the letter again cycles through that group, like Photoshop.
+        setActiveTool((current) => (
+          group.tools.some((t) => t.id === current)
+            ? nextToolInGroup(group.id, current)
+            : PRIMARY_TOOL_OF_GROUP[group.id]
+        ))
       } else if (e.key === 'Escape') {
         setActiveTool('select')
         if (editingId) setEditingId(null)
@@ -707,33 +914,6 @@ export default function Editor({
     if (selected?.type !== 'photo') return
     const filters = { brightness: 100, contrast: 100, saturate: 100, ...(selected.filters || {}), ...patch }
     patchEl(selected.id, { filters }, { history: commit })
-  }
-
-  const pickColor = async () => {
-    if (!selected) {
-      onToast?.('Select a layer to recolour')
-      return
-    }
-    if (typeof window === 'undefined' || !window.EyeDropper) {
-      onToast?.('The eye-dropper needs Chrome or Edge')
-      return
-    }
-    try {
-      const { sRGBHex } = await new window.EyeDropper().open()
-      if (selected.type === 'text' || selected.type === 'banner' || selected.type === 'namecard') {
-        patchEl(selected.id, { color: sRGBHex }, { history: true })
-      } else if (selected.type === 'shape' || selected.type === 'ink') {
-        patchEl(selected.id, { fill: sRGBHex, stroke: sRGBHex }, { history: true })
-      } else if (selected.type === 'footer') {
-        patchEl(selected.id, { bg: sRGBHex }, { history: true })
-      } else if (selected.type === 'photo' || selected.type === 'sticker') {
-        patchEl(selected.id, { tint: sRGBHex, tintStrength: Math.max(selected.tintStrength || 0, 0.35) }, { history: true })
-      } else {
-        onToast?.('That layer does not take a colour')
-      }
-    } catch {
-      /* cancelled */
-    }
   }
 
   const removeSelectedBackground = () => {
@@ -804,8 +984,6 @@ export default function Editor({
         <ToolBar
           tool={activeTool}
           onTool={setActiveTool}
-          brush={brush}
-          onBrush={setBrush}
           selected={selected}
           selectionCount={selection.length}
           onReplacePhoto={replacePhoto}
@@ -830,11 +1008,21 @@ export default function Editor({
           onRedo={redo}
           canUndo={hist.undo}
           canRedo={hist.redo}
-          onPickColor={pickColor}
-          onZoom={(delta) => setZoom((z) => Math.max(0.6, Math.min(1.6, Math.round((z + delta) * 10) / 10)))}
+          onZoom={zoomAt}
           onDeselect={() => setSelection([])}
           onBegin={beginGesture}
           onEnd={endGesture}
+          settings={settings}
+          onSettings={setSettings}
+          doc={doc}
+          onExportSlices={exportSliceSet}
+          onClearSlices={clearSlices}
+          onClearAnnotations={clearAnnotations}
+          annotationCount={annotationCount}
+          viewRotation={viewRotation}
+          onRotate={rotateView}
+          onResetRotation={() => setViewRotation(0)}
+          onNotice={onToast}
         />
 
         <div className="ts-editor">
@@ -842,7 +1030,12 @@ export default function Editor({
             <div className="ts-canvas-scroll">
               <div
                 className="ts-stage-shell"
-                style={{ '--ts-ar': ratio, '--ts-zoom': zoom, aspectRatio: ratio }}
+                style={{
+                  '--ts-ar': ratio,
+                  '--ts-zoom': zoom,
+                  aspectRatio: ratio,
+                  transform: viewRotation ? `rotate(${viewRotation}deg)` : undefined,
+                }}
               >
                 <TemplateCanvas
                   doc={doc}
@@ -865,20 +1058,35 @@ export default function Editor({
                   onGestureStart={beginGesture}
                   onGestureEnd={endGesture}
                   tool={activeTool}
-                  brush={brush}
-                  onInk={addInk}
+                  settings={settings}
+                  viewRotation={viewRotation}
                   onAddTextAt={addTextAt}
                   onDeleteElement={remove}
+                  onPaintCommit={commitPaintLayer}
+                  onAddShapeBox={addShapeBox}
+                  onAddFrameBox={addFrameBox}
+                  onAddNoteAt={addNoteAt}
+                  onAddCountAt={addCountAt}
+                  onAddSlice={addSlice}
+                  onRemoveSlice={removeSlice}
+                  onCropApply={applyCropBox}
+                  onSampleColor={sampleColor}
+                  onSetCloneSource={setCloneSource}
+                  onPenCommit={penCommit}
+                  onRotate={rotateView}
+                  onZoomAt={zoomAt}
+                  onNotice={onToast}
+                  onDirectPoints={updateDirectPoints}
                 />
               </div>
             </div>
 
             <div className="ts-zoom">
-              <button type="button" onClick={() => setZoom((z) => Math.max(0.6, Math.round((z - 0.1) * 10) / 10))} title="Zoom out">
+              <button type="button" onClick={() => zoomAt(-0.1)} title="Zoom out">
                 <ZoomOut size={15} />
               </button>
               <span>{Math.round(zoom * 100)}%</span>
-              <button type="button" onClick={() => setZoom((z) => Math.min(1.6, Math.round((z + 0.1) * 10) / 10))} title="Zoom in">
+              <button type="button" onClick={() => zoomAt(0.1)} title="Zoom in">
                 <ZoomIn size={15} />
               </button>
             </div>

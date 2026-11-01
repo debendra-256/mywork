@@ -7,6 +7,24 @@ import { socialMarkup, brandSocialMarkup, isDarkColor } from '../data/socials.js
 import { contactMarkup } from '../data/namecards.js'
 import { SHAPE_GEOMETRY, isPathShape } from '../data/shapes.js'
 import { Photo } from './Icons.jsx'
+import {
+  LASSO_TOOLS, MARQUEE_TOOLS, PAINT_TOOLS, SOURCE_PAINT_TOOLS,
+} from '../tools/registry.js'
+import {
+  clamp,
+  colorDistance,
+  fillGradient,
+  layerDataUrl,
+  loadImage,
+  paintBucket,
+  paintPatchLine,
+  paintStamp,
+  paintStroke,
+  patchRect,
+  renderUnderlay,
+  samplePageColor,
+  smudgeLine,
+} from '../tools/raster.js'
 
 function TextBody({ el, editing, selected, style, boxStyle, onCommit, onPointerDown, onStartEdit, removeBtn }) {
   const ref = useRef(null)
@@ -369,10 +387,26 @@ export default function TemplateCanvas({
   onGestureStart,
   onGestureEnd,
   tool = 'select',
-  brush,
-  onInk,
+  settings = {},
+  viewRotation = 0,
   onAddTextAt,
   onDeleteElement,
+  onPaintCommit,
+  onAddShapeBox,
+  onAddFrameBox,
+  onAddNoteAt,
+  onAddCountAt,
+  onAddSlice,
+  onRemoveSlice,
+  onCropApply,
+  onCropCancel,
+  onSampleColor,
+  onSetCloneSource,
+  onPenCommit,
+  onRotate,
+  onZoomAt,
+  onNotice,
+  onDirectPoints,
   className = '',
 }) {
   const stageRef = useRef(null)
@@ -380,16 +414,35 @@ export default function TemplateCanvas({
   const listenersRef = useRef(null)
   const resizeRef = useRef(null)
   const [dropId, setDropId] = useState(null)
-  const [inkPreview, setInkPreview] = useState(null)
   const [selShape, setSelShape] = useState(null)
   const [frameBox, setFrameBox] = useState(null)
+  const [cropBox, setCropBox] = useState(null)
+  const [cropMeta, setCropMeta] = useState(null)
+  const [slicePreview, setSlicePreview] = useState(null)
+  const [quickCircle, setQuickCircle] = useState(null)
+  const [ruler, setRuler] = useState(null)
+  const [penPoints, setPenPoints] = useState([])
+  const [penCursor, setPenCursor] = useState(null)
+  const [directDrag, setDirectDrag] = useState(null)
+  const [paintActive, setPaintActive] = useState(false)
+  const [drawBox, setDrawBox] = useState(null)
+  const [noteDraft, setNoteDraft] = useState(null)
   const selectRef = useRef(null)
-  const inkRef = useRef(null)
+  const polyRef = useRef([])
+  const penRef = useRef([])
+  const paintRef = useRef(null)
+  const paintHostRef = useRef(null)
+  const paintBusyRef = useRef(false)
+  const cursorRef = useRef({ x: 0, y: 0 })
   const docRef = useRef(doc)
   docRef.current = doc
   const onPatchBgRef = useRef(onPatchBg)
   onPatchBgRef.current = onPatchBg
   const bgImage = doc.bg.type === 'image' && !!doc.bg.src
+  const directTarget = tool === 'direct-select' ? doc.elements.find((el) => el.id === selectedId) : null
+  const paintTool = PAINT_TOOLS.has(tool)
+  const marqueeMode = MARQUEE_TOOLS[tool] || null
+  const lassoTool = LASSO_TOOLS.has(tool) ? tool : null
 
   const offPointer = (l) => {
     if (!l) return
@@ -432,6 +485,24 @@ export default function TemplateCanvas({
     }
   }, [interactive, onGestureStart, onGestureEnd])
 
+  // Every tool owns transient overlays; changing tools clears the last one so
+  // a crop box never lingers under the brush.
+  useEffect(() => {
+    setCropBox(null)
+    setCropMeta(null)
+    setSlicePreview(null)
+    setQuickCircle(null)
+    setRuler(null)
+    setPenPoints([])
+    setPenCursor(null)
+    setDirectDrag(null)
+    setSelShape(null)
+    setDrawBox(null)
+    setNoteDraft(null)
+    polyRef.current = []
+    penRef.current = []
+  }, [tool])
+
   // Paint keeps a marching-ants frame over the selection once the mouse is
   // released, and the frame itself can be grabbed to move the group.
   useEffect(() => {
@@ -448,6 +519,8 @@ export default function TemplateCanvas({
       let box = null
       stage.querySelectorAll('[data-el]').forEach((node) => {
         if (!wanted.has(node.getAttribute('data-el'))) return
+        const owner = docRef.current.elements.find((el) => el.id === node.getAttribute('data-el'))
+        if (!owner || owner.type === 'raster' || owner.type === 'annotation') return
         const r = node.getBoundingClientRect()
         if (!r.width || !r.height) return
         box = box
@@ -543,61 +616,6 @@ export default function TemplateCanvas({
     e.preventDefault()
   }
 
-  const beginInk = (e) => {
-    if (!interactive || !brush || e.button !== 0) return
-    const rect = stageRef.current.getBoundingClientRect()
-    if (!rect.width) return
-    const toPoint = (ev) => ({
-      x: ((ev.clientX - rect.left) / rect.width) * 100,
-      y: ((ev.clientY - rect.top) / rect.width) * 100,
-    })
-    const first = toPoint(e)
-    const points = [first]
-    setInkPreview({ points, color: brush.color, size: brush.size, opacity: brush.opacity })
-    const move = (ev) => {
-      const point = toPoint(ev)
-      const last = points[points.length - 1]
-      if (Math.abs(point.x - last.x) + Math.abs(point.y - last.y) < 0.15) return
-      points.push(point)
-      setInkPreview({ points: [...points], color: brush.color, size: brush.size, opacity: brush.opacity })
-    }
-    const stop = () => {
-      window.removeEventListener('pointermove', move)
-      window.removeEventListener('pointerup', up)
-      window.removeEventListener('pointercancel', up)
-      inkRef.current = null
-      setInkPreview(null)
-    }
-    const up = () => {
-      stop()
-      if (points.length < 2) return
-      const xs = points.map((p) => p.x)
-      const ys = points.map((p) => p.y)
-      const pad = (Number(brush.size) || 1) / 2
-      const minX = Math.min(...xs) - pad
-      const maxX = Math.max(...xs) + pad
-      const minY = Math.min(...ys) - pad
-      const maxY = Math.max(...ys) + pad
-      const ratio = aspectOf(docRef.current)
-      onInk?.({
-        x: Math.max(0, Math.min(100, minX)),
-        y: Math.max(0, minY * ratio),
-        w: Math.max(0.5, maxX - minX),
-        h: Math.max(0.5, maxY - minY),
-        points: points.map((p) => ({ x: p.x - minX, y: p.y - minY })),
-        size: brush.size,
-        color: brush.color,
-        opacity: brush.opacity,
-        brush: brush.preset,
-      })
-    }
-    inkRef.current = stop
-    window.addEventListener('pointermove', move)
-    window.addEventListener('pointerup', up)
-    window.addEventListener('pointercancel', up)
-    e.preventDefault()
-  }
-
   const placeText = (e) => {
     const rect = stageRef.current.getBoundingClientRect()
     if (!rect.width) return
@@ -619,14 +637,14 @@ export default function TemplateCanvas({
     dragRef.current = null
   }
 
-  const hitIds = ({ box, poly }) => {
+  const hitIds = ({ box, poly, ellipse }) => {
     const stage = stageRef.current
     if (!stage) return []
     const ids = []
     stage.querySelectorAll('[data-el]').forEach((node) => {
       const id = node.getAttribute('data-el')
       const el = docRef.current.elements.find((e) => e.id === id)
-      if (!el) return
+      if (!el || el.type === 'raster' || el.type === 'annotation') return
       if (transparentSelect && (el.opacity ?? 1) <= 0.02) return
       const rect = visibleRect(node, transparentSelect)
       if (box) {
@@ -639,6 +657,16 @@ export default function TemplateCanvas({
         [rect.left, rect.bottom],
         [rect.right, rect.bottom],
       ]
+      if (ellipse) {
+        const inside = (x, y) =>
+          ((x - ellipse.cx) ** 2) / (ellipse.rx ** 2) + ((y - ellipse.cy) ** 2) / (ellipse.ry ** 2) <= 1
+        const picked =
+          inside((rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2) ||
+          corners.some(([x, y]) => inside(x, y)) ||
+          (ellipse.cx > rect.left && ellipse.cx < rect.right && ellipse.cy > rect.top && ellipse.cy < rect.bottom)
+        if (picked) ids.push(id)
+        return
+      }
       const inside = (x, y) => pointInPolygon(x, y, poly)
       const picked =
         inside((rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2) ||
@@ -649,38 +677,77 @@ export default function TemplateCanvas({
     return ids
   }
 
-  const beginSelect = (e) => {
+  // Magnetic lasso: pull the freehand path onto nearby layer edges so the
+  // selection hugs artwork instead of the hand's wobble.
+  const snapMagnetic = (points) => {
+    const stage = stageRef.current
+    if (!stage) return points
+    const stageRect = stage.getBoundingClientRect()
+    const edges = []
+    stage.querySelectorAll('[data-el]').forEach((node) => {
+      const r = node.getBoundingClientRect()
+      if (!r.width || !r.height) return
+      edges.push({ x1: r.left - stageRect.left, y1: r.top - stageRect.top, x2: r.right - stageRect.left, y2: r.top - stageRect.top })
+      edges.push({ x1: r.left - stageRect.left, y1: r.bottom - stageRect.top, x2: r.right - stageRect.left, y2: r.bottom - stageRect.top })
+      edges.push({ x1: r.left - stageRect.left, y1: r.top - stageRect.top, x2: r.left - stageRect.left, y2: r.bottom - stageRect.top })
+      edges.push({ x1: r.right - stageRect.left, y1: r.top - stageRect.top, x2: r.right - stageRect.left, y2: r.bottom - stageRect.top })
+    })
+    return points.map(([x, y]) => {
+      let best = null
+      edges.forEach((edge) => {
+        const vertical = edge.x1 === edge.x2
+        if (vertical) {
+          const minY = Math.min(edge.y1, edge.y2) - 10
+          const maxY = Math.max(edge.y1, edge.y2) + 10
+          if (y < minY || y > maxY) return
+          const d = Math.abs(x - edge.x1)
+          if (d <= 14 && (!best || d < best.d)) best = { d, x: edge.x1 }
+        } else {
+          const minX = Math.min(edge.x1, edge.x2) - 10
+          const maxX = Math.max(edge.x1, edge.x2) + 10
+          if (x < minX || x > maxX) return
+          const d = Math.abs(y - edge.y1)
+          if (d <= 14 && (!best || d < best.d)) best = { d, y: edge.y1 }
+        }
+      })
+      return best ? [best.x ?? x, best.y ?? y] : [x, y]
+    })
+  }
+
+  const beginSelect = (e, forcedMode) => {
     const stage = stageRef.current
     if (!stage || e.button !== 0) return
     const rect = stage.getBoundingClientRect()
     if (!rect.width) return
-    const mode = tool === 'lasso' ? 'lasso' : 'rect'
+    const mode = forcedMode || (lassoTool ? 'lasso' : marqueeMode || 'rect')
+    const drawingLasso = mode === 'lasso' || mode === 'magnetic'
     const local = (ev) => ({
       x: Math.min(rect.width, Math.max(0, ev.clientX - rect.left)),
       y: Math.min(rect.height, Math.max(0, ev.clientY - rect.top)),
     })
     const origin = local(e)
-    const session = { points: [[origin.x, origin.y]], moved: false }
+    const session = { points: [[origin.x, origin.y]], moved: false, last: origin }
 
     const paint = (at) => {
-      if (mode === 'lasso') {
-        setSelShape({ mode, points: [...session.points], vw: rect.width, vh: rect.height })
+      if (drawingLasso) {
+        setSelShape({ mode: 'lasso', points: [...session.points], vw: rect.width, vh: rect.height })
         return
       }
-      setSelShape({
-        mode,
-        left: Math.min(origin.x, at.x),
-        top: Math.min(origin.y, at.y),
-        width: Math.abs(at.x - origin.x),
-        height: Math.abs(at.y - origin.y),
-      })
+      const left = Math.min(origin.x, at.x)
+      const top = Math.min(origin.y, at.y)
+      let width = Math.abs(at.x - origin.x)
+      let height = Math.abs(at.y - origin.y)
+      if (mode === 'row') height = 6
+      if (mode === 'col') width = 6
+      setSelShape({ mode, left, top, width, height })
     }
-    if (mode === 'lasso') paint(origin)
+    if (drawingLasso) paint(origin)
 
     const move = (ev) => {
+      cursorRef.current = local(ev)
       const at = local(ev)
       session.last = at
-      if (mode === 'lasso') {
+      if (drawingLasso) {
         const last = session.points[session.points.length - 1]
         if (Math.abs(at.x - origin.x) + Math.abs(at.y - origin.y) >= 4) session.moved = true
         if (Math.abs(at.x - last[0]) + Math.abs(at.y - last[1]) >= 2) session.points.push([at.x, at.y])
@@ -698,16 +765,34 @@ export default function TemplateCanvas({
       setSelShape(null)
     }
     const finish = (at, shifted) => {
-      if (mode === 'lasso') {
-        onSelectMany?.(hitIds({ poly: session.points.map(([x, y]) => [x + rect.left, y + rect.top]) }), shifted)
+      if (drawingLasso) {
+        const points = mode === 'magnetic' ? snapMagnetic(session.points) : session.points
+        onSelectMany?.(hitIds({ poly: points.map(([x, y]) => [x + rect.left, y + rect.top]) }), shifted)
+        return
+      }
+      const left = Math.min(origin.x, at.x)
+      const top = Math.min(origin.y, at.y)
+      let width = Math.abs(at.x - origin.x)
+      let height = Math.abs(at.y - origin.y)
+      if (mode === 'row') height = 6
+      if (mode === 'col') width = 6
+      if (mode === 'ellipse') {
+        onSelectMany?.(hitIds({
+          ellipse: {
+            cx: rect.left + left + width / 2,
+            cy: rect.top + top + height / 2,
+            rx: Math.max(2, width / 2),
+            ry: Math.max(2, height / 2),
+          },
+        }), shifted)
         return
       }
       onSelectMany?.(hitIds({
         box: {
-          left: rect.left + Math.min(origin.x, at.x),
-          top: rect.top + Math.min(origin.y, at.y),
-          right: rect.left + Math.max(origin.x, at.x),
-          bottom: rect.top + Math.max(origin.y, at.y),
+          left: rect.left + left,
+          top: rect.top + top,
+          right: rect.left + left + width,
+          bottom: rect.top + top + height,
         },
       }), shifted)
     }
@@ -731,6 +816,775 @@ export default function TemplateCanvas({
     window.addEventListener('pointerup', up)
     window.addEventListener('pointercancel', cancel)
     e.preventDefault()
+  }
+
+  const finishPoly = (shifted) => {
+    const stage = stageRef.current
+    if (!stage) return
+    const rect = stage.getBoundingClientRect()
+    const points = polyRef.current
+    polyRef.current = []
+    setSelShape(null)
+    if (points.length < 3) return
+    onSelectMany?.(hitIds({ poly: points.map(([x, y]) => [x + rect.left, y + rect.top]) }), shifted)
+  }
+
+  const beginPoly = (e) => {
+    if (e.button !== 0) return
+    const stage = stageRef.current
+    if (!stage) return
+    const rect = stage.getBoundingClientRect()
+    const at = {
+      x: Math.min(rect.width, Math.max(0, e.clientX - rect.left)),
+      y: Math.min(rect.height, Math.max(0, e.clientY - rect.top)),
+    }
+    // Double-click closes the shape from the stage's onDoubleClick handler.
+    if (!polyRef.current.length) onSelect?.(null)
+    polyRef.current = [...polyRef.current, [at.x, at.y]]
+    setSelShape({ mode: 'lasso', points: [...polyRef.current], vw: rect.width, vh: rect.height })
+    e.preventDefault()
+  }
+
+  const finishPen = () => {
+    const points = penRef.current
+    penRef.current = []
+    setPenPoints([])
+    setPenCursor(null)
+    if (points.length < 2) return
+    const xs = points.map((p) => p.x)
+    const ys = points.map((p) => p.y)
+    const pad = Math.max(0.4, (settings.size || 2) / 2)
+    const minX = Math.min(...xs) - pad
+    const maxX = Math.max(...xs) + pad
+    const minY = Math.min(...ys) - pad
+    const maxY = Math.max(...ys) + pad
+    onPenCommit?.({
+      x: Math.max(0, Math.min(100, minX)),
+      y: Math.max(0, minY),
+      w: Math.max(0.5, maxX - minX),
+      h: Math.max(0.5, maxY - minY),
+      points: points.map((p) => ({ x: p.x - minX, y: p.y - minY })),
+    })
+  }
+
+  const beginPen = (e) => {
+    if (e.button !== 0) return
+    const stage = stageRef.current
+    if (!stage) return
+    const rect = stage.getBoundingClientRect()
+    const at = {
+      x: Math.min(rect.width, Math.max(0, e.clientX - rect.left)) / rect.width * 100,
+      y: Math.min(rect.height, Math.max(0, e.clientY - rect.top)) / rect.width * 100,
+    }
+    penRef.current = [...penRef.current, at]
+    setPenPoints([...penRef.current])
+    e.preventDefault()
+  }
+
+  useEffect(() => {
+    if (tool !== 'pen' && tool !== 'lasso-poly') return undefined
+    const onKey = (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        if (tool === 'pen') finishPen()
+        else finishPoly(e.shiftKey)
+      } else if (e.key === 'Escape') {
+        penRef.current = []
+        setPenPoints([])
+        setPenCursor(null)
+        polyRef.current = []
+        setSelShape(null)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  })
+
+  const stagePoint = (e) => {
+    const stage = stageRef.current
+    if (!stage) return null
+    const rect = stage.getBoundingClientRect()
+    if (!rect.width || !rect.height) return null
+    return {
+      px: clamp(e.clientX - rect.left, 0, rect.width),
+      py: clamp(e.clientY - rect.top, 0, rect.height),
+      fx: clamp((e.clientX - rect.left) / rect.width, 0, 1),
+      fy: clamp((e.clientY - rect.top) / rect.height, 0, 1),
+      rect,
+    }
+  }
+
+  // Colour a layer paints with, used by the magic wand.
+  const colorOfElement = (el) => {
+    const d = docRef.current
+    const raw =
+      el.type === 'text' || el.type === 'banner'
+        ? el.color
+        : el.type === 'shape'
+          ? (el.fill && el.fill !== 'none' ? el.fill : el.stroke)
+          : el.type === 'photo'
+            ? (el.tint && el.tint !== 'none' ? el.tint : el.backdrop)
+            : el.type === 'footer' || el.type === 'namecard' || el.type === 'contactcard'
+              ? el.bg
+              : el.color
+    return raw && raw !== 'none' && raw !== 'transparent' ? resolve(d, raw) : null
+  }
+
+  const elementAt = (e) => {
+    if (typeof document === 'undefined') return null
+    const nodes = document.elementsFromPoint(e.clientX, e.clientY)
+    for (const node of nodes) {
+      const holder = node.closest?.('[data-el]')
+      if (!holder) continue
+      const id = holder.getAttribute('data-el')
+      const el = docRef.current.elements.find((item) => item.id === id)
+      if (el) return el
+    }
+    return null
+  }
+
+  const beginObjectSelect = (e) => {
+    const el = elementAt(e)
+    if (!el) {
+      if (!e.shiftKey) onSelect?.(null)
+      return
+    }
+    if ((tool === 'path-select' || tool === 'direct-select') && el.type !== 'ink' && el.type !== 'shape') {
+      onNotice?.('Path tools pick shapes and pen paths — click a vector layer')
+      return
+    }
+    onSelect?.(el.id, e.shiftKey)
+  }
+
+  const beginQuickSelect = (e) => {
+    const start = stagePoint(e)
+    if (!start) return
+    const keep = e.shiftKey ? [...selectedIds] : []
+    const move = (ev) => {
+      const at = stagePoint(ev)
+      if (!at) return
+      const radius = Math.max(10, Math.hypot(at.px - start.px, at.py - start.py))
+      setQuickCircle({ left: at.px - radius, top: at.py - radius, size: radius * 2 })
+      const ids = hitIds({
+        ellipse: {
+          cx: start.rect.left + start.px,
+          cy: start.rect.top + start.py,
+          rx: radius,
+          ry: radius,
+        },
+      })
+      onSelectMany?.([...new Set([...keep, ...ids])], false)
+    }
+    const stop = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', stop)
+      window.removeEventListener('pointercancel', stop)
+      setQuickCircle(null)
+      selectRef.current = null
+    }
+    selectRef.current = stop
+    setQuickCircle({ left: start.px - 10, top: start.py - 10, size: 20 })
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', stop)
+    window.addEventListener('pointercancel', stop)
+    e.preventDefault()
+  }
+
+  const beginMagicWand = async (e) => {
+    const point = stagePoint(e)
+    if (!point) return
+    onNotice?.('Sampling the page…')
+    const target = await samplePageColor(docRef.current, point.fx, point.fy, 320)
+    const tolerance = Number(settings.tolerance) || 34
+    const ids = docRef.current.elements
+      .filter((el) => el.type !== 'raster' && el.type !== 'annotation')
+      .filter((el) => {
+        const color = colorOfElement(el)
+        if (!color || !color.startsWith('#')) return false
+        return colorDistance(color, target) <= tolerance
+      })
+      .map((el) => el.id)
+    onSelectMany?.(e.shiftKey ? [...new Set([...selectedIds, ...ids])] : ids, false)
+    onNotice?.(
+      ids.length
+        ? `Magic wand picked ${ids.length} layer${ids.length === 1 ? '' : 's'} near ${target}`
+        : 'No layers match that colour'
+    )
+  }
+
+  const sampleAt = async (e) => {
+    const point = stagePoint(e)
+    if (!point) return
+    const hex = await samplePageColor(docRef.current, point.fx, point.fy, 640)
+    onSampleColor?.(hex)
+  }
+
+  const beginRuler = (e) => {
+    const start = stagePoint(e)
+    if (!start) return
+    const origin = { x: start.px, y: start.py }
+    const move = (ev) => {
+      const at = stagePoint(ev)
+      if (!at) return
+      const dx = at.px - origin.x
+      const dy = at.py - origin.y
+      setRuler({
+        x1: origin.x,
+        y1: origin.y,
+        x2: at.px,
+        y2: at.py,
+        vw: start.rect.width,
+        vh: start.rect.height,
+        length: Math.hypot(dx, dy),
+        angle: (Math.atan2(dy, dx) * 180) / Math.PI,
+      })
+    }
+    const stop = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', stop)
+      window.removeEventListener('pointercancel', stop)
+      selectRef.current = null
+    }
+    setRuler({
+      x1: origin.x,
+      y1: origin.y,
+      x2: origin.x,
+      y2: origin.y,
+      vw: start.rect.width,
+      vh: start.rect.height,
+      length: 0,
+      angle: 0,
+    })
+    selectRef.current = stop
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', stop)
+    window.addEventListener('pointercancel', stop)
+    e.preventDefault()
+  }
+
+  const placeNote = (e) => {
+    const point = stagePoint(e)
+    if (!point) return
+    setNoteDraft({
+      x: Math.round(point.fx * 1000) / 10,
+      y: Math.round(point.fy * 1000) / 10,
+      left: point.px + 12,
+      top: point.py + 12,
+      text: '',
+    })
+  }
+
+  const commitNote = () => {
+    if (!noteDraft) return
+    const text = noteDraft.text.trim()
+    if (text) onAddNoteAt?.(noteDraft.x, noteDraft.y, text)
+    setNoteDraft(null)
+  }
+
+  const placeCount = (e) => {
+    const point = stagePoint(e)
+    if (!point) return
+    onAddCountAt?.(Math.round(point.fx * 1000) / 10, Math.round(point.fy * 1000) / 10)
+  }
+
+  const ratioFromSetting = () => {
+    const raw = String(settings.cropRatio || 'free')
+    if (raw === 'free') return 0
+    const [a, b] = raw.split(':').map(Number)
+    if (!a || !b) return 0
+    return a / b
+  }
+
+  const beginCrop = (e) => {
+    const start = stagePoint(e)
+    if (!start) return
+    const origin = { x: start.px, y: start.py }
+    const aspect = ratioFromSetting()
+    const move = (ev) => {
+      const at = stagePoint(ev)
+      if (!at) return
+      const left = Math.min(origin.x, at.px)
+      const top = Math.min(origin.y, at.py)
+      let width = Math.abs(at.px - origin.x)
+      let height = Math.abs(at.py - origin.y)
+      if (aspect) {
+        if (width / Math.max(1, height) > aspect) width = height * aspect
+        else height = width / aspect
+      }
+      setCropBox({
+        left: at.px < origin.x ? origin.x - width : origin.x,
+        top: at.py < origin.y ? origin.y - height : origin.y,
+        width,
+        height,
+      })
+      setCropMeta({ width, height })
+    }
+    const stop = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', stop)
+      window.removeEventListener('pointercancel', stop)
+      selectRef.current = null
+    }
+    selectRef.current = stop
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', stop)
+    window.addEventListener('pointercancel', stop)
+    e.preventDefault()
+  }
+
+  const applyCrop = () => {
+    const stage = stageRef.current
+    if (!stage || !cropBox || cropBox.width < 6 || cropBox.height < 6) {
+      onNotice?.('Drag a crop box on the page first')
+      return
+    }
+    const rect = stage.getBoundingClientRect()
+    onCropApply?.({
+      x0: clamp(cropBox.left / rect.width, 0, 1),
+      y0: clamp(cropBox.top / rect.height, 0, 1),
+      x1: clamp((cropBox.left + cropBox.width) / rect.width, 0, 1),
+      y1: clamp((cropBox.top + cropBox.height) / rect.height, 0, 1),
+    })
+    setCropBox(null)
+    setCropMeta(null)
+  }
+
+  const cancelCrop = () => {
+    setCropBox(null)
+    setCropMeta(null)
+    onCropCancel?.()
+  }
+
+  const beginSlice = (e) => {
+    const start = stagePoint(e)
+    if (!start) return
+    const origin = { x: start.px, y: start.py }
+    const move = (ev) => {
+      const at = stagePoint(ev)
+      if (!at) return
+      setSlicePreview({
+        left: Math.min(origin.x, at.px),
+        top: Math.min(origin.y, at.py),
+        width: Math.abs(at.px - origin.x),
+        height: Math.abs(at.py - origin.y),
+      })
+    }
+    const finish = (ev) => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', finish)
+      window.removeEventListener('pointercancel', finish)
+      selectRef.current = null
+      setSlicePreview(null)
+      const at = stagePoint(ev) || start
+      const left = Math.min(origin.x, at.px)
+      const top = Math.min(origin.y, at.py)
+      const width = Math.abs(at.px - origin.x)
+      const height = Math.abs(at.py - origin.y)
+      const rect = start.rect
+      if (width < 8 || height < 8) return
+      onAddSlice?.({
+        x: Math.round((left / rect.width) * 1000) / 10,
+        y: Math.round((top / rect.height) * 1000) / 10,
+        w: Math.round((width / rect.width) * 1000) / 10,
+        h: Math.round((height / rect.height) * 1000) / 10,
+      })
+    }
+    selectRef.current = () => setSlicePreview(null)
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', finish)
+    window.addEventListener('pointercancel', finish)
+    e.preventDefault()
+  }
+
+  // Crop, slice, frame and shape tools all start from a dragged box.
+  const beginBoxDrag = (e, kind) => {
+    const start = stagePoint(e)
+    if (!start) return
+    const origin = { x: start.px, y: start.py }
+    const box = (at) => {
+      const left = Math.min(origin.x, at.px)
+      const top = Math.min(origin.y, at.py)
+      const width = Math.abs(at.px - origin.x)
+      const height = Math.abs(at.py - origin.y)
+      setDrawBox({ left, top, width, height, kind })
+      return { left, top, width, height }
+    }
+    const move = (ev) => {
+      const at = stagePoint(ev)
+      if (at) box(at)
+    }
+    const finish = (ev) => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', finish)
+      window.removeEventListener('pointercancel', finish)
+      selectRef.current = null
+      const at = stagePoint(ev) || start
+      const { left, top, width, height } = box(at)
+      setDrawBox(null)
+      const rect = start.rect
+      if (width < 6 || height < 6) {
+        if (kind === 'shape') onNotice?.('Drag a larger box to draw the shape')
+        return
+      }
+      const payload = {
+        x: Math.round((left / rect.width) * 1000) / 10,
+        y: Math.round((top / rect.height) * 1000) / 10,
+        w: Math.round((width / rect.width) * 1000) / 10,
+        h: Math.round((height / rect.height) * 1000) / 10,
+      }
+      if (kind === 'frame') onAddFrameBox?.(payload)
+      else onAddShapeBox?.(payload, tool)
+    }
+    selectRef.current = () => setDrawBox(null)
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', finish)
+    window.addEventListener('pointercancel', finish)
+    e.preventDefault()
+  }
+
+  const beginHand = (e) => {
+    const scroller = stageRef.current?.closest('.ts-canvas-scroll')
+    if (!scroller) return
+    const start = { x: e.clientX, y: e.clientY, left: scroller.scrollLeft, top: scroller.scrollTop }
+    const move = (ev) => {
+      scroller.scrollLeft = start.left - (ev.clientX - start.x)
+      scroller.scrollTop = start.top - (ev.clientY - start.y)
+    }
+    const stop = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', stop)
+      window.removeEventListener('pointercancel', stop)
+      selectRef.current = null
+    }
+    selectRef.current = stop
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', stop)
+    window.addEventListener('pointercancel', stop)
+    e.preventDefault()
+  }
+
+  const beginRotate = (e) => {
+    const startX = e.clientX
+    const base = Number(viewRotation) || 0
+    const move = (ev) => onRotate?.(base + (ev.clientX - startX) / 6)
+    const stop = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', stop)
+      window.removeEventListener('pointercancel', stop)
+      selectRef.current = null
+    }
+    selectRef.current = stop
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', stop)
+    window.addEventListener('pointercancel', stop)
+    e.preventDefault()
+  }
+
+  const zoomAt = (e) => {
+    onZoomAt?.(e.altKey ? -0.2 : 0.2)
+    e.preventDefault()
+  }
+
+  // Direct selection drags a pen/ink anchor instead of moving the layer.
+  const beginDirectPoint = (e) => {
+    const target = directTarget
+    const point = stagePoint(e)
+    if (!target) {
+      beginObjectSelect(e)
+      return
+    }
+    if (!point) return
+    if (target.type !== 'ink' || !Array.isArray(target.points) || target.points.length < 2) {
+      onNotice?.('Direct selection edits pen and ink anchors — select a pen path first')
+      return
+    }
+    const px = (point.px / point.rect.width) * 100
+    const py = (point.py / point.rect.width) * 100
+    let index = -1
+    let best = 1.8
+    target.points.forEach((anchor, i) => {
+      const distance = Math.hypot(target.x + anchor.x - px, target.y + anchor.y - py)
+      if (distance < best) {
+        best = distance
+        index = i
+      }
+    })
+    if (index < 0) {
+      beginObjectSelect(e)
+      return
+    }
+    const startPoint = target.points[index]
+    const start = { x: px, y: py }
+    onGestureStart?.()
+    const move = (ev) => {
+      const at = stagePoint(ev)
+      if (!at) return
+      const nx = (at.px / at.rect.width) * 100
+      const ny = (at.py / at.rect.width) * 100
+      onDirectPoints?.(target.id, target.points.map((anchor, i) => (
+        i === index
+          ? {
+              x: Math.round((startPoint.x + nx - start.x) * 100) / 100,
+              y: Math.round((startPoint.y + ny - start.y) * 100) / 100,
+            }
+          : anchor
+      )))
+    }
+    const stop = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', stop)
+      window.removeEventListener('pointercancel', stop)
+      selectRef.current = null
+      onGestureEnd?.()
+    }
+    selectRef.current = stop
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', stop)
+    window.addEventListener('pointercancel', stop)
+    e.preventDefault()
+  }
+
+  const paintLayerSrc = () => {
+    const layer = docRef.current.elements.find((el) => el.type === 'raster' && el.role === 'paint')
+    return layer?.src || ''
+  }
+
+  const ensurePaintHost = async () => {
+    const host = paintHostRef.current
+    const stage = stageRef.current
+    const rect = stage?.getBoundingClientRect()
+    if (!host || !rect?.width) return null
+    const width = clamp(Math.round(rect.width * 2), 480, 2200)
+    const height = Math.max(240, Math.round(width / (aspectOf(docRef.current) || 1)))
+    if (host.width !== width || host.height !== height) {
+      host.width = width
+      host.height = height
+      paintRef.current = { src: null }
+    }
+    const session = paintRef.current || { src: null }
+    paintRef.current = session
+    const src = paintLayerSrc()
+    if (session.src !== src) {
+      const ctx = host.getContext('2d')
+      ctx.clearRect(0, 0, host.width, host.height)
+      if (src) {
+        try {
+          const img = await loadImage(src)
+          ctx.drawImage(img, 0, 0, host.width, host.height)
+        } catch {
+          /* an unreadable layer starts empty */
+        }
+      }
+      session.src = src
+    }
+    return { host, ctx: host.getContext('2d') }
+  }
+
+  const commitPaint = async (host) => {
+    const src = await layerDataUrl(host)
+    if (paintRef.current) paintRef.current.src = src
+    onPaintCommit?.({ src })
+    setPaintActive(false)
+  }
+
+  const beginPaint = async (e) => {
+    if (e.button !== 0 || paintBusyRef.current) return
+    const stage = stageRef.current
+    if (!stage) return
+    e.preventDefault()
+    if ((tool === 'clone' || tool === 'heal') && e.altKey) {
+      const rect = stage.getBoundingClientRect()
+      onSetCloneSource?.({
+        x: clamp((e.clientX - rect.left) / rect.width, 0, 1),
+        y: clamp((e.clientY - rect.top) / rect.height, 0, 1),
+      })
+      onNotice?.('Clone source set — paint to copy from it')
+      return
+    }
+    if (tool === 'clone' && !settings.cloneSource) {
+      onNotice?.('Alt-click a clean area to set the clone source')
+      return
+    }
+    paintBusyRef.current = true
+    setPaintActive(true)
+    try {
+      const ready = await ensurePaintHost()
+      if (!ready) return
+      const { host } = ready
+      const rect = stage.getBoundingClientRect()
+      const point = (ev) => ({
+        x: clamp(((ev.clientX - rect.left) / rect.width) * host.width, 0, host.width),
+        y: clamp(((ev.clientY - rect.top) / rect.height) * host.height, 0, host.height),
+      })
+      const toStage = (p) => ({
+        x: (p.x / host.width) * rect.width,
+        y: (p.y / host.height) * rect.height,
+      })
+      const first = point(e)
+      const brushPx = Math.max(2, ((Number(settings.size) || 2.4) / 100) * host.width)
+      const needsSource = SOURCE_PAINT_TOOLS.has(tool) || tool === 'bucket'
+      const underlay = needsSource ? await renderUnderlay(docRef.current, host.width) : null
+      if (tool === 'bucket') {
+        paintBucket(host, underlay, first.x, first.y, {
+          tolerance: Number(settings.tolerance) || 34,
+          contiguous: settings.contiguous !== false,
+          color: settings.foreground || '#1c2025',
+          opacity: Number(settings.opacity) || 1,
+        })
+        await commitPaint(host)
+        return
+      }
+      const base = {
+        size: brushPx,
+        hardness: tool === 'pencil' ? 1 : Number(settings.hardness ?? 0.75),
+        opacity: Number(settings.opacity ?? 0.92),
+        color: settings.foreground || '#1c2025',
+        erase: tool === 'eraser',
+      }
+      const offset = tool === 'clone' && settings.cloneSource
+        ? {
+            x: first.x - settings.cloneSource.x * host.width,
+            y: first.y - settings.cloneSource.y * host.height,
+          }
+        : { x: 0, y: 0 }
+      const retouch = (from, to) => {
+        const common = {
+          size: brushPx,
+          hardness: Number(settings.hardness ?? 0.6),
+          opacity: Number(settings.healStrength ?? 0.85),
+        }
+        if (tool === 'clone') {
+          return paintPatchLine(host, underlay, from, to, {
+            ...common,
+            sourceX: from.x - offset.x,
+            sourceY: from.y - offset.y,
+          })
+        }
+        if (tool === 'heal') {
+          return paintPatchLine(host, underlay, from, to, {
+            ...common,
+            filter: 'blur(1px)',
+            sourceX: from.x - brushPx * 0.9,
+            sourceY: from.y - brushPx * 0.35,
+          })
+        }
+        if (tool === 'spot-heal') {
+          return paintPatchLine(host, underlay, from, to, {
+            ...common,
+            hardness: 0.3,
+            filter: 'blur(2px)',
+            sourceX: from.x - brushPx * 1.4,
+            sourceY: from.y - brushPx * 0.8,
+          })
+        }
+        if (tool === 'history-brush') {
+          return paintPatchLine(host, underlay, from, to, { ...common, hardness: 0.4 })
+        }
+        if (tool === 'blur') {
+          return paintPatchLine(host, underlay, from, to, {
+            ...common,
+            filter: `blur(${Math.max(0.8, brushPx / 10)}px)`,
+          })
+        }
+        if (tool === 'sharpen') {
+          return paintPatchLine(host, underlay, from, to, {
+            ...common,
+            filter: 'contrast(190%) brightness(106%)',
+          })
+        }
+        if (tool === 'dodge') {
+          return paintPatchLine(host, underlay, from, to, {
+            ...common,
+            tint: { mode: 'lighter', color: '#ffffff', alpha: Number(settings.dodgeStrength ?? 0.35) },
+          })
+        }
+        if (tool === 'burn') {
+          return paintPatchLine(host, underlay, from, to, {
+            ...common,
+            tint: { mode: 'multiply', color: '#2b2416', alpha: Number(settings.dodgeStrength ?? 0.35) * 0.9 },
+          })
+        }
+        if (tool === 'sponge') {
+          return paintPatchLine(host, underlay, from, to, {
+            ...common,
+            tint: { mode: 'saturation', color: '#8a8a8a', alpha: 0.5 },
+          })
+        }
+        if (tool === 'smudge') {
+          return smudgeLine(host, underlay, from, to, {
+            size: brushPx,
+            strength: Number(settings.smudgeStrength ?? 0.55),
+          })
+        }
+        return null
+      }
+
+      let last = first
+      const paint = (from, to) => {
+        if (tool === 'brush' || tool === 'pencil' || tool === 'eraser') paintStroke(host, from, to, base)
+        else retouch(from, to)
+      }
+      const updateBox = (from, to) => {
+        const a = toStage(from)
+        const b = toStage(to)
+        setDrawBox({
+          left: Math.min(a.x, b.x),
+          top: Math.min(a.y, b.y),
+          width: Math.abs(b.x - a.x),
+          height: Math.abs(b.y - a.y),
+          kind: 'paint',
+        })
+      }
+      if (tool === 'brush' || tool === 'pencil' || tool === 'eraser') paintStamp(host, first.x, first.y, base)
+      else if (needsSource && tool !== 'gradient' && tool !== 'patch') retouch(first, first)
+
+      const move = (ev) => {
+        const at = point(ev)
+        if (tool === 'gradient' || tool === 'patch') {
+          updateBox(first, at)
+          last = at
+          return
+        }
+        if (Math.hypot(at.x - last.x, at.y - last.y) < 0.8) return
+        paint(last, at)
+        last = at
+      }
+      const finish = async () => {
+        window.removeEventListener('pointermove', move)
+        window.removeEventListener('pointerup', finish)
+        window.removeEventListener('pointercancel', finish)
+        selectRef.current = null
+        setDrawBox(null)
+        if (tool === 'gradient') {
+          fillGradient(host, first, last, {
+            type: settings.gradientType || 'linear',
+            foreground: settings.foreground || '#1c2025',
+            background: settings.background || '#f7f7f3',
+            opacity: Number(settings.opacity ?? 0.9),
+          })
+        }
+        if (tool === 'patch') {
+          patchRect(host, underlay, {
+            x: Math.min(first.x, last.x),
+            y: Math.min(first.y, last.y),
+            width: Math.max(8, Math.abs(last.x - first.x)),
+            height: Math.max(8, Math.abs(last.y - first.y)),
+          }, {})
+        }
+        await commitPaint(host)
+      }
+      // A cancelled pointer should keep whatever was already painted.
+      selectRef.current = () => {
+        window.removeEventListener('pointermove', move)
+        window.removeEventListener('pointerup', finish)
+        window.removeEventListener('pointercancel', finish)
+      }
+      window.addEventListener('pointermove', move)
+      window.addEventListener('pointerup', finish)
+      window.addEventListener('pointercancel', finish)
+    } finally {
+      paintBusyRef.current = false
+    }
   }
 
   const positionFor = (el, x0, y0, dx, dy, rect) => {
@@ -787,6 +1641,8 @@ export default function TemplateCanvas({
 
   const beginDrag = (e, el, additive) => {
     if (!interactive || editingId || e.button !== 0) return
+    // Only the move tool drags layers; every other tool owns the pointer.
+    if (tool !== 'select') return
     if (el.locked) return
     const groupMove =
       selectedIds.length > 1 && selectedIds.includes(el.id) && !(el.type === 'photo' && e.shiftKey)
@@ -999,6 +1855,27 @@ export default function TemplateCanvas({
         beginDrag(e, el, additive)
       },
     }
+
+    // The paint layer is a full-page bitmap under the template; it never takes
+    // pointer events or joins selection hit-tests.
+    if (el.type === 'raster') {
+      if (!el.src) return null
+      return (
+        <img
+          key={el.id}
+          className="ts-raster-layer"
+          src={el.src}
+          alt=""
+          draggable={false}
+          style={{
+            opacity: el.opacity ?? 1,
+            mixBlendMode: el.blend && el.blend !== 'normal' ? el.blend : undefined,
+          }}
+        />
+      )
+    }
+    // Annotations are drawn as pins on top of everything and never export.
+    if (el.type === 'annotation') return null
 
     if (el.type === 'text') {
       const style = {
@@ -1590,10 +2467,39 @@ export default function TemplateCanvas({
     )
   }
 
+  const selectionLike =
+    tool.startsWith('marquee-') ||
+    tool.startsWith('lasso') ||
+    tool === 'object-select' ||
+    tool === 'quick-select' ||
+    tool === 'magic-wand'
+  const boxTool =
+    tool === 'crop' ||
+    tool === 'slice' ||
+    tool === 'frame' ||
+    tool.startsWith('shape-')
+  const cursorClass = !interactive
+    ? ''
+    : PAINT_TOOLS.has(tool)
+      ? ' is-paint-tool'
+      : tool === 'hand'
+        ? ' is-pan-tool'
+        : tool === 'zoom'
+          ? ' is-zoom-tool'
+          : boxTool
+            ? ' is-crop-tool'
+            : tool === 'eyedropper'
+              ? ' is-pick-tool'
+              : selectionLike
+                ? ' is-select-tool'
+                : tool === 'text'
+                  ? ' is-text-tool'
+                  : ''
+
   return (
     <div
       ref={stageRef}
-      className={`ts-stage${interactive ? ' is-interactive' : ' is-preview'}${interactive && bgImage ? ' can-pan-bg' : ''}${interactive && tool === 'brush' ? ' is-brush' : ''}${interactive && tool === 'text' ? ' is-text-tool' : ''}${interactive && (tool === 'marquee' || tool === 'lasso') ? ' is-select-tool' : ''} ${className}`}
+      className={`ts-stage${interactive ? ' is-interactive' : ' is-preview'}${interactive && bgImage ? ' can-pan-bg' : ''}${cursorClass} ${className}`}
       style={{
         aspectRatio: aspectOf(doc),
         background: bgImage ? resolve(doc, doc.bg.from || 'ink') : backgroundCss(doc),
@@ -1629,27 +2535,125 @@ export default function TemplateCanvas({
         if (types.includes('Files')) e.preventDefault()
       }}
       onPointerDownCapture={(e) => {
-        if (!interactive) return
-        if (tool === 'marquee' || tool === 'lasso') {
-          // If clicked inside an existing selection frame, allow dragging to move it
-          if (frameBox && insideFrame(e)) {
-            e.stopPropagation()
-            beginGroupDrag(e)
-            return
-          }
+        if (!interactive || e.button !== 0) return
+        const onFrame = frameBox && insideFrame(e)
+        if (tool.startsWith('marquee-') || tool === 'lasso' || tool === 'lasso-magnetic') {
           e.stopPropagation()
-          beginSelect(e)
+          if (onFrame) beginGroupDrag(e)
+          else beginSelect(e)
           return
         }
-        if (tool === 'brush') {
+        if (tool === 'lasso-poly') {
           e.stopPropagation()
-          beginInk(e)
+          beginPoly(e)
+          return
+        }
+        if (tool === 'object-select' || tool === 'path-select') {
+          e.stopPropagation()
+          beginObjectSelect(e)
+          return
+        }
+        if (tool === 'direct-select') {
+          e.stopPropagation()
+          beginDirectPoint(e)
+          return
+        }
+        if (tool === 'quick-select') {
+          e.stopPropagation()
+          beginQuickSelect(e)
+          return
+        }
+        if (tool === 'magic-wand') {
+          e.stopPropagation()
+          beginMagicWand(e)
+          return
+        }
+        if (tool === 'crop') {
+          e.stopPropagation()
+          beginCrop(e)
+          return
+        }
+        if (tool === 'slice') {
+          e.stopPropagation()
+          beginSlice(e)
+          return
+        }
+        if (tool === 'frame') {
+          e.stopPropagation()
+          beginBoxDrag(e, 'frame')
+          return
+        }
+        if (tool.startsWith('shape-')) {
+          e.stopPropagation()
+          beginBoxDrag(e, 'shape')
+          return
+        }
+        if (tool === 'eyedropper') {
+          e.stopPropagation()
+          sampleAt(e)
+          return
+        }
+        if (tool === 'ruler') {
+          e.stopPropagation()
+          beginRuler(e)
+          return
+        }
+        if (tool === 'note') {
+          e.stopPropagation()
+          placeNote(e)
+          return
+        }
+        if (tool === 'count') {
+          e.stopPropagation()
+          placeCount(e)
+          return
+        }
+        if (tool === 'pen') {
+          e.stopPropagation()
+          beginPen(e)
+          return
+        }
+        if (tool === 'hand') {
+          e.stopPropagation()
+          beginHand(e)
+          return
+        }
+        if (tool === 'rotate') {
+          e.stopPropagation()
+          beginRotate(e)
+          return
+        }
+        if (tool === 'zoom') {
+          e.stopPropagation()
+          zoomAt(e)
+          return
+        }
+        if (PAINT_TOOLS.has(tool)) {
+          e.stopPropagation()
+          beginPaint(e)
           return
         }
         if (tool === 'text') {
           e.stopPropagation()
           placeText(e)
         }
+      }}
+      onPointerMove={(e) => {
+        if (!interactive || tool !== 'pen') return
+        const point = stagePoint(e)
+        if (!point) return
+        setPenCursor({
+          x: (point.px / point.rect.width) * 100,
+          y: (point.py / point.rect.width) * 100,
+        })
+      }}
+      onDoubleClick={(e) => {
+        if (!interactive) return
+        if (tool === 'lasso-poly') {
+          finishPoly(e.shiftKey)
+          return
+        }
+        if (tool === 'pen') finishPen()
       }}
       onPointerDown={(e) => {
         if (!interactive) return
@@ -1700,7 +2704,225 @@ export default function TemplateCanvas({
         />
       )}
       {doc.bg.texture && <div className="ts-grain" />}
+      {interactive && (
+        <canvas
+          ref={paintHostRef}
+          className={`ts-paint-layer${paintActive ? ' is-live' : ''}`}
+          aria-hidden="true"
+        />
+      )}
       {doc.elements.map(renderEl)}
+      {interactive && doc.elements.filter((el) => el.type === 'annotation').map((el) => (
+        <button
+          key={el.id}
+          type="button"
+          className={`ts-annotation ts-annotation--${el.kind || 'note'}${selectedIds.includes(el.id) ? ' is-selected' : ''}`}
+          style={{
+            left: `${el.x}%`,
+            top: `${el.y}%`,
+            background: el.color || settings.foreground || '#f2b84b',
+          }}
+          title={el.text || (el.kind === 'count' ? `Count ${el.index}` : 'Note')}
+          onPointerDown={(e) => {
+            e.stopPropagation()
+            onSelect?.(el.id, e.shiftKey)
+          }}
+        >
+          {el.kind === 'count' ? el.index : 'Note'}
+        </button>
+      ))}
+      {interactive && (doc.slices || []).map((slice, index) => (
+        <div
+          key={slice.id}
+          className="ts-slice"
+          style={{
+            left: `${slice.x}%`,
+            top: `${slice.y}%`,
+            width: `${slice.w}%`,
+            height: `${slice.h}%`,
+          }}
+        >
+          <span className="ts-slice-tag">Slice {index + 1}</span>
+          <button
+            type="button"
+            className="ts-slice-remove"
+            title="Remove slice"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={() => onRemoveSlice?.(slice.id)}
+          >
+            ×
+          </button>
+        </div>
+      ))}
+      {interactive && slicePreview && (
+        <div
+          className="ts-slice is-preview"
+          style={{
+            left: `${slicePreview.left}px`,
+            top: `${slicePreview.top}px`,
+            width: `${slicePreview.width}px`,
+            height: `${slicePreview.height}px`,
+          }}
+        >
+          <span className="ts-slice-tag">
+            {Math.round(slicePreview.width)} × {Math.round(slicePreview.height)}
+          </span>
+        </div>
+      )}
+      {interactive && drawBox && (
+        <div
+          className={`ts-draw-box is-${drawBox.kind}`}
+          style={{
+            left: `${drawBox.left}px`,
+            top: `${drawBox.top}px`,
+            width: `${drawBox.width}px`,
+            height: `${drawBox.height}px`,
+          }}
+        />
+      )}
+      {interactive && cropBox && (
+        <>
+          <div
+            className="ts-crop-shade"
+            style={{
+              left: 0,
+              top: 0,
+              right: 0,
+              bottom: 0,
+              clipPath: `polygon(0 0, 100% 0, 100% 100%, 0 100%, 0 0, ${cropBox.left}px ${cropBox.top}px, ${cropBox.left}px ${cropBox.top + cropBox.height}px, ${cropBox.left + cropBox.width}px ${cropBox.top + cropBox.height}px, ${cropBox.left + cropBox.width}px ${cropBox.top}px, ${cropBox.left}px ${cropBox.top}px)`,
+            }}
+          />
+          <div
+            className="ts-crop-box"
+            style={{
+              left: `${cropBox.left}px`,
+              top: `${cropBox.top}px`,
+              width: `${cropBox.width}px`,
+              height: `${cropBox.height}px`,
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <span className="ts-crop-size">
+              {cropMeta
+                ? `${Math.round((cropBox.width / (stageRef.current?.clientWidth || 1)) * 100)}% × ${Math.round((cropBox.height / (stageRef.current?.clientHeight || 1)) * 100)}% of page`
+                : ''}
+            </span>
+            <div className="ts-crop-actions">
+              <button type="button" className="ts-btn ts-btn-ghost" onClick={cancelCrop}>
+                Cancel
+              </button>
+              <button type="button" className="ts-btn ts-btn-primary" onClick={applyCrop}>
+                Apply crop
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+      {interactive && quickCircle && (
+        <span
+          className="ts-quick-ring"
+          style={{
+            left: `${quickCircle.left}px`,
+            top: `${quickCircle.top}px`,
+            width: `${quickCircle.size}px`,
+            height: `${quickCircle.size}px`,
+          }}
+        />
+      )}
+      {interactive && ruler && (
+        <>
+          <svg
+            className="ts-ruler-layer"
+            viewBox={`0 0 ${ruler.vw} ${ruler.vh}`}
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            <line x1={ruler.x1} y1={ruler.y1} x2={ruler.x2} y2={ruler.y2} />
+            <circle cx={ruler.x1} cy={ruler.y1} r="3" />
+            <circle cx={ruler.x2} cy={ruler.y2} r="3" />
+          </svg>
+          <span
+            className="ts-ruler-label"
+            style={{
+              left: `${(ruler.x1 + ruler.x2) / 2}px`,
+              top: `${(ruler.y1 + ruler.y2) / 2}px`,
+            }}
+          >
+            {Math.round(ruler.length)} px · {Math.round(ruler.angle)}°
+          </span>
+        </>
+      )}
+      {interactive && (penPoints.length > 0 || penCursor) && (
+        <svg
+          className="ts-pen-layer"
+          viewBox={`0 0 100 ${100 / (aspectOf(doc) || 1)}`}
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          {penPoints.length > 1 && (
+            <polyline points={penPoints.map((p) => `${p.x},${p.y}`).join(' ')} />
+          )}
+          {penCursor && penPoints.length > 0 && (
+            <line
+              x1={penPoints[penPoints.length - 1].x}
+              y1={penPoints[penPoints.length - 1].y}
+              x2={penCursor.x}
+              y2={penCursor.y}
+            />
+          )}
+          {penPoints.map((p, i) => (
+            <circle key={i} cx={p.x} cy={p.y} r="0.55" />
+          ))}
+        </svg>
+      )}
+      {interactive && tool === 'direct-select' && directTarget?.type === 'ink' && (
+        <svg
+          className="ts-direct-layer"
+          viewBox={`0 0 100 ${100 / (aspectOf(doc) || 1)}`}
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          {(directTarget.points || []).map((anchor, i) => (
+            <circle
+              key={i}
+              cx={directTarget.x + anchor.x}
+              cy={directTarget.y + anchor.y}
+              r="0.7"
+            />
+          ))}
+        </svg>
+      )}
+      {interactive && noteDraft && (
+        <div
+          className="ts-note-compose"
+          style={{ left: `${noteDraft.left}px`, top: `${noteDraft.top}px` }}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <textarea
+            autoFocus
+            value={noteDraft.text}
+            placeholder="Add a note…"
+            onChange={(e) => setNoteDraft({ ...noteDraft, text: e.target.value })}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                commitNote()
+              } else if (e.key === 'Escape') {
+                e.preventDefault()
+                setNoteDraft(null)
+              }
+            }}
+          />
+          <div className="ts-note-actions">
+            <button type="button" className="ts-btn ts-btn-ghost" onClick={() => setNoteDraft(null)}>
+              Cancel
+            </button>
+            <button type="button" className="ts-btn ts-btn-primary" onClick={commitNote}>
+              Add note
+            </button>
+          </div>
+        </div>
+      )}
       {frameBox && (
         <div
           className="ts-select-frame"
@@ -1738,24 +2960,6 @@ export default function TemplateCanvas({
           aria-hidden="true"
         >
           <polygon points={selShape.points.map(([x, y]) => `${x},${y}`).join(' ')} />
-        </svg>
-      )}
-      {inkPreview && (
-        <svg
-          className="ts-ink-preview"
-          viewBox={`0 0 100 ${100 / aspectOf(doc)}`}
-          preserveAspectRatio="none"
-          aria-hidden="true"
-        >
-          <polyline
-            points={inkPreview.points.map((p) => `${p.x},${p.y}`).join(' ')}
-            fill="none"
-            stroke={inkPreview.color}
-            strokeWidth={inkPreview.size}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity={inkPreview.opacity}
-          />
         </svg>
       )}
     </div>

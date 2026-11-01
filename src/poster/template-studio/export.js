@@ -833,6 +833,26 @@ async function drawSticker(ctx, doc, el, W, H) {
   })
 }
 
+async function drawRasterLayer(ctx, doc, el, W, H) {
+  if (!el.src) return
+  let img
+  try {
+    img = await loadImage(el.src)
+  } catch {
+    return
+  }
+  ctx.save()
+  ctx.globalAlpha = el.opacity ?? 1
+  if (el.blend && el.blend !== 'normal') ctx.globalCompositeOperation = el.blend
+  if (el.flipX || el.flipY) {
+    ctx.translate(W / 2, H / 2)
+    ctx.scale(el.flipX ? -1 : 1, el.flipY ? -1 : 1)
+    ctx.translate(-W / 2, -H / 2)
+  }
+  ctx.drawImage(img, 0, 0, W, H)
+  ctx.restore()
+}
+
 async function drawSocial(ctx, doc, el, W, H) {
   const size = (el.w / 100) * W
   const x = (el.x / 100) * W
@@ -993,6 +1013,8 @@ export async function renderToCanvas(doc, width) {
     else if (el.type === 'namecard') await drawNameCard(ctx, doc, el, W, H)
     else if (el.type === 'photo') await drawPhoto(ctx, doc, el, W, H)
     else if (el.type === 'sticker') await drawSticker(ctx, doc, el, W, H)
+    else if (el.type === 'raster') await drawRasterLayer(ctx, doc, el, W, H)
+    // annotation elements are editing aids and never export
   }
   for (const el of doc.elements) {
     if (el.type === 'text') drawText(ctx, doc, el, W, H)
@@ -1014,4 +1036,37 @@ export async function downloadPng(doc) {
   link.remove()
   setTimeout(() => URL.revokeObjectURL(url), 5000)
   return { width: canvas.width, height: canvas.height }
+}
+
+export async function downloadSlices(doc, slices = [], width = 2400) {
+  const clean = slices.filter((slice) => slice.w > 0.5 && slice.h > 0.5)
+  if (!clean.length) return 0
+  const source = await renderToCanvas(doc, width)
+  const safeName = (doc.name || 'design').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'design'
+  let count = 0
+  for (let i = 0; i < clean.length; i += 1) {
+    const slice = clean[i]
+    const sx = Math.round((slice.x / 100) * source.width)
+    const sy = Math.round((slice.y / 100) * source.height)
+    const sw = Math.max(1, Math.round((slice.w / 100) * source.width))
+    const sh = Math.max(1, Math.round((slice.h / 100) * source.height))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.min(sw, source.width - sx)
+    canvas.height = Math.min(sh, source.height - sy)
+    canvas.getContext('2d').drawImage(source, sx, sy, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height)
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'))
+    if (!blob) continue
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${safeName}-slice-${i + 1}.png`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 5000)
+    count += 1
+    // Give the browser a beat between downloads so none are dropped.
+    await new Promise((resolve) => setTimeout(resolve, 220))
+  }
+  return count
 }

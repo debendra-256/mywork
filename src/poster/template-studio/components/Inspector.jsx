@@ -9,6 +9,7 @@ import { filterTextToScript, scriptLabel } from '../../elements.js'
 import {
   ArrowDown, ArrowUp, Copy, Layers, Photo, Plus, Sparkle, Trash, Type,
 } from './Icons.jsx'
+import AddElementsPanel, { elementDrag } from './AddElementsPanel.jsx'
 
 const TOKENS = ['ink', 'accent', 'soft', 'paper', 'sand']
 
@@ -136,15 +137,6 @@ const AlignIcon = ({ mode }) => (
     {mode === 'right' && <><path d="M2 4h12M6 8h8M3 12h11" /></>}
   </svg>
 )
-
-// Dragging a palette chip onto the page drops that element at the pointer.
-const elementDrag = (payload) => ({
-  draggable: true,
-  onDragStart: (e) => {
-    e.dataTransfer.setData('application/x-ts-element', JSON.stringify(payload))
-    e.dataTransfer.effectAllowed = 'copy'
-  },
-})
 
 const LayerIcon = ({ el }) => {
   if (el.type === 'text') return <Type size={13} />
@@ -1599,52 +1591,17 @@ export default function Inspector({
         </Section>
 
         <Section title="Add elements">
-          <div className="ts-add-grid">
-            <button type="button" className="ts-add-btn" onClick={() => onAddText()} {...elementDrag({ kind: 'text' })}>
-              <Type size={16} /><span>Text</span>
-            </button>
-            <button type="button" className="ts-add-btn" onClick={() => onAddBanner()} title="Decorative name plate with editable text and colours" {...elementDrag({ kind: 'banner' })}>
-              <span className="ts-banner-glyph" /><span>Name plate</span>
-            </button>
-            <button type="button" className="ts-add-btn" onClick={() => onAddNameCard()} title="Name, role line and social handles in one editable block" {...elementDrag({ kind: 'namecard' })}>
-              <span className="ts-card-glyph" /><span>Name card</span>
-            </button>
-            <button type="button" className="ts-add-btn" onClick={() => onAddContactCard()} title="Card with a logo and a contact bar for phone and email" {...elementDrag({ kind: 'contactcard' })}>
-              <span className="ts-card-glyph ts-card-glyph--contact" /><span>Contact card</span>
-            </button>
-            <button type="button" className="ts-add-btn" onClick={() => onAddPhoto()} {...elementDrag({ kind: 'photo' })}>
-              <Photo size={16} /><span>Photo</span>
-            </button>
-            <button type="button" className="ts-add-btn" onClick={() => onAddShape('line')} {...elementDrag({ kind: 'shape', id: 'line' })}>
-              <span className="ts-line-glyph" /><span>Line</span>
-            </button>
-            <button type="button" className="ts-add-btn" onClick={() => onAddShape('circle')} {...elementDrag({ kind: 'shape', id: 'circle' })}>
-              <span className="ts-circle-glyph" /><span>Circle</span>
-            </button>
-            <button type="button" className="ts-add-btn" onClick={() => onAddShape('arch')} {...elementDrag({ kind: 'shape', id: 'arch' })}>
-              <span className="ts-arch-glyph" /><span>Arch</span>
-            </button>
-            {SOCIALS.map((social) => (
-              <button
-                key={social.id}
-                type="button"
-                className="ts-add-btn"
-                title={`Add ${social.label} icon`}
-                onClick={() => onAddSocial(social.id)}
-                {...elementDrag({ kind: 'social', id: social.id })}
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  dangerouslySetInnerHTML={{ __html: socialMarkup(social.id) }}
-                />
-                <span>{social.name}</span>
-              </button>
-            ))}
-          </div>
-          <p className="ts-hint">Drag any of these onto the page to drop it under your pointer, or click to add it.</p>
+          <AddElementsPanel
+            onAdd={(kind, id) => {
+              if (kind === 'text') return onAddText()
+              if (kind === 'banner') return onAddBanner()
+              if (kind === 'namecard') return onAddNameCard()
+              if (kind === 'contactcard') return onAddContactCard()
+              if (kind === 'photo') return onAddPhoto()
+              if (kind === 'shape') return onAddShape(id)
+              if (kind === 'social') return onAddSocial(id)
+            }}
+          />
           <div className="ts-footer-presets">
             {FOOTER_PRESETS.map((preset) => (
               <button
