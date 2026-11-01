@@ -102,6 +102,19 @@ const CSS = `
 .cj-tplheart{background:none!important;overflow:visible}
 .cj-tplheart path{fill:#cdd7d1}
 .cj-tplthumb.on .cj-tplheart path{fill:#4bbd85}
+.cj-slotcell.shape-poly{border-color:transparent;border-radius:0;pointer-events:none}
+.cj-slotcell.shape-poly:hover{border-color:transparent}
+.cj-slotcell.shape-poly.sel{border-color:transparent;box-shadow:none}
+.cj-slotcell.shape-poly .cj-slotshape polygon{fill:none;stroke:rgba(10,159,98,.45);stroke-width:1.6;stroke-dasharray:6 5;vector-effect:non-scaling-stroke;transition:stroke .12s}
+.cj-slotcell.shape-poly.sel .cj-slotshape polygon{stroke:#0a9f62;stroke-width:2.4;stroke-dasharray:none}
+.cj-slotcell.shape-poly .cj-slotadd,.cj-slotcell.shape-poly .cj-swapbtn{inset:auto;pointer-events:auto;width:30px;height:30px;border-radius:999px;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;font-size:20px}
+.cj-slotcell.shape-poly .cj-swapbtn{font-size:13px}
+.cj-slotcell.shape-poly .cj-slotadd{background:rgba(255,255,255,.86);box-shadow:0 1px 6px rgba(15,23,42,.16)}
+.cj-slotcell.shape-poly .cj-slotadd:hover{background:#fff}
+.cj-slotcell.shape-poly .cj-slotnum{left:auto;bottom:auto;transform:translate(-50%,-50%)}
+.cj-tplpoly{background:none!important;border-radius:0;overflow:visible}
+.cj-tplpoly polygon{fill:#cdd7d1}
+.cj-tplthumb.on .cj-tplpoly polygon{fill:#4bbd85}
 .pj-hearts{background:linear-gradient(160deg,#fdf3f5,#f6d9e0)}
 .pj-hearts .cj-tplcell{background:#e294a7}
 .pj-hearts .cj-tplheart path{fill:#e294a7}
@@ -119,10 +132,26 @@ const CSS = `
 .cj-fieldLabel{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#87909a}
 .cj-select,.cj-input{width:100%;box-sizing:border-box;border:1px solid #dce7df;border-radius:8px;padding:6px 8px;font:inherit;font-size:13px;color:#1c2025;background:#fff}
 .cj-select:focus,.cj-input:focus{outline:none;border-color:#0a9f62;box-shadow:0 0 0 3px rgba(10,159,98,.14)}
+.cj-fontpreview{display:block;margin-top:6px;padding:7px 9px;border:1px dashed #dce7df;border-radius:8px;background:#f8faf8;font-size:15px;line-height:1.3;color:#1c2025;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cj-colorRow{display:flex;align-items:center;gap:6px;border:1px solid #dce7df;border-radius:8px;padding:4px 6px;background:#fff}
 .cj-colorInput{width:26px;height:22px;padding:0;border:none;background:none;cursor:pointer}
 .cj-hexval{font-size:11px;color:#536057;font-variant-numeric:tabular-nums;white-space:nowrap}
 .cj-range{flex:1;min-width:0;accent-color:#07864f}
+.cj-add-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px}
+.cj-add-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px 8px;border-radius:10px;border:1px solid #dce7df;background:#fff;font-size:8px;letter-spacing:.05em;text-transform:uppercase;color:#6f7f75;cursor:pointer;transition:all .18s ease}
+.cj-add-btn:hover{border-color:#0a9f62;color:#12211a;transform:translateY(-1px)}
+.cj-banner-glyph{display:inline-block;width:18px;height:10px;border:1.4px solid currentColor;border-radius:3px}
+.cj-card-glyph{display:inline-block;width:17px;height:11px;border:1.4px solid currentColor;border-radius:3px;background:linear-gradient(currentColor,currentColor) 50% 32%/52% 1.6px no-repeat,linear-gradient(currentColor,currentColor) 50% 68%/78% 1.6px no-repeat}
+.cj-card-glyph--contact{background:linear-gradient(currentColor,currentColor) 50% 30%/44% 1.4px no-repeat,linear-gradient(currentColor,currentColor) 50% calc(100% - 2px)/100% 2px no-repeat}
+.cj-line-glyph{width:18px;height:2px;background:currentColor}
+.cj-circle-glyph{width:14px;height:14px;border:1.4px solid currentColor;border-radius:50%}
+.cj-arch-glyph{width:14px;height:16px;border:1.4px solid currentColor;border-radius:50% 50% 0 0/55% 55% 0 0}
+.cj-hint{margin:0;font-size:11.5px;line-height:1.65;color:#7d8880}
+.cj-elcell{position:absolute;z-index:2;border:1.5px dashed transparent;border-radius:6px;cursor:move}
+.cj-elcell:hover{border-color:rgba(10,159,98,.35)}
+.cj-elcell.sel{border-color:#0a9f62;box-shadow:0 0 0 2px rgba(10,159,98,.16)}
+.cj-elcell-tag{position:absolute;top:-18px;left:0;font-size:10px;font-weight:700;letter-spacing:.04em;color:#087447;background:#eaf7ef;border:1px solid #bfe4c8;border-radius:5px;padding:1px 5px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s}
+.cj-elcell:hover .cj-elcell-tag,.cj-elcell.sel .cj-elcell-tag{opacity:1}
 @media (max-width:1150px){.cj-body{flex-direction:column}.cj-side{width:100%;max-height:none;position:static}.cj-stage{min-height:420px;width:100%}}
 `;
 

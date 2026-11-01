@@ -1,11 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  TEMPLATES, PREMIUM_TEMPLATES, PREMIUM_CATS, RATIOS, QUALITIES,
+  TEMPLATES, WEDDING_TEMPLATES, PREMIUM_TEMPLATES, PREMIUM_CATS, RATIOS, QUALITIES,
   tplById, ratioById, qualityById, exportDims,
   slotRects, slotPath, heartPath, heartSquare, toFrame, HEART_PATH_D,
-  coverFit, containFit, clamp, TEXT_FONTS, TEXT_COLORS, fontCss, textPx,
+  coverFit, containFit, clamp, FONT_GROUPS, TEXT_COLORS, fontCss, textPx,
 } from './templates';
 import { injectCollageStyles } from './styles';
+import AddElementsPanel from '../poster/template-studio/components/AddElementsPanel';
+import {
+  drawElements, elementBox, elementHasText, elementLabel, makeElement,
+} from './elements';
 
 const BG_SWATCHES = ['#ffffff', '#101418', '#f7f0e4', '#eaf2fd', '#ecf7ef', '#fdeeee'];
 
@@ -36,6 +40,23 @@ function textBox(t, W, H) {
   const lines = textLines(t);
   const w = Math.max(px * 0.6, ...lines.map((l) => textWidth(l, px, t.font)));
   return { x: t.x * W - w / 2, y: t.y * H - (lines.length * px * LINE_H) / 2, w, h: lines.length * px * LINE_H, px };
+}
+
+/** Area centroid of a polygon slot — where its number and add button sit. */
+function polyCentroid(r) {
+  const pts = r.points.map(([px, py]) => [r.x + px * r.w, r.y + py * r.h]);
+  let a = 0; let cx = 0; let cy = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const [x0, y0] = pts[i];
+    const [x1, y1] = pts[(i + 1) % pts.length];
+    const cross = x0 * y1 - x1 * y0;
+    a += cross;
+    cx += (x0 + x1) * cross;
+    cy += (y0 + y1) * cross;
+  }
+  a *= 0.5;
+  if (Math.abs(a) < 1) return { x: pts[0][0], y: pts[0][1] };
+  return { x: cx / (6 * a), y: cy / (6 * a) };
 }
 
 function drawTextLayer(ctx, W, H, t) {
@@ -342,6 +363,7 @@ function paintScene(ctx, W, H, st) {
   });
   if (tp && tp.deco) drawDeco(ctx, W, H, tp.deco);
   // Text sits above ornaments and photos so what the panel shows is what exports.
+  drawElements(ctx, W, H, st.els);
   (st.texts || []).forEach((t) => drawTextLayer(ctx, W, H, t));
 }
 
@@ -368,8 +390,16 @@ const Section = ({ title, children }) => (
 // Picker thumbnails use the same cell maths and heart path as the canvas, so a
 // thumbnail is a true miniature of what picking it will paint.
 function TemplateCells({ cells }) {
-  return cells.map(([l, tp, r, b, shape], k) => {
+  return cells.map(([l, tp, r, b, shape, points], k) => {
     const P = 2.2, G = 1.1;
+    if (shape === 'poly' && points) {
+      const style = { left: `${l * 100}%`, top: `${tp * 100}%`, width: `${(r - l) * 100}%`, height: `${(b - tp) * 100}%` };
+      return (
+        <svg key={k} className="cj-tplcell cj-tplpoly" viewBox="0 0 100 100" preserveAspectRatio="none" style={style} aria-hidden="true">
+          <polygon points={points.map(([x, y]) => `${x * 100},${y * 100}`).join(' ')} />
+        </svg>
+      );
+    }
     const x0 = l <= 0 ? P : l * 100 + G;
     const x1 = r >= 1 ? 100 - P : r * 100 - G;
     const y0 = tp <= 0 ? P : tp * 100 + G;
@@ -394,6 +424,8 @@ export default function CollageStudio({ className = '', style }) {
   const [frames, setFrames] = useState([]);
   const [texts, setTexts] = useState([]);
   const [selText, setSelText] = useState(null);
+  const [els, setEls] = useState([]);
+  const [selEl, setSelEl] = useState(null);
   const [recDur, setRecDur] = useState(5);
   const [qualityId, setQualityId] = useState('hd');
   const [jobs, setJobs] = useState([]);
@@ -407,6 +439,10 @@ export default function CollageStudio({ className = '', style }) {
   const dragRef = useRef(null);
   const frameDragRef = useRef(null);
   const textDragRef = useRef(null);
+  const elDragRef = useRef(null);
+  const elFileRef = useRef(null);
+  const pendingElPhotoRef = useRef(null);
+  const elSeq = useRef(0);
   const textSeq = useRef(0);
   const jobSeq = useRef(0);
   const jobHandles = useRef(new Map());
@@ -424,14 +460,33 @@ export default function CollageStudio({ className = '', style }) {
   const runningCount = runningJob ? 1 : 0;
   const premiumShown = PREMIUM_TEMPLATES.filter((t) => premCat === 'all' || t.cat === premCat);
 
+  const pickTemplate = (t) => {
+    setTplId(t.id);
+    if (t.ratio) setRatioId(t.ratio);
+    if (t.bg) setBg(t.bg);
+    // Template headings belong to their layout: swapping layouts drops the old
+    // heading but leaves anything the user typed themselves untouched.
+    setTexts((prev) => {
+      const kept = prev.filter((x) => !x.tpl || x.tpl === t.id);
+      if (!t.texts || kept.some((x) => x.tpl === t.id)) return kept;
+      const added = t.texts.map((tx) => ({ ...defText(), ...tx, id: ++textSeq.current, tpl: t.id }));
+      return [...kept, ...added];
+    });
+    setSelText(null);
+    setSelEl(null);
+  };
+
   const pickPremium = (t) => {
     setTplId(t.id);
     setBg(t.bg);
+    setTexts((prev) => prev.filter((x) => !x.tpl));
     setSel(-1);
+    setSelText(null);
+    setSelEl(null);
   };
 
   const S = useRef({});
-  S.current = { tpl, items, adjusts, bg, frames, texts };
+  S.current = { tpl, items, adjusts, bg, frames, texts, els };
 
   useEffect(() => {
     setItems((prev) => Array.from({ length: tpl.slots }, (_, i) => prev[i] || null));
@@ -493,9 +548,9 @@ export default function CollageStudio({ className = '', style }) {
     for (let i = rects.length - 1; i >= 0; i--) {
       const r = rects[i];
       if (px < r.x || px > r.x + r.w || py < r.y || py > r.y + r.h) continue;
-      if (r.shape !== 'heart') return i;
-      // A heart owns only its silhouette, so the empty corners fall through to
-      // whatever box sits behind them.
+      if (r.shape === 'box') return i;
+      // Hearts and fan wedges own only their silhouette: the empty corners of
+      // their box (and the gaps between wedges) fall through to what's behind.
       const path = new Path2D();
       slotPath(path, r, 0);
       if (ctx.isPointInPath(path, px, py)) return i;
@@ -587,11 +642,17 @@ export default function CollageStudio({ className = '', style }) {
     try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (er) { /* noop */ }
   };
 
-  const addText = () => {
+  const addText = (at) => {
     const id = ++textSeq.current;
-    setTexts((prev) => [...prev, { ...defText(), id, y: clamp(0.5 + prev.length * 0.07, 0, 0.93) }]);
+    setTexts((prev) => [...prev, {
+      ...defText(),
+      id,
+      x: at ? at.x : 0.5,
+      y: at ? at.y : clamp(0.5 + prev.length * 0.07, 0, 0.93),
+    }]);
     setSelText(id);
     setSel(-1);
+    setSelEl(null);
     setTimeout(() => { const el = textFieldRef.current; if (el) { el.focus(); el.select(); } }, 40);
   };
 
@@ -601,6 +662,60 @@ export default function CollageStudio({ className = '', style }) {
   };
 
   const clearAllTexts = () => { setTexts([]); setSelText(null); };
+
+  const patchEl = (id, p) => setEls((prev) => prev.map((el) => (el.id === id ? { ...el, ...p } : el)));
+
+  const addElement = (kind, ref, at) => {
+    if (kind === 'text') { addText(at); return; }
+    const id = ++elSeq.current;
+    const n = els.length;
+    const x = at ? at.x : clamp(0.5 + ((n % 5) - 2) * 0.07, 0.08, 0.92);
+    const y = at ? at.y : clamp(0.5 + ((n % 5) - 2) * 0.07, 0.08, 0.92);
+    setEls((prev) => [...prev, makeElement({ id, kind, ref, x, y })]);
+    setSelEl(id);
+    setSelText(null);
+    setSel(-1);
+  };
+
+  const removeEl = (id) => {
+    setEls((prev) => prev.filter((el) => el.id !== id));
+    setSelEl((cur) => (cur === id ? null : cur));
+  };
+
+  const clearAllEls = () => { setEls([]); setSelEl(null); };
+
+  const chooseElPhoto = () => {
+    if (selEl == null) return;
+    pendingElPhotoRef.current = selEl;
+    if (elFileRef.current) { elFileRef.current.value = ''; elFileRef.current.click(); }
+  };
+
+  const loadElPhoto = (fileList) => {
+    const file = Array.from(fileList || []).find((f) => /^image\//.test(f.type));
+    if (!file || pendingElPhotoRef.current == null) return;
+    const item = makeItem(file);
+    patchEl(pendingElPhotoRef.current, { image: item.el });
+  };
+
+  const startElDrag = (el, e) => {
+    const b = canvasRef.current.getBoundingClientRect();
+    elDragRef.current = { id: el.id, sx: e.clientX, sy: e.clientY, x: el.x, y: el.y, b };
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (er) { /* noop */ }
+  };
+
+  const onElDragMove = (e) => {
+    const d = elDragRef.current;
+    if (!d) return;
+    patchEl(d.id, {
+      x: clamp(d.x + (e.clientX - d.sx) / d.b.width, 0, 1),
+      y: clamp(d.y + (e.clientY - d.sy) / d.b.height, 0, 1),
+    });
+  };
+
+  const endElDrag = (e) => {
+    elDragRef.current = null;
+    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (er) { /* noop */ }
+  };
 
   const resetFrame = (i) => setFrames((prev) => {
     const next = prev.slice();
@@ -612,6 +727,7 @@ export default function CollageStudio({ className = '', style }) {
     const i = hitSlot(e);
     setSel(i);
     setSelText(null);
+    setSelEl(null);
     const it = i >= 0 ? items[i] : null;
     const adj = i >= 0 ? adjusts[i] || {} : {};
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch (er) { /* noop */ }
@@ -796,7 +912,18 @@ export default function CollageStudio({ className = '', style }) {
     height: `${(h / dims.h) * 100}%`,
   });
 
-  const rectsPct = rects.map((r) => ({ shape: r.shape, style: pctStyle(r.x, r.y, r.w, r.h) }));
+  const rectsPct = rects.map((r) => {
+    const c = r.shape === 'poly' ? polyCentroid(r) : null;
+    const left = c ? `${((c.x - r.x) / r.w) * 100}%` : null;
+    const top = c ? `${((c.y - r.y) / r.h) * 100}%` : null;
+    return {
+      shape: r.shape,
+      points: r.points,
+      style: pctStyle(r.x, r.y, r.w, r.h),
+      centroid: c ? { left, top } : null,
+      numberStyle: c ? { left, top: `${((c.y - r.y) / r.h) * 100 + 6}%` } : null,
+    };
+  });
 
   // The move and resize grips anchor to the square the selected heart actually
   // fills, so they read as part of the shape instead of its invisible cell.
@@ -813,10 +940,17 @@ export default function CollageStudio({ className = '', style }) {
     return { t, style: pctStyle(bx.x, bx.y, bx.w, bx.h) };
   });
 
+  const elementPct = els.map((el) => {
+    const bx = elementBox(el, dims.w, dims.h);
+    return { el, style: pctStyle(bx.x, bx.y, bx.w, bx.h) };
+  });
+
   const selItem = sel >= 0 ? items[sel] : null;
   const selAdj = sel >= 0 ? adjusts[sel] || {} : {};
   const selMode = selAdj.mode || 'fill';
   const selTextObj = texts.find((t) => t.id === selText) || null;
+  const selElObj = els.find((el) => el.id === selEl) || null;
+  const selKind = selRect ? (selRect.shape === 'heart' ? 'Heart' : selRect.shape === 'poly' ? 'Segment' : 'Box') : 'Box';
 
   return (
     <div className={`cj-page ${className}`} style={style}>
@@ -832,7 +966,7 @@ export default function CollageStudio({ className = '', style }) {
                       type="button"
                       className={`cj-tplthumb${tplId === t.id ? ' on' : ''}`}
                       title={`${t.label} — ${t.slots} box${t.slots > 1 ? 'es' : ''}`}
-                      onClick={() => setTplId(t.id)}
+                      onClick={() => pickTemplate(t)}
                     >
                       <TemplateCells cells={t.cells} />
                     </button>
@@ -840,6 +974,25 @@ export default function CollageStudio({ className = '', style }) {
                   </div>
                 ))}
               </div>
+            </Section>
+
+            <Section title="Wedding story">
+              <div className="cj-tplgrid">
+                {WEDDING_TEMPLATES.map((t) => (
+                  <div key={t.id}>
+                    <button
+                      type="button"
+                      className={`cj-tplthumb${tplId === t.id ? ' on' : ''}`}
+                      title={`${t.label} — ${t.slots} box${t.slots > 1 ? 'es' : ''}`}
+                      onClick={() => pickTemplate(t)}
+                    >
+                      <TemplateCells cells={t.cells} />
+                    </button>
+                    <span className="cj-tplname">{t.label}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="cj-note">Scattered, shard and fan layouts. Fan rings mask each photo into its own wedge; pick a segment on the canvas to fill it.</p>
             </Section>
 
             <Section title="Premium templates">
@@ -907,7 +1060,7 @@ export default function CollageStudio({ className = '', style }) {
 
             <Section title="Text">
               <div className="cj-row">
-                <button type="button" className="cj-btn primary" onClick={addText}>+ Add text</button>
+                <button type="button" className="cj-btn primary" onClick={() => addText()}>+ Add text</button>
                 {texts.length > 0 && (
                   <button type="button" className="cj-btn" onClick={clearAllTexts}>Remove all</button>
                 )}
@@ -918,7 +1071,7 @@ export default function CollageStudio({ className = '', style }) {
                     <button
                       key={t.id} type="button"
                       className={`cj-chip${selText === t.id ? ' on' : ''}`}
-                      onClick={() => { setSelText(t.id); setSel(-1); }}
+                      onClick={() => { setSelText(t.id); setSel(-1); setSelEl(null); }}
                     >{(String(t.text).split('\n')[0] || 'Text').slice(0, 14)}</button>
                   ))}
                 </div>
@@ -928,6 +1081,26 @@ export default function CollageStudio({ className = '', style }) {
                   ? 'Drag a text layer on the canvas to place it. Text is painted into the exported image and video.'
                   : 'No text layers yet — add one to write over the collage.'}
               </p>
+            </Section>
+
+            <Section title="Elements">
+              <AddElementsPanel prefix="cj" onAdd={(kind, ref) => addElement(kind, ref)} />
+              {els.length > 0 && (
+                <>
+                  <div className="cj-chiprow" style={{ marginTop: 8 }}>
+                    {els.map((el) => (
+                      <button
+                        key={el.id} type="button"
+                        className={`cj-chip${selEl === el.id ? ' on' : ''}`}
+                        onClick={() => { setSelEl(el.id); setSelText(null); setSel(-1); }}
+                      >{elementLabel(el)}</button>
+                    ))}
+                  </div>
+                  <div className="cj-row" style={{ marginTop: 8 }}>
+                    <button type="button" className="cj-btn" onClick={clearAllEls}>Remove all elements</button>
+                  </div>
+                </>
+              )}
             </Section>
 
             {selTextObj && (
@@ -945,8 +1118,15 @@ export default function CollageStudio({ className = '', style }) {
                       value={selTextObj.font}
                       onChange={(e) => patchText(selTextObj.id, { font: e.target.value })}
                     >
-                      {TEXT_FONTS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+                      {FONT_GROUPS.map((group) => (
+                        <optgroup key={group.label} label={group.label}>
+                          {group.fonts.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+                        </optgroup>
+                      ))}
                     </select>
+                    <span className="cj-fontpreview" style={{ fontFamily: fontCss(selTextObj.font) }}>
+                      Aa — The quick brown fox
+                    </span>
                   </label>
                   <label className="cj-field">
                     <span className="cj-fieldLabel">Font size</span>
@@ -999,8 +1179,78 @@ export default function CollageStudio({ className = '', style }) {
               </Section>
             )}
 
+            {selElObj && (
+              <Section title={`Edit ${elementLabel(selElObj)}`}>
+                {elementHasText(selElObj) && (
+                  <textarea
+                    className="cj-textarea" rows={selElObj.kind === 'banner' ? 1 : 3} value={selElObj.text}
+                    onChange={(e) => patchEl(selElObj.id, { text: e.target.value })}
+                    placeholder={selElObj.kind === 'banner' ? 'Plate text' : selElObj.kind === 'namecard' ? 'Name\nRole' : 'Name\nPhone\nEmail'}
+                  />
+                )}
+                <div className="cj-fieldRow">
+                  <label className="cj-field">
+                    <span className="cj-fieldLabel">Colour</span>
+                    <span className="cj-colorRow">
+                      <input
+                        className="cj-colorInput" type="color" value={selElObj.color}
+                        onChange={(e) => patchEl(selElObj.id, { color: e.target.value })}
+                      />
+                      <span className="cj-hexval">{selElObj.color}</span>
+                    </span>
+                  </label>
+                  <label className="cj-field">
+                    <span className="cj-fieldLabel">Size</span>
+                    <input
+                      className="cj-range" type="range" min={10} max={130} step={1}
+                      value={Math.round((selElObj.w || 0.4) * 100)}
+                      onChange={(e) => patchEl(selElObj.id, { w: clamp(parseInt(e.target.value, 10) / 100, 0.04, 1.6) })}
+                    />
+                  </label>
+                </div>
+                {(selElObj.kind === 'banner' || selElObj.kind === 'namecard' || selElObj.kind === 'contactcard') && (
+                  <div className="cj-fieldRow">
+                    <label className="cj-field">
+                      <span className="cj-fieldLabel">Plate</span>
+                      <span className="cj-colorRow">
+                        <input
+                          className="cj-colorInput" type="color" value={selElObj.plate}
+                          onChange={(e) => patchEl(selElObj.id, { plate: e.target.value })}
+                        />
+                        <span className="cj-hexval">{selElObj.plate}</span>
+                      </span>
+                    </label>
+                    {selElObj.kind !== 'banner' && (
+                      <label className="cj-field">
+                        <span className="cj-fieldLabel">Accent</span>
+                        <span className="cj-colorRow">
+                          <input
+                            className="cj-colorInput" type="color" value={selElObj.accent}
+                            onChange={(e) => patchEl(selElObj.id, { accent: e.target.value })}
+                          />
+                          <span className="cj-hexval">{selElObj.accent}</span>
+                        </span>
+                      </label>
+                    )}
+                  </div>
+                )}
+                {selElObj.kind === 'photo' && (
+                  <div className="cj-row" style={{ marginTop: 8 }}>
+                    <button type="button" className="cj-btn primary" onClick={chooseElPhoto}>Choose photo</button>
+                    {selElObj.image && (
+                      <button type="button" className="cj-btn" onClick={() => patchEl(selElObj.id, { image: null })}>Clear photo</button>
+                    )}
+                  </div>
+                )}
+                <div className="cj-row" style={{ marginTop: 8 }}>
+                  <button type="button" className="cj-btn" onClick={() => removeEl(selElObj.id)}>Delete element</button>
+                </div>
+                <p className="cj-note">Drag the element on the canvas to move it. Elements are painted into the exported image and video.</p>
+              </Section>
+            )}
+
             {sel >= 0 && (
-              <Section title={`${selRect && selRect.shape === 'heart' ? 'Heart' : 'Box'} ${sel + 1} — ${selItem ? (selItem.kind === 'video' ? 'video' : 'photo') : 'empty'}`}>
+              <Section title={`${selKind} ${sel + 1} — ${selItem ? (selItem.kind === 'video' ? 'video' : 'photo') : 'empty'}`}>
                 {selItem && (
                   <>
                     <div className="cj-fitrow">
@@ -1059,21 +1309,42 @@ export default function CollageStudio({ className = '', style }) {
         <main
           className="cj-stage"
           onDragOver={(e) => e.preventDefault()}
-          onDrop={(e) => { e.preventDefault(); loadFiles(e.dataTransfer.files); }}
+          onDrop={(e) => {
+            e.preventDefault();
+            const raw = e.dataTransfer.getData('application/x-ts-element');
+            if (raw) {
+              try {
+                const payload = JSON.parse(raw);
+                const b = canvasRef.current.getBoundingClientRect();
+                addElement(payload.kind, payload.id, {
+                  x: clamp((e.clientX - b.left) / b.width, 0, 1),
+                  y: clamp((e.clientY - b.top) / b.height, 0, 1),
+                });
+                return;
+              } catch (er) { /* fall through to files */ }
+            }
+            loadFiles(e.dataTransfer.files);
+          }}
         >
           <div className="cj-canvasWrap">
             <canvas ref={canvasRef} className="cj-canvas" style={{ aspectRatio: `${dims.w} / ${dims.h}` }} />
             <div className="cj-overlay" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp}>
-              {rectsPct.map(({ shape, style }, i) => (
-                <div key={i} role="button" aria-label={`Box ${i + 1}`} className={`cj-slotcell${shape === 'heart' ? ' shape-heart' : ''}${sel === i ? ' sel' : ''}`} style={style}>
+              {rectsPct.map(({ shape, style, points, centroid, numberStyle }, i) => (
+                <div key={i} role="button" aria-label={`Box ${i + 1}`} className={`cj-slotcell${shape === 'heart' ? ' shape-heart' : ''}${shape === 'poly' ? ' shape-poly' : ''}${sel === i ? ' sel' : ''}`} style={style}>
                   {shape === 'heart' && (
                     <svg className="cj-slotshape" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
                       <path d={HEART_PATH_D} />
                     </svg>
                   )}
+                  {shape === 'poly' && (
+                    <svg className="cj-slotshape" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                      <polygon points={points.map(([x, y]) => `${x * 100},${y * 100}`).join(' ')} />
+                    </svg>
+                  )}
                   {!items[i] && (
                     <button
                       type="button" className="cj-slotadd" title="Add photo / video"
+                      style={centroid || undefined}
                       onPointerDown={(e) => e.stopPropagation()}
                       onClick={(e) => { e.stopPropagation(); openSlotFile(i); }}
                     >+</button>
@@ -1081,11 +1352,12 @@ export default function CollageStudio({ className = '', style }) {
                   {items[i] && (
                     <button
                       type="button" className="cj-swapbtn" title="Replace"
+                      style={centroid || undefined}
                       onPointerDown={(e) => e.stopPropagation()}
                       onClick={(e) => { e.stopPropagation(); openSlotFile(i); }}
                     >⟳</button>
                   )}
-                  <span className="cj-slotnum">{i + 1}</span>
+                  {(shape !== 'poly' || items[i]) && <span className="cj-slotnum" style={numberStyle || undefined}>{i + 1}</span>}
                 </div>
               ))}
               {grips && (
@@ -1106,10 +1378,20 @@ export default function CollageStudio({ className = '', style }) {
                 <div
                   key={t.id} role="button" aria-label={`Text layer ${t.text}`}
                   className={`cj-textcell${selText === t.id ? ' sel' : ''}`} style={style}
-                  onPointerDown={(e) => { e.stopPropagation(); setSel(-1); setSelText(t.id); startTextDrag(t, e); }}
+                  onPointerDown={(e) => { e.stopPropagation(); setSel(-1); setSelText(t.id); setSelEl(null); startTextDrag(t, e); }}
                   onPointerMove={onTextDragMove} onPointerUp={endTextDrag} onPointerCancel={endTextDrag}
                   onDoubleClick={() => { const el = textFieldRef.current; if (el) { el.focus(); el.select(); } }}
                 />
+              ))}
+              {elementPct.map(({ el, style }) => (
+                <div
+                  key={el.id} role="button" aria-label={`Element ${elementLabel(el)}`}
+                  className={`cj-elcell${selEl === el.id ? ' sel' : ''}`} style={style}
+                  onPointerDown={(e) => { e.stopPropagation(); setSel(-1); setSelText(null); setSelEl(el.id); startElDrag(el, e); }}
+                  onPointerMove={onElDragMove} onPointerUp={endElDrag} onPointerCancel={endElDrag}
+                >
+                  <span className="cj-elcell-tag">{elementLabel(el)}</span>
+                </div>
               ))}
             </div>
           </div>
@@ -1195,6 +1477,10 @@ export default function CollageStudio({ className = '', style }) {
       <input
         ref={slotFileRef} type="file" accept="video/*,image/*" style={{ display: 'none' }}
         onChange={(e) => { loadFiles(e.target.files, pendingSlotRef.current); e.target.value = ''; }}
+      />
+      <input
+        ref={elFileRef} type="file" accept="image/*" style={{ display: 'none' }}
+        onChange={(e) => { loadElPhoto(e.target.files); e.target.value = ''; }}
       />
 
       {runningJob && (
