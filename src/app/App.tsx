@@ -87,6 +87,7 @@ function PromptCard({ prompt, index, saved, engagement, onToggleSave, onCopy, on
       <Link to={target} tabIndex={-1} className={`tile-image tile-image-${index % 6}`} aria-label="Open this photo in the poster editor">
         {prompt.image ? <img {...responsiveImage(prompt.image, '(max-width: 700px) 45vw, 23vw')} alt="" loading="lazy" /> : <span className="tile-image-fallback"><ImagePlus size={28} /></span>}
         <span className="tile-vignette" />
+        <span className="tile-tag">#creativeposter</span>
       </Link>
       <div className="tile-content poster-tile-content"><Link to={target} className="poster-create-button"><ImagePlus size={14} /> Create your poster</Link></div>
     </article>
@@ -122,6 +123,46 @@ function FeatureHero({ prompts }: { prompts: Prompt[] }) {
       <div className={`trending-template-image template-image-${index}`}>{prompt.image ? <img {...responsiveImage(prompt.image, '(max-width: 700px) 44vw, 22vw')} alt={prompt.imageAlt || prompt.title} loading="lazy" /> : <Sparkles size={28} />}<span className="trending-template-rank">0{index + 1}</span><span className="trending-template-tag">{prompt.featured ? 'TRENDING' : prompt.category}</span></div>
       <div className="trending-template-copy"><span>{prompt.tool} <b>·</b> {prompt.style}</span><h2>{prompt.title}</h2><p>{prompt.description}</p><span className="trending-template-open">View template <ArrowUpRight size={14} /></span></div>
     </Link>)}</div>
+  </section>
+}
+
+const showcaseLimit = 4
+
+/** Home split: recent prompt posts and recent poster posts, kept apart by the CreativePoster hashtag. */
+function HomeCategoryShowcase({ prompts, onViewAll }: { prompts: Prompt[]; onViewAll: (filter: string) => void }) {
+  const { templates, posters } = useMemo(() => {
+    const ordered = [...prompts].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    return {
+      templates: ordered.filter((prompt) => !isPosterPrompt(prompt)).slice(0, showcaseLimit),
+      posters: ordered.filter(isPosterPrompt).slice(0, showcaseLimit),
+    }
+  }, [prompts])
+  if (!templates.length && !posters.length) return null
+  return <section className="home-showcase" aria-label="Latest prompt templates and posters from the blog">
+    {templates.length > 0 && <div className="showcase-block">
+      <div className="showcase-head">
+        <div className="showcase-title"><span className="feature-eyebrow"><Sparkles size={14} /> JUST PUBLISHED</span><h2>Latest prompt <em>templates</em></h2><p>Fresh prompts from the blog, ready to copy and remix.</p></div>
+        <div className="showcase-actions"><span className="showcase-hashtag">{templates.length} NEW</span><button type="button" className="showcase-view-all" onClick={() => onViewAll('Latest')}>View all <ArrowRight size={14} /></button></div>
+      </div>
+      <div className="showcase-grid">{templates.map((prompt) => <Link className="showcase-card" to={`/prompt/${prompt.slug}`} key={prompt.id}>
+        <div className="showcase-card-image">{prompt.image ? <img {...responsiveImage(prompt.image, '(max-width: 650px) 46vw, 22vw')} alt={prompt.imageAlt || prompt.title} loading="lazy" /> : <span className="showcase-card-fallback"><Sparkles size={26} /></span>}<span className="showcase-card-tag">{prompt.category}</span><span className="showcase-card-open"><ArrowUpRight size={16} /></span></div>
+        <div className="showcase-card-body"><h3>{prompt.title}</h3><p>{prompt.description}</p><span className="showcase-card-meta">{prompt.tool} <b>·</b> {prompt.style}</span></div>
+      </Link>)}</div>
+    </div>}
+    <div className="showcase-block showcase-block-posters">
+      <div className="showcase-head">
+        <div className="showcase-title"><span className="feature-eyebrow"><ImagePlus size={14} /> MADE IN THE POSTER STUDIO</span><h2>Posters from <em>Blogger</em></h2><p>Photo posts carrying the creative poster hashtag.</p></div>
+        <div className="showcase-actions"><span className="showcase-hashtag showcase-hashtag-poster">#creativeposter</span>{posters.length > 0 && <button type="button" className="showcase-view-all" onClick={() => onViewAll('CreativePoster')}>View all <ArrowRight size={14} /></button>}</div>
+      </div>
+      {posters.length > 0 ? <div className="showcase-grid showcase-grid-posters">{posters.map((prompt) => {
+        const target = prompt.image ? `/poster?photo=${encodeURIComponent(prompt.image)}` : '/poster'
+        return <Link className="showcase-poster" to={target} key={prompt.id} aria-label="Create a poster from this Blogger photo">
+          {prompt.image ? <img {...responsiveImage(prompt.image, '(max-width: 650px) 46vw, 22vw')} alt="" loading="lazy" /> : <span className="showcase-poster-fallback"><ImagePlus size={28} /></span>}
+          <span className="showcase-poster-hashtag">#creativeposter</span>
+          <span className="showcase-poster-overlay"><ImagePlus size={15} /> Create your poster</span>
+        </Link>
+      })}</div> : <Link className="showcase-poster-empty" to="/poster"><span className="showcase-poster-empty-icon"><ImagePlus size={22} /></span><div><strong>No posters yet</strong><p>Split a Blogger photo post in the poster editor and publish it with #creativeposter.</p></div><ArrowRight size={15} /></Link>}
+    </div>
   </section>
 }
 
@@ -615,7 +656,7 @@ function HomePage({ prompts, blogStatus, canGenerate, onAddTrend, menuSections, 
   const addedTrendIds = useMemo(() => new Set(prompts.filter((prompt) => prompt.id.startsWith('social-')).map((prompt) => prompt.id.slice('social-'.length))), [prompts])
   const title = active === 'All' ? 'All prompts' : active === 'Saved' ? 'Your saved prompts' : active === 'Trending' ? 'Trending prompts' : active === 'Latest' ? 'Latest prompts' : `${active} prompts`
   return <div className="app-layout"><Header onMenu={() => setSidebarOpen(true)} adminLoggedIn={adminLoggedIn} /><div className="page-body"><Sidebar open={sidebarOpen} active={active} categories={filters} onHome={() => { setActive('All'); setQuery(''); setRecorderOpen(false); setQrOpen(false); setSidebarOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }} recorderOpen={recorderOpen} qrOpen={qrOpen} onOpenRecorder={() => { setRecorderOpen(true); setQrOpen(false); setSidebarOpen(false); window.setTimeout(() => document.getElementById('home-generator-area')?.scrollIntoView({ behavior: 'smooth' }), 0) }} onOpenQr={() => { setQrOpen(true); setRecorderOpen(false); setSidebarOpen(false); window.setTimeout(() => document.getElementById('home-generator-area')?.scrollIntoView({ behavior: 'smooth' }), 0) }} onSelect={(category) => { setActive(category); setRecorderOpen(false); setQrOpen(false); setSidebarOpen(false); document.getElementById('explore')?.scrollIntoView({ behavior: 'smooth' }) }} onClose={() => setSidebarOpen(false)} menuSections={menuSections} />
-    <main className={`main-content ${utilityOpen ? 'recorder-main-wide' : ''}`}><div className={`content-inner ${utilityOpen ? 'recorder-content-wide' : ''}`}><div id="home-generator-area">{recorderOpen ? null : qrOpen ? <QRCodeGenerator /> : <HomePhotoPromptGenerator canGenerate={canGenerate} />}</div>{recorderOpen && <RecorderFullscreen onClose={() => setRecorderOpen(false)} />}<FeatureHero prompts={prompts} /><ProductScroller /><SocialTrendSection addedIds={addedTrendIds} onAdd={onAddTrend} />
+    <main className={`main-content ${utilityOpen ? 'recorder-main-wide' : ''}`}><div className={`content-inner ${utilityOpen ? 'recorder-content-wide' : ''}`}><div id="home-generator-area">{recorderOpen ? null : qrOpen ? <QRCodeGenerator /> : <HomePhotoPromptGenerator canGenerate={canGenerate} />}</div>{recorderOpen && <RecorderFullscreen onClose={() => setRecorderOpen(false)} />}<FeatureHero prompts={prompts} /><HomeCategoryShowcase prompts={prompts} onViewAll={showHashtag} /><ProductScroller /><SocialTrendSection addedIds={addedTrendIds} onAdd={onAddTrend} />
       <section className="browse-section" id="explore"><div className="section-topline"><div><span className="section-kicker">THE PROMPT LIBRARY</span><h2>Find your next <em>favorite.</em></h2></div><span className="collection-count">{prompts.length} IDEAS <span>↗</span></span></div>
         
         <div className="inline-search"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search prompts, styles, ideas" aria-label="Filter the prompt library" />{query && <button onClick={() => setQuery('')} aria-label="Clear search"><X size={15} /></button>}</div>
@@ -1349,6 +1390,6 @@ export default function App() {
   useEffect(() => { document.title = `${appConfig.appName || 'Promptseen'} — AI prompt library` }, [])
   useEffect(() => { void loadCustomerSession() }, [])
   const adminAllowed = bloggerConnected || adminAuthenticated
-  return <Routes><Route path="/" element={<HomePage prompts={prompts} blogStatus={blogStatus} canGenerate={true} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /><Route path="/store" element={<StorePage />} /><Route path="/collage" element={<CollagePage />} /><Route path="/shorts" element={<ShortsPage />} /><Route path="/poster" element={<PosterPage />} /><Route path="/checkout/:productId" element={<CheckoutPage />} /><Route path="/prompt/:slug" element={<PromptPage prompts={prompts} />} /><Route path="/account" element={<AccountPage />} /><Route path="/login" element={<LoginPage onConnected={() => setBloggerConnected(true)} onAdminLogin={() => { setAdminAuthenticated(true); setAdminAuthReady(true) }} />} /><Route path="/admin/upload-pdf" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="/admin/*" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="*" element={<HomePage prompts={prompts} blogStatus={blogStatus} canGenerate={bloggerConnected} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /></Routes>
+  return <Routes><Route path="/" element={<HomePage prompts={prompts} blogStatus={blogStatus} canGenerate={true} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /><Route path="/store" element={<StorePage />} /><Route path="/collage" element={<CollagePage />} /><Route path="/shorts" element={<ShortsPage />} /><Route path="/poster/*" element={<PosterPage />} /><Route path="/checkout/:productId" element={<CheckoutPage />} /><Route path="/prompt/:slug" element={<PromptPage prompts={prompts} />} /><Route path="/account" element={<AccountPage />} /><Route path="/login" element={<LoginPage onConnected={() => setBloggerConnected(true)} onAdminLogin={() => { setAdminAuthenticated(true); setAdminAuthReady(true) }} />} /><Route path="/admin/upload-pdf" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="/admin/*" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="*" element={<HomePage prompts={prompts} blogStatus={blogStatus} canGenerate={bloggerConnected} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /></Routes>
 }
 

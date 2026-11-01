@@ -8,7 +8,7 @@ import { contactMarkup } from '../data/namecards.js'
 import { SHAPE_GEOMETRY, isPathShape } from '../data/shapes.js'
 import { Photo } from './Icons.jsx'
 
-function TextBody({ el, editing, selected, style, boxStyle, onCommit, onPointerDown, onStartEdit }) {
+function TextBody({ el, editing, selected, style, boxStyle, onCommit, onPointerDown, onStartEdit, removeBtn }) {
   const ref = useRef(null)
 
   useEffect(() => {
@@ -56,12 +56,13 @@ function TextBody({ el, editing, selected, style, boxStyle, onCommit, onPointerD
     >
       {boxStyle && <span className="ts-text-bg" aria-hidden="true" style={boxStyle} />}
       {el.text}
+      {removeBtn}
     </div>
   )
 }
 
 function BannerBody({
-  el, editing, selected, handles,
+  el, editing, selected, handles, removeBtn,
   plateStyle, textStyle, ornamentColor, innerColor,
   onCommit, onPointerDown, onResize, onStartEdit,
 }) {
@@ -147,12 +148,13 @@ function BannerBody({
           }}
         />
       )}
+      {removeBtn}
     </div>
   )
 }
 
 function NameCardBody({
-  el, editing, selected, handles,
+  el, editing, selected, handles, removeBtn,
   wrapperStyle, sheetStyle, nameStyle, titleStyle, socialsStyle, iconStyle,
   logoStyle, barStyle, contactIconStyle,
   onCommitField, onEndEdit, onPointerDown, onRequestLogo, onResize, onStartEdit,
@@ -370,6 +372,7 @@ export default function TemplateCanvas({
   brush,
   onInk,
   onAddTextAt,
+  onDeleteElement,
   className = '',
 }) {
   const stageRef = useRef(null)
@@ -497,6 +500,7 @@ export default function TemplateCanvas({
       startY: e.clientY,
       posX: bg.posX ?? 50,
       posY: bg.posY ?? 50,
+      fit: bg.fit || 'cover',
       rect,
       moved: false,
     }
@@ -508,13 +512,14 @@ export default function TemplateCanvas({
       }
       const dx = ((ev.clientX - session.startX) / session.rect.width) * 100
       const dy = ((ev.clientY - session.startY) / session.rect.height) * 100
-      onPatchBgRef.current?.(
-        {
-          posX: Math.min(100, Math.max(0, session.posX - dx)),
-          posY: Math.min(100, Math.max(0, session.posY - dy)),
-        },
-        { history: false }
-      )
+      const patch = {
+        posX: Math.min(100, Math.max(0, session.posX - dx)),
+        posY: Math.min(100, Math.max(0, session.posY - dy)),
+      }
+      // A letterboxed photo has nothing hidden to reveal; fill the page so the
+      // drag picks the visible portion instead of sliding it inside paper margins.
+      if (session.fit === 'contain' && (bg.zoom ?? 1) <= 1) patch.fit = 'cover'
+      onPatchBgRef.current?.(patch, { history: false })
     }
     const up = () => {
       detach()
@@ -950,6 +955,24 @@ export default function TemplateCanvas({
     const isSelected = isPrimary || (interactive && selectedIds.includes(el.id))
     const handles = isPrimary && interactive
     const isEditing = interactive && editingId === el.id
+    const removeBtn = isSelected && interactive && onDeleteElement ? (
+      <button
+        type="button"
+        className="ts-el-remove-btn"
+        title="Remove element"
+        aria-label="Remove element"
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation()
+          onDeleteElement(el.id)
+        }}
+      >
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    ) : null
     const common = {
       'data-el': el.id,
       'data-el-type': el.type,
@@ -1017,6 +1040,7 @@ export default function TemplateCanvas({
           onCommit={onEndEdit}
           onStartEdit={onStartEdit}
           onPointerDown={wrapperProps.onPointerDown}
+          removeBtn={removeBtn}
         />
       )
     }
@@ -1052,6 +1076,7 @@ export default function TemplateCanvas({
           editing={isEditing}
           selected={isSelected}
           handles={handles}
+          removeBtn={removeBtn}
           plateStyle={plateStyle}
           textStyle={textStyle}
           ornamentColor={strokeColor || textColor}
@@ -1116,6 +1141,7 @@ export default function TemplateCanvas({
           editing={isEditing}
           selected={isSelected}
           handles={handles}
+          removeBtn={removeBtn}
           wrapperStyle={wrapperStyle}
           sheetStyle={sheetStyle}
           nameStyle={nameStyle}
@@ -1219,6 +1245,7 @@ export default function TemplateCanvas({
               }}
             />
           )}
+          {removeBtn}
         </div>
       )
     }
@@ -1369,6 +1396,7 @@ export default function TemplateCanvas({
                 }}
               />
             )}
+            {removeBtn}
           </div>
         )
       }
@@ -1401,7 +1429,21 @@ export default function TemplateCanvas({
       if (el.shape === 'line') {
         style.background = fill !== 'none' ? fill : resolve(doc, 'accent')
       }
-      return <div key={el.id} {...wrapperProps} className={`ts-el ts-shape${isSelected ? ' is-selected' : ''}`} style={style} />
+      return (
+        <div key={el.id} {...wrapperProps} className={`ts-el ts-shape${isSelected ? ' is-selected' : ''}`} style={style}>
+          {handles && (
+            <span
+              className="ts-resize"
+              title="Drag to resize"
+              onPointerDown={(e) => {
+                e.stopPropagation()
+                beginResize(e, el)
+              }}
+            />
+          )}
+          {removeBtn}
+        </div>
+      )
     }
 
     if (el.type === 'sticker') {
@@ -1543,6 +1585,7 @@ export default function TemplateCanvas({
           style={{ display: 'block', width: '100%', height: 'auto' }}
           dangerouslySetInnerHTML={{ __html: ornamentMarkup(el.ornament) }}
         />
+        {removeBtn}
       </div>
     )
   }
@@ -1588,6 +1631,12 @@ export default function TemplateCanvas({
       onPointerDownCapture={(e) => {
         if (!interactive) return
         if (tool === 'marquee' || tool === 'lasso') {
+          // If clicked inside an existing selection frame, allow dragging to move it
+          if (frameBox && insideFrame(e)) {
+            e.stopPropagation()
+            beginGroupDrag(e)
+            return
+          }
           e.stopPropagation()
           beginSelect(e)
           return
@@ -1604,14 +1653,25 @@ export default function TemplateCanvas({
       }}
       onPointerDown={(e) => {
         if (!interactive) return
-        if (e.target === e.currentTarget) {
+        const isCanvasBg = e.target === e.currentTarget ||
+          e.target.classList?.contains('ts-bg-photo') ||
+          e.target.classList?.contains('ts-bg-shade') ||
+          e.target.classList?.contains('ts-grain')
+        if (isCanvasBg) {
           if (editingId) {
             const node = stageRef.current?.querySelector(`[data-el="${editingId}"]`)
             onEndEdit?.(editingId, node ? node.innerText : null)
           }
-          // Paint lets the released selection frame be grabbed and dragged.
-          if (tool === 'select' && frameBox && !frameBox.full && selectedIds.length > 1 && insideFrame(e)) {
+          // Drag inside selection frame to move it (whether 1 or multiple elements)
+          if (frameBox && insideFrame(e)) {
             beginGroupDrag(e)
+            return
+          }
+          if (tool === 'select') {
+            // With a photo page, dragging the page moves the photo so you can
+            // choose which part of it shows. Marquee/lasso have their own tools.
+            if (bgImage) beginBgPan(e)
+            else beginSelect(e)
             return
           }
           if (bgImage) beginBgPan(e)
@@ -1644,13 +1704,18 @@ export default function TemplateCanvas({
       {frameBox && (
         <div
           className="ts-select-frame"
-          aria-hidden="true"
           style={{
             position: 'absolute',
             left: `${frameBox.left}px`,
             top: `${frameBox.top}px`,
             width: `${frameBox.width}px`,
             height: `${frameBox.height}px`,
+            cursor: 'move',
+          }}
+          title="Drag inside to move selection"
+          onPointerDown={(e) => {
+            e.stopPropagation()
+            beginGroupDrag(e)
           }}
         />
       )}

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Check, ImagePlus, Trash2, X } from 'lucide-react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { ArrowLeft, ArrowRight, Check, ImagePlus, Images, Sparkles, Square, Trash2, X } from 'lucide-react'
 import Editor from './template-studio/components/Editor.jsx'
 import TemplateCanvas from './template-studio/components/TemplateCanvas.jsx'
 import { CATEGORY_COUNTS, TEMPLATES, docFromTemplate } from './template-studio/data/templates.js'
@@ -60,7 +60,7 @@ async function preparePosterImage(file) {
   let blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/webp', 0.9))
   if (!blob) blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'))
   if (!blob) throw new Error('Could not prepare that image')
-  return blobToDataUrl(blob)
+  return { src: await blobToDataUrl(blob), ratio: canvas.width / canvas.height }
 }
 
 const uid = () =>
@@ -106,16 +106,17 @@ function withUploadedImage(doc, src) {
   return { ...doc, elements }
 }
 
-function blankPosterDoc(src) {
+function blankPosterDoc(src, ratio) {
+  const custom = Number(ratio) > 0 ? Math.round(Number(ratio) * 1000) / 1000 : null
   return {
     templateId: null,
     name: 'My photo poster',
     category: 'Custom',
     tag: 'Photo poster',
-    aspect: 'portrait',
+    aspect: custom || 'portrait',
     paletteId: 'monochrome',
     colors: { ...PALETTES.monochrome },
-    bg: { type: 'image', src, fit: 'cover', zoom: 1, posX: 50, posY: 50, overlay: 0, tint: 'ink', texture: false },
+    bg: { type: 'image', src, fit: 'cover', zoom: 1, posX: 50, posY: 50, overlay: 0, tint: 'ink', from: 'paper', texture: false },
     elements: [],
   }
 }
@@ -130,6 +131,88 @@ const BLANK_PAGES = [
   { id: 'terracotta', name: 'Terracotta', color: '#d9a58f' },
   { id: 'ink', name: 'Ink', color: '#23282a' },
 ]
+
+const START_OPTIONS = [
+  {
+    id: 'photo',
+    index: '01',
+    title: 'Upload a photo',
+    icon: ImagePlus,
+    copy: 'Turn your own picture into a poster. Upload several and each one gets its own post.',
+    points: ['Batch upload', 'Auto photo slot', 'Save drafts'],
+    cta: 'Upload photo',
+  },
+  {
+    id: 'blank',
+    index: '02',
+    title: 'Blank poster',
+    icon: Square,
+    copy: 'Start from an empty coloured page and build it with text, shapes and elements.',
+    points: ['8 page colours', 'Shapes & text', 'HD export'],
+    cta: 'Pick a blank page',
+  },
+  {
+    id: 'template',
+    index: '03',
+    title: 'Predefined template',
+    icon: Images,
+    copy: 'Choose a ready-made layout, then make every detail yours in the editor.',
+    points: ['29 layouts', '8 categories', 'Photo-ready slots'],
+    cta: 'Browse templates',
+  },
+]
+
+const START_ROUTES = { photo: '/poster/upload', blank: '/poster/blank', template: '/poster/templates' }
+const POSTER_MODES = { upload: 'photo', blank: 'blank', templates: 'template' }
+
+function StartOptionPreview({ id }) {
+  if (id === 'photo') {
+    return (
+      <span className="cp-anim cp-anim--photo">
+        <span className="cp-anim-poster">
+          <span className="cp-anim-slot">
+            <span className="cp-anim-slot-photo" />
+            <span className="cp-anim-slot-icon"><ImagePlus size={11} /></span>
+          </span>
+          <span className="cp-anim-line cp-anim-line--lg" />
+          <span className="cp-anim-line" />
+        </span>
+        <span className="cp-anim-photo cp-anim-photo--ghost"><span className="cp-anim-photo-art" /></span>
+        <span className="cp-anim-photo"><span className="cp-anim-photo-art" /></span>
+        <span className="cp-anim-spark"><Sparkles size={11} /></span>
+      </span>
+    )
+  }
+  if (id === 'blank') {
+    return (
+      <span className="cp-anim cp-anim--blank">
+        <span className="cp-anim-poster">
+          <span className="cp-anim-fill" />
+          <span className="cp-anim-block cp-anim-block--a" />
+          <span className="cp-anim-block cp-anim-block--b" />
+          <span className="cp-anim-block cp-anim-block--c" />
+        </span>
+        <span className="cp-anim-dots">
+          {['#ffffff', '#f6f1e7', '#e6dac4', '#f2d8d4', '#dbe6d7', '#d8e6ef', '#d9a58f', '#23282a'].map((color, index) => (
+            <span key={color} className="cp-anim-dot" style={{ background: color, animationDelay: `${index * 0.17}s` }} />
+          ))}
+        </span>
+      </span>
+    )
+  }
+  return (
+    <span className="cp-anim cp-anim--deck">
+      <span className="cp-anim-card cp-anim-card--back" />
+      <span className="cp-anim-card cp-anim-card--mid" />
+      <span className="cp-anim-card cp-anim-card--front">
+        <span className="cp-anim-photo-art cp-anim-photo-art--wide" />
+        <span className="cp-anim-line cp-anim-line--lg" />
+        <span className="cp-anim-line" />
+        <span className="cp-anim-shine" />
+      </span>
+    </span>
+  )
+}
 
 function blankColorDoc(page) {
   return {
@@ -213,6 +296,9 @@ function DraftCard({ draft, onOpen, onDelete }) {
 }
 
 export default function CreatePoster() {
+  const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const mode = POSTER_MODES[pathname.replace(/\/+$/, '').split('/').pop()] || null
   const [images, setImages] = useState([])
   const [activeId, setActiveId] = useState(null)
   const [touched, setTouched] = useState({})
@@ -252,6 +338,11 @@ export default function CreatePoster() {
 
   const pickFile = () => inputRef.current?.click()
 
+  // Each start option is its own page, so switching between them starts at the top.
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' })
+  }, [mode])
+
   // The Blogger "Edit this template" button lands here with ?photo=<image url>.
   const photoParam = useMemo(() => {
     const value = new URLSearchParams(window.location.search).get('photo') || ''
@@ -265,11 +356,15 @@ export default function CreatePoster() {
 
   useEffect(() => {
     if (!photoParam) return undefined
+    if (mode !== 'photo') {
+      navigate(`/poster/upload${window.location.search}`, { replace: true })
+      return undefined
+    }
     let cancelled = false
     const name = decodeURIComponent(photoParam.split('/').pop()?.split('?')[0] || '') || 'photo.jpg'
-    const addPost = (src, label) => {
+    const addPost = (src, label, ratio) => {
       if (cancelled) return
-      const entry = { id: uid(), src, name: label }
+      const entry = { id: uid(), src, name: label, ratio }
       setImages([entry])
       setActiveId(entry.id)
       setShowIntake(true)
@@ -283,7 +378,8 @@ export default function CreatePoster() {
         if (!response.ok) throw new Error('Could not download that image')
         const blob = await response.blob()
         const file = new File([blob], name, { type: ACCEPTED.includes(blob.type) ? blob.type : 'image/jpeg' })
-        addPost(await preparePosterImage(file), name || 'Photo from Blogger')
+        const prepared = await preparePosterImage(file)
+        addPost(prepared.src, name || 'Photo from Blogger', prepared.ratio)
         notify('Your photo is ready — pick a template for this post')
       } catch {
         addPost(photoParam, name || 'Photo from Blogger')
@@ -293,7 +389,17 @@ export default function CreatePoster() {
       }
     })()
     return () => { cancelled = true }
-  }, [photoParam, notify])
+  }, [photoParam, mode, navigate, notify])
+
+  const startEditing = (doc, designId = null, imageId = null) => {
+    if (imageId) setTouched((prev) => ({ ...prev, [imageId]: prev[imageId] || 'opened' }))
+    setEditing({ doc, designId, imageId, key: `${designId || 'new'}-${Date.now()}` })
+  }
+
+  const openPostPhoto = (img) => {
+    setActiveId(img.id)
+    startEditing(blankPosterDoc(img.src, img.ratio), null, img.id)
+  }
 
   const handleFiles = useCallback(async (fileList) => {
     const files = [...(fileList || [])]
@@ -309,24 +415,32 @@ export default function CreatePoster() {
     for (const file of batch) {
       try {
         if (file.size > MAX_BYTES) throw new Error(`${file.name || 'An image'} is larger than 25 MB`)
-        const src = await preparePosterImage(file)
-        ready.push({ id: uid(), src, name: file.name || `Photo ${ready.length + 1}` })
+        const { src, ratio } = await preparePosterImage(file)
+        ready.push({ id: uid(), src, ratio, name: file.name || `Photo ${ready.length + 1}` })
       } catch (reason) {
         failure = reason instanceof Error ? reason.message : 'Could not read that image'
       }
     }
     setPreparing(false)
+    const wasEmpty = images.length === 0
     if (ready.length) {
       setImages((prev) => [...prev, ...ready])
-      setActiveId((prev) => prev || ready[0].id)
+      if (wasEmpty) openPostPhoto(ready[0])
+      else setActiveId((prev) => prev || ready[0].id)
     }
     const notes = []
-    if (ready.length) notes.push(`${ready.length} photo${ready.length > 1 ? 's' : ''} ready — each is its own post`)
+    if (ready.length) {
+      notes.push(wasEmpty
+        ? (ready.length === 1
+          ? 'Your photo is ready — editing it now'
+          : `${ready.length} photos ready — editing Post 1, the rest wait in your queue`)
+        : `${ready.length} photo${ready.length > 1 ? 's' : ''} ready — each is its own post`)
+    }
     if (skipped) notes.push(`${skipped} skipped (not an image)`)
     if (overflow) notes.push(`${overflow} over the ${MAX_IMAGES}-image limit`)
     if (notes.length) notify(notes.join(' · '))
     if (!ready.length && failure) setError(failure)
-  }, [images.length, notify])
+  }, [images.length, notify, openPostPhoto])
 
   const onInputChange = (event) => {
     // Copy first: resetting input.value empties the live FileList we are handed.
@@ -373,25 +487,19 @@ export default function CreatePoster() {
   )
 
   const previews = useMemo(() => {
-    if (!activeImage) return []
     const list = TEMPLATES.map((template) => ({ template, doc: docFromTemplate(template.id) }))
     return category === 'All' ? list : list.filter((item) => item.template.category === category)
-  }, [activeImage, category])
+  }, [category])
 
-  const startEditing = (doc, designId = null, imageId = null) => {
-    if (imageId) setTouched((prev) => ({ ...prev, [imageId]: prev[imageId] || 'opened' }))
-    setEditing({ doc, designId, imageId, key: `${designId || 'new'}-${Date.now()}` })
-  }
+  const showTemplates = mode === 'template' || (mode === 'photo' && images.length > 0)
 
   const openTemplate = (template) => {
-    if (!activeImage) return
     const base = docFromTemplate(template.id)
-    startEditing(withUploadedImage({ ...base, name: `${base.name} poster` }, activeImage.src), null, activeImage.id)
-  }
-
-  const openPostPhoto = (img) => {
-    setActiveId(img.id)
-    startEditing(blankPosterDoc(img.src), null, img.id)
+    if (activeImage) {
+      startEditing(withUploadedImage({ ...base, name: `${base.name} poster` }, activeImage.src), null, activeImage.id)
+    } else {
+      startEditing(base, null, null)
+    }
   }
 
   const openBlankPage = (page) => startEditing(blankColorDoc(page))
@@ -453,9 +561,67 @@ export default function CreatePoster() {
           <Link to="/" className="cp-back"><ArrowLeft size={14} /> Back to the library</Link>
           <span className="cp-kicker">CREATE POSTER</span>
           <h1>Turn any photo into <em>a poster.</em></h1>
-          <p>Upload one photo or a whole batch in a single go — every image becomes its own post. Pick a template for each post, edit it, and save whenever you want to finish later. Blank colour pages work too.</p>
+          <p>Start with your own photo, a blank page or a ready-made template. Pick a route below, then edit, save a draft and download a print-ready poster whenever you like.</p>
         </header>
 
+        {!mode && (
+        <section className="cp-start" aria-label="Choose how to start">
+          <div className="cp-section-head">
+            <div>
+              <span className="cp-kicker">CHOOSE YOUR START</span>
+              <h2>Three ways to make a poster</h2>
+            </div>
+            <span className="cp-count">3 options</span>
+          </div>
+          <div className="cp-options" aria-label="Poster start options">
+            {START_OPTIONS.map((option) => {
+              const Icon = option.icon
+              return (
+                <Link key={option.id} to={START_ROUTES[option.id]} className="cp-option">
+                  <span className="cp-option-index">{option.index}</span>
+                  <span className="cp-option-stage" aria-hidden="true">
+                    <StartOptionPreview id={option.id} />
+                  </span>
+                  <span className="cp-option-heading">
+                    <span className="cp-option-icon"><Icon size={15} /></span>
+                    <strong>{option.title}</strong>
+                  </span>
+                  <small>{option.copy}</small>
+                  <span className="cp-option-points">
+                    {option.points.map((point) => <span key={point}>{point}</span>)}
+                  </span>
+                  <span className="cp-option-cta">{option.cta} <ArrowRight size={13} /></span>
+                </Link>
+              )
+            })}
+          </div>
+        </section>
+        )}
+
+        {mode && (
+        <nav className="cp-route-bar" aria-label="Poster start options">
+          <Link to="/poster" className="cp-route-back"><ArrowLeft size={13} /> All start options</Link>
+          <div className="cp-route-links">
+            {START_OPTIONS.map((option) => {
+              const Icon = option.icon
+              const current = mode === option.id
+              return (
+                <Link
+                  key={option.id}
+                  to={START_ROUTES[option.id]}
+                  className={`cp-route-link${current ? ' is-active' : ''}`}
+                  aria-current={current ? 'page' : undefined}
+                >
+                  <Icon size={13} /> {option.title}
+                </Link>
+              )
+            })}
+          </div>
+        </nav>
+        )}
+
+        <div className="cp-mode-content">
+        {mode === 'photo' && (
         <section
           className={`cp-uploader${images.length ? ' has-image' : ''}${dragOver ? ' is-dragging' : ''}`}
           aria-label="Upload images"
@@ -521,7 +687,10 @@ export default function CreatePoster() {
           {error && <p className="cp-error" role="alert">{error}</p>}
           {preparing && images.length < MAX_IMAGES && <p className="cp-note">Preparing your images…</p>}
         </section>
+        )}
+        {mode === 'photo' && !images.length && <p className="cp-mode-hint">Upload a photo and the template gallery appears here, ready to turn it into a poster.</p>}
 
+        {mode === 'blank' && (
         <section className="cp-blanks" aria-label="Blank colour pages">
           <div className="cp-section-head">
             <div>
@@ -547,17 +716,19 @@ export default function CreatePoster() {
           </div>
           <p className="cp-blank-note">Opens the editor with an empty page in that colour — add text, name plates, shapes and scanned elements on top.</p>
         </section>
+        )}
 
-        {images.length ? (
-          <section className="cp-templates" id="poster-templates" ref={templatesRef} aria-label="Poster templates">
-            <div className="cp-section-head">
-              <div>
-                <span className="cp-kicker">{images.length > 1 ? 'TEMPLATE FOR THIS POST' : 'OPTIONAL · START FROM A LAYOUT'}</span>
-                <h2>Choose a poster template</h2>
-              </div>
-              <span className="cp-count">{previews.length} layouts</span>
+        {showTemplates && (
+        <section className="cp-templates" id="poster-templates" ref={templatesRef} aria-label="Poster templates">
+          <div className="cp-section-head">
+            <div>
+              <span className="cp-kicker">{images.length > 1 ? 'TEMPLATE FOR THIS POST' : 'CHOOSE A TEMPLATE'}</span>
+              <h2>Choose a poster template</h2>
             </div>
+            <span className="cp-count">{previews.length} layouts</span>
+          </div>
 
+          {activeImage && (
             <div className="cp-post-target">
               <img src={activeImage.src} alt="" />
               <div>
@@ -586,28 +757,32 @@ export default function CreatePoster() {
                 </div>
               )}
             </div>
+          )}
 
-            <div className="cp-chips" role="tablist" aria-label="Template categories">
-              {categories.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={category === item.id}
-                  className={`cp-chip${category === item.id ? ' is-active' : ''}`}
-                  onClick={() => setCategory(item.id)}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-            <div className="cp-grid">
-              {previews.map(({ template, doc }) => (
-                <TemplateCard key={template.id} template={template} doc={doc} onOpen={() => openTemplate(template)} />
-              ))}
-            </div>
-          </section>
-        ) : (
+          <div className="cp-chips" role="tablist" aria-label="Template categories">
+            {categories.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                role="tab"
+                aria-selected={category === item.id}
+                className={`cp-chip${category === item.id ? ' is-active' : ''}`}
+                onClick={() => setCategory(item.id)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <div className="cp-grid">
+            {previews.map(({ template, doc }) => (
+              <TemplateCard key={template.id} template={template} doc={doc} onOpen={() => openTemplate(template)} />
+            ))}
+          </div>
+        </section>
+        )}
+        </div>
+
+        {!mode && (
           <section className="cp-how" aria-label="How it works">
             <div className="cp-step"><span>01</span><strong>Upload many photos</strong><p>Select a batch at once — portrait, event or product shots all work.</p></div>
             <div className="cp-step"><span>02</span><strong>One post per image</strong><p>Each upload is split into its own post, ready for its own template.</p></div>

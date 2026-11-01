@@ -8,7 +8,11 @@ export const uid = (prefix = 'd') =>
 
 export const cloneDoc = (doc) => JSON.parse(JSON.stringify(doc))
 
-export const aspectOf = (doc) => (ASPECTS[doc.aspect] || ASPECTS.portrait).ratio
+export const aspectOf = (doc) => {
+  const custom = Number(doc.aspect)
+  if (custom > 0 && !ASPECTS[doc.aspect]) return custom
+  return (ASPECTS[doc.aspect] || ASPECTS.portrait).ratio
+}
 
 export function applyPalette(doc, paletteId) {
   const palette = PALETTES[paletteId]

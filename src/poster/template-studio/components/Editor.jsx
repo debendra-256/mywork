@@ -513,7 +513,6 @@ export default function Editor({
   const selectMany = useCallback((ids, additive) => {
     if (!additive) setSelection(ids)
     else setSelection((prev) => [...new Set([...prev, ...ids])])
-    setActiveTool('select')
   }, [])
 
   const onSelectElement = useCallback((id, additive) => {
@@ -622,11 +621,11 @@ export default function Editor({
         e.preventDefault()
         selectAll()
       } else if (meta && e.key.toLowerCase() === 'c') {
-        if (!selectedId) return
+        if (!selectionRef.current.length) return
         e.preventDefault()
         copySelection()
       } else if (meta && e.key.toLowerCase() === 'x') {
-        if (!selectedId) return
+        if (!selectionRef.current.length) return
         e.preventDefault()
         cutSelection()
       } else if (meta && e.key.toLowerCase() === 'v') {
@@ -869,6 +868,7 @@ export default function Editor({
                   brush={brush}
                   onInk={addInk}
                   onAddTextAt={addTextAt}
+                  onDeleteElement={remove}
                 />
               </div>
             </div>

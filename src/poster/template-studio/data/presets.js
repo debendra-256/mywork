@@ -7,31 +7,57 @@ export const ASPECTS = {
 }
 
 export const FONTS = [
-  {
-    id: 'display',
-    name: 'Bodoni Display',
-    stack: "'Bodoni MT', Didot, 'Bodoni 72', 'Playfair Display', Georgia, serif",
-  },
-  {
-    id: 'serif',
-    name: 'Classic Serif',
-    stack: "Georgia, 'Times New Roman', Times, serif",
-  },
-  {
-    id: 'sans',
-    name: 'Modern Sans',
-    stack: "'Segoe UI', 'Helvetica Neue', system-ui, -apple-system, sans-serif",
-  },
-  {
-    id: 'script',
-    name: 'Script',
-    stack: "'Segoe Script', 'Brush Script MT', 'Snell Roundhand', cursive",
-  },
-  {
-    id: 'mono',
-    name: 'Mono',
-    stack: "Consolas, 'Courier New', monospace",
-  },
+  // ── Display / Serif ────────────────────────────────────────────────────────
+  { id: 'display',     name: 'Bodoni Display',        stack: "'Bodoni MT', Didot, 'Bodoni 72', 'Playfair Display', Georgia, serif" },
+  { id: 'playfair',   name: 'Playfair Display',       stack: "'Playfair Display', 'Palatino Linotype', Georgia, serif" },
+  { id: 'cormorant',  name: 'Cormorant Garamond',     stack: "'Cormorant Garamond', 'EB Garamond', Garamond, Georgia, serif" },
+  { id: 'ebgaramond', name: 'EB Garamond',            stack: "'EB Garamond', Garamond, 'Times New Roman', serif" },
+  { id: 'lora',       name: 'Lora',                   stack: "'Lora', 'Palatino Linotype', Georgia, serif" },
+  { id: 'merriweather', name: 'Merriweather',         stack: "'Merriweather', Georgia, 'Times New Roman', serif" },
+  { id: 'libre',      name: 'Libre Baskerville',      stack: "'Libre Baskerville', Baskerville, Georgia, serif" },
+  { id: 'cinzel',     name: 'Cinzel',                 stack: "'Cinzel', Trajan, 'Times New Roman', serif" },
+  { id: 'dm-serif',   name: 'DM Serif Display',       stack: "'DM Serif Display', 'Playfair Display', Georgia, serif" },
+  { id: 'spectral',   name: 'Spectral',               stack: "'Spectral', 'Palatino Linotype', Georgia, serif" },
+  { id: 'vollkorn',   name: 'Vollkorn',               stack: "'Vollkorn', Georgia, 'Times New Roman', serif" },
+  { id: 'alegreya',   name: 'Alegreya',               stack: "'Alegreya', Georgia, 'Times New Roman', serif" },
+  { id: 'cardo',      name: 'Cardo',                  stack: "'Cardo', 'Palatino Linotype', Georgia, serif" },
+  { id: 'italiana',   name: 'Italiana',               stack: "'Italiana', Didot, Georgia, serif" },
+  { id: 'pt-serif',   name: 'PT Serif',               stack: "'PT Serif', Georgia, 'Times New Roman', serif" },
+  { id: 'serif',      name: 'Classic Serif',          stack: "Georgia, 'Times New Roman', Times, serif" },
+  // ── Sans-serif ────────────────────────────────────────────────────────────
+  { id: 'sans',       name: 'Modern Sans',            stack: "'Segoe UI', 'Helvetica Neue', system-ui, -apple-system, sans-serif" },
+  { id: 'inter',      name: 'Inter',                  stack: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif" },
+  { id: 'montserrat', name: 'Montserrat',             stack: "'Montserrat', 'Segoe UI', 'Helvetica Neue', sans-serif" },
+  { id: 'raleway',    name: 'Raleway',                stack: "'Raleway', 'Segoe UI', 'Helvetica Neue', sans-serif" },
+  { id: 'poppins',    name: 'Poppins',                stack: "'Poppins', 'Segoe UI', 'Helvetica Neue', sans-serif" },
+  { id: 'lato',       name: 'Lato',                   stack: "'Lato', 'Segoe UI', 'Helvetica Neue', sans-serif" },
+  { id: 'nunito',     name: 'Nunito',                 stack: "'Nunito', 'Segoe UI', 'Helvetica Neue', sans-serif" },
+  { id: 'open-sans',  name: 'Open Sans',              stack: "'Open Sans', 'Segoe UI', 'Helvetica Neue', sans-serif" },
+  { id: 'josefin',    name: 'Josefin Sans',           stack: "'Josefin Sans', 'Segoe UI', 'Helvetica Neue', sans-serif" },
+  { id: 'source-sans', name: 'Source Sans 3',         stack: "'Source Sans 3', 'Source Sans Pro', 'Segoe UI', sans-serif" },
+  { id: 'dm-sans',    name: 'DM Sans',                stack: "'DM Sans', 'Segoe UI', system-ui, sans-serif" },
+  { id: 'syne',       name: 'Syne',                   stack: "'Syne', 'Segoe UI', system-ui, sans-serif" },
+  { id: 'space-grotesk', name: 'Space Grotesk',       stack: "'Space Grotesk', 'Segoe UI', system-ui, sans-serif" },
+  { id: 'outfit',     name: 'Outfit',                 stack: "'Outfit', 'Segoe UI', system-ui, sans-serif" },
+  { id: 'plus-jakarta', name: 'Plus Jakarta Sans',    stack: "'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif" },
+  { id: 'bricolage',  name: 'Bricolage Grotesque',    stack: "'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif" },
+  // ── Script / Handwritten ──────────────────────────────────────────────────
+  { id: 'script',     name: 'Script',                 stack: "'Segoe Script', 'Brush Script MT', 'Snell Roundhand', cursive" },
+  { id: 'dancing',    name: 'Dancing Script',         stack: "'Dancing Script', 'Segoe Script', 'Brush Script MT', cursive" },
+  { id: 'great-vibes', name: 'Great Vibes',           stack: "'Great Vibes', 'Snell Roundhand', 'Brush Script MT', cursive" },
+  { id: 'sacramento', name: 'Sacramento',             stack: "'Sacramento', 'Great Vibes', 'Brush Script MT', cursive" },
+  { id: 'satisfy',    name: 'Satisfy',                stack: "'Satisfy', 'Segoe Script', 'Brush Script MT', cursive" },
+  { id: 'pacifico',   name: 'Pacifico',               stack: "'Pacifico', 'Segoe Script', cursive" },
+  { id: 'pinyon',     name: 'Pinyon Script',          stack: "'Pinyon Script', 'Great Vibes', 'Brush Script MT', cursive" },
+  { id: 'alex-brush', name: 'Alex Brush',             stack: "'Alex Brush', 'Great Vibes', 'Brush Script MT', cursive" },
+  { id: 'petit-formal', name: 'Petit Formal Script',  stack: "'Petit Formal Script', 'Great Vibes', cursive" },
+  // ── Monospace ────────────────────────────────────────────────────────────
+  { id: 'mono',       name: 'Mono',                   stack: "Consolas, 'Courier New', monospace" },
+  { id: 'jetbrains',  name: 'JetBrains Mono',         stack: "'JetBrains Mono', Consolas, 'Courier New', monospace" },
+  { id: 'ibm-mono',   name: 'IBM Plex Mono',          stack: "'IBM Plex Mono', 'Courier New', monospace" },
+  { id: 'roboto-mono', name: 'Roboto Mono',           stack: "'Roboto Mono', Consolas, 'Courier New', monospace" },
+  { id: 'space-mono', name: 'Space Mono',             stack: "'Space Mono', Consolas, 'Courier New', monospace" },
+  { id: 'fira-code',  name: 'Fira Code',              stack: "'Fira Code', Consolas, 'Courier New', monospace" },
 ]
 
 export const fontStack = (id) => (FONTS.find((f) => f.id === id) || FONTS[1]).stack
@@ -108,3 +134,4 @@ export const backgroundCss = (doc) => {
   if (doc.bg.type === 'radial') return `radial-gradient(120% 90% at 50% 0%, ${from} 0%, ${to} 100%)`
   return `linear-gradient(${doc.bg.angle || 160}deg, ${from} 0%, ${to} 100%)`
 }
+

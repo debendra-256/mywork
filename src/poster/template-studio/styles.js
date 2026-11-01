@@ -830,8 +830,12 @@ export const css = `
 }
 /* Paint's post-release selection: marching ants stay on the page. */
 .ts-select-frame {
+  position: absolute;
   z-index: 46;
-  pointer-events: none;
+  cursor: move;
+  pointer-events: auto;
+  box-sizing: border-box;
+  background-color: rgba(111, 125, 92, 0.05);
   background-image:
     repeating-linear-gradient(90deg, rgba(28, 24, 15, 0.92) 0 6px, rgba(255, 255, 255, 0.95) 6px 12px),
     repeating-linear-gradient(90deg, rgba(28, 24, 15, 0.92) 0 6px, rgba(255, 255, 255, 0.95) 6px 12px),
@@ -841,6 +845,9 @@ export const css = `
   background-position: 0 0, 0 100%, 0 0, 100% 0;
   background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
   animation: ts-ants 0.6s linear infinite;
+}
+.ts-select-frame:hover {
+  background-color: rgba(111, 125, 92, 0.1);
 }
 .ts-select-frame::after {
   content: '';
@@ -1310,6 +1317,34 @@ export const css = `
   box-shadow: 0 0 0 8px rgba(111, 125, 92, 0.18), 0 16px 32px -18px rgba(20, 30, 20, 0.6);
 }
 .ts-stage.is-interactive .ts-el.is-selected > .ts-resize { width: 18px; height: 18px; box-shadow: 0 0 0 3px rgba(111, 125, 92, 0.25), 0 2px 6px rgba(40, 30, 10, 0.45); }
+.ts-el-remove-btn {
+  position: absolute;
+  top: -11px;
+  right: -11px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #dc2626;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  z-index: 100;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.ts-el-remove-btn:hover {
+  background: #b91c1c;
+  transform: scale(1.15);
+}
+.ts-el-remove-btn:active {
+  transform: scale(0.95);
+}
 .ts-stage.is-interactive .ts-text.is-editing {
   outline: 1.5px solid var(--ts-accent);
   outline-offset: 2px;

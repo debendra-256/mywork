@@ -256,7 +256,7 @@ export default function ToolBar({
             <CursorIcon />
           </ToolButton>
           <ToolButton
-            title="Rectangle select (M) — drag a box around the elements"
+            title="Rectangular selection (M) — drag a box around elements to select, move, copy, cut, or delete"
             active={tool === 'marquee'}
             onClick={() => onTool?.('marquee')}
           >
@@ -407,10 +407,10 @@ export default function ToolBar({
           {selecting && (
             <div className="ts-tool-options">
               <span className="ts-tool-options-title">
-                {tool === 'lasso' ? 'Free-form select' : 'Rectangle select'}
+                {tool === 'lasso' ? 'Free-form select' : 'Rectangular selection'}
               </span>
               <span className="ts-tool-option ts-tool-tip">
-                Drag on the page to draw the selection · Shift adds to it · release to pick the layers inside
+                Drag on page to draw rectangle · Move: drag inside box · Copy: Ctrl+C · Cut: Ctrl+X · Delete: Del · Paste: Ctrl+V
               </span>
             </div>
           )}

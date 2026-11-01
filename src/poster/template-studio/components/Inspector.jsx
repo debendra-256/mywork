@@ -1,10 +1,10 @@
-import React, { useState } from 'react'
+﻿import React, { useEffect, useState } from 'react'
 import { FONTS, PALETTES, ASPECTS, resolveColor } from '../data/presets.js'
 import { ORNAMENTS, ornamentMarkup } from '../data/ornaments.js'
 import { SOCIALS, socialMarkup } from '../data/socials.js'
 import { FOOTER_PRESETS } from '../data/footers.js'
 import { CONTACT_KINDS } from '../data/namecards.js'
-import { layerLabel, makeFooterItem, uid } from '../model.js'
+import { aspectOf, layerLabel, makeFooterItem, uid } from '../model.js'
 import { filterTextToScript, scriptLabel } from '../../elements.js'
 import {
   ArrowDown, ArrowUp, Copy, Layers, Photo, Plus, Sparkle, Trash, Type,
@@ -208,7 +208,32 @@ export default function Inspector({
   const stickerSlots = selected?.type === 'sticker' && Array.isArray(selected.slots) ? selected.slots : []
   const stickerAspect = selected?.type === 'sticker' && selected.aspect > 0 ? selected.aspect : 1
   const stickerHeight = selected?.type === 'sticker' ? Math.round((selected.w / stickerAspect) * 10) / 10 : 0
-  const pageHeightUnits = Math.round((100 / (ASPECTS[doc.aspect]?.ratio || 1)) * 10) / 10
+  const pageHeightUnits = Math.round((100 / (aspectOf(doc) || 1)) * 10) / 10
+  const [bgRatio, setBgRatio] = useState(null)
+  useEffect(() => {
+    if (doc.bg?.type !== 'image' || !doc.bg.src) {
+      setBgRatio(null)
+      return undefined
+    }
+    let alive = true
+    const img = new Image()
+    img.onload = () => {
+      if (alive && img.naturalWidth > 0) setBgRatio(Math.round((img.naturalWidth / img.naturalHeight) * 1000) / 1000)
+    }
+    img.onerror = () => { if (alive) setBgRatio(null) }
+    img.src = doc.bg.src
+    return () => { alive = false }
+  }, [doc.bg?.type, doc.bg?.src])
+
+  const chooseCanvasSize = (value) => {
+    const custom = Number(value) > 0 && !ASPECTS[value]
+    const patch = { aspect: custom ? Number(value) : value }
+    if (doc.bg?.type === 'image' && doc.bg.src) {
+      // Reshaping the page must not crop the background photo, so fit it whole.
+      patch.bg = { ...doc.bg, fit: custom ? 'cover' : 'contain' }
+    }
+    onPatchDoc(patch, { history: true })
+  }
 
   const patchSlot = (slotId, patch) => {
     if (!selected) return
@@ -1437,7 +1462,7 @@ export default function Inspector({
           </Section>
         )}
 
-        <Section title="Colour story">
+        {/* Colour Story hidden <Section title="Colour story">
           <div className="ts-palettes">
             {Object.entries(PALETTES).map(([id, palette]) => (
               <button
@@ -1457,7 +1482,7 @@ export default function Inspector({
               </button>
             ))}
           </div>
-        </Section>
+        </Section> */}
 
         <Section title="Background">
           <Seg
@@ -1522,7 +1547,7 @@ export default function Inspector({
               >
                 Reset crop
               </button>
-              <p className="ts-hint">Drag the canvas to reposition the background, scroll on it to zoom, or use the slider.</p>
+              <p className="ts-hint">Drag the photo left or right to choose the part that shows. Scroll on it to zoom in when you need more room to move.</p>
             </>
           ) : (
             <>
@@ -1560,9 +1585,12 @@ export default function Inspector({
             <span className="ts-label">Canvas size</span>
             <select
               className="ts-select"
-              value={doc.aspect}
-              onChange={(e) => onPatchDoc({ aspect: e.target.value }, { history: true })}
+              value={String(doc.aspect)}
+              onChange={(e) => chooseCanvasSize(e.target.value)}
             >
+              {bgRatio && (
+                <option value={String(bgRatio)}>Original photo</option>
+              )}
               {Object.entries(ASPECTS).map(([id, aspect]) => (
                 <option key={id} value={id}>{aspect.label}</option>
               ))}

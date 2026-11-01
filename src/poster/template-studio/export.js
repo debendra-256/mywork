@@ -1,4 +1,5 @@
-import { ASPECTS, fontStack, resolveColor } from './data/presets.js'
+import { fontStack, resolveColor } from './data/presets.js'
+import { aspectOf } from './model.js'
 import { ornamentSvg } from './data/ornaments.js'
 import { bannerFlourishSvg } from './data/banners.js'
 import { socialSvg, brandSocialSvg, isDarkColor } from './data/socials.js'
@@ -964,7 +965,7 @@ async function drawPhoto(ctx, doc, el, W, H) {
 const EXPORT_LONG_EDGE = 3600
 
 export async function renderToCanvas(doc, width) {
-  const ratio = (ASPECTS[doc.aspect] || ASPECTS.portrait).ratio
+  const ratio = aspectOf(doc)
   let W
   let H
   if (width) {
