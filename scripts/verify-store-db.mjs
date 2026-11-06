@@ -20,7 +20,7 @@ console.log(`Data store: ${env.DATA_STORE}`)
 
 const product = await store.upsertProduct({
   id: productId, title: 'Verify Recorder', type: 'software', description: 'Smoke test product',
-  pricePaise: 149900, currency: 'INR', watermarkText: 'Promptseen', premium: true, sortOrder: 1,
+  pricePaise: 149900, currency: 'INR', watermarkText: 'ImgMojo', premium: true, sortOrder: 1,
 })
 check('product upsert returns camelCase fields', product.title === 'Verify Recorder' && product.pricePaise === 149900 && product.premium === true, JSON.stringify(product))
 
@@ -32,7 +32,7 @@ const withFeatures = await store.getProduct(productId)
 check('getProduct includes both features in order', withFeatures.features.length === 2 && withFeatures.features[0].title === '4K screen capture')
 
 const preserved = await store.upsertProduct({ ...withFeatures, id: productId, title: 'Verify Recorder Renamed', driveFileId: undefined, fileName: undefined })
-check('product edit preserves nullable columns', preserved.title === 'Verify Recorder Renamed' && preserved.watermarkText === 'Promptseen')
+check('product edit preserves nullable columns', preserved.title === 'Verify Recorder Renamed' && preserved.watermarkText === 'ImgMojo')
 
 const listed = await store.listProducts()
 check('listProducts attaches features', (listed.find((item) => item.id === productId)?.features ?? []).length === 2)

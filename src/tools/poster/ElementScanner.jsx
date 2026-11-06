@@ -224,7 +224,7 @@ export default function ElementScanner() {
     <>
       <div className="admin-page-heading">
         <div>
-          <span className="admin-kicker">PROMPTSEEN / POSTER ELEMENTS</span>
+          <span className="admin-kicker">IMGMOJO / POSTER ELEMENTS</span>
           <h1>Element scanner</h1>
           <p>Upload an image of an element, then mark which parts can be edited later — text areas and image areas.</p>
         </div>

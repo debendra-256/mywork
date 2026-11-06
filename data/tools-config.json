@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "overrides": {
+    "qr-code": true,
+    "screen-recorder": true,
+    "shorts": false
+  },
+  "customTools": []
+}

@@ -10,6 +10,7 @@ import adminStoreHandler from './api/admin-store.js'
 import accountHandler from './api/account.js'
 import socialAuthHandler from './api/social-auth.js'
 import posterPhotoHandler from './api/poster-photo.js'
+import toolsConfigHandler from './api/tools-config.js'
 
 type ApiHandler = (request: any, response: any, env: Record<string, string>) => Promise<unknown>
 
@@ -42,6 +43,7 @@ function localSocialTrendsApi() {
         await handler(request, apiResponse, serverEnv)
       }
       server.middlewares.use('/api/admin-store', jsonApi(adminStoreHandler))
+      server.middlewares.use('/api/tools-config', jsonApi(toolsConfigHandler))
       server.middlewares.use('/api/account', jsonApi(accountHandler))
       server.middlewares.use('/api/social-auth', jsonApi(socialAuthHandler))
       server.middlewares.use('/api/poster-photo', posterPhotoHandler)
@@ -152,4 +154,13 @@ function localSocialTrendsApi() {
 export default defineConfig({
   plugins: [react(), tailwindcss(), localSocialTrendsApi()],
   server: { port: 5174, strictPort: true },
+  build: {
+    rollupOptions: {
+      output: {
+        // Framework code changes rarely; keeping it in its own chunk lets repeat
+        // visits reuse it while the app chunk is replaced on deploy.
+        manualChunks: { 'react-vendor': ['react', 'react-dom', 'react-router-dom'] },
+      },
+    },
+  },
 })

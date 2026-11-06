@@ -14,7 +14,7 @@ const communitySettings: { whatsappPhone: string; instagramUsername: string; fac
 
 /** Central, typed configuration shared by app features and adapters. Never put secrets here. */
 export const appConfig = Object.freeze({
-  appName: env.VITE_SITE_NAME?.trim() || 'Promptseen',
+  appName: env.VITE_SITE_NAME?.trim() || 'ImgMojo',
   adminDisplayName: env.VITE_ADMIN_DISPLAY_NAME?.trim() || 'Creator',
   siteUrl: normalizeBaseUrl(env.VITE_SITE_URL),
   contentProvider: env.VITE_CONTENT_PROVIDER === 'blogger' ? 'blogger' : env.VITE_CONTENT_PROVIDER === 'wordpress' ? 'wordpress' : 'demo',

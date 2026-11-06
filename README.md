@@ -1,4 +1,4 @@
-# Promptseen frontend starter
+# ImgMojo frontend starter
 
 A responsive React, Vite, TypeScript, Tailwind CSS, and React Router frontend. Blogger is the publishing backend; the content model and adapter boundary are designed so a future Expo client can use the same Blogger API with its own native OAuth flow.
 

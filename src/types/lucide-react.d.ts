@@ -24,6 +24,7 @@ declare module 'lucide-react' {
   export const Images: LucideIcon
   export const Instagram: LucideIcon
   export const KeyRound: LucideIcon
+  export const Layers: LucideIcon
   export const LayoutDashboard: LucideIcon
   export const Lock: LucideIcon
   export const LockOpen: LucideIcon
@@ -37,6 +38,7 @@ declare module 'lucide-react' {
   export const Play: LucideIcon
   export const Plus: LucideIcon
   export const QrCode: LucideIcon
+  export const ScanLine: LucideIcon
   export const Search: LucideIcon
   export const Send: LucideIcon
   export const Share2: LucideIcon

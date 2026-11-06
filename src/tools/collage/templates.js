@@ -352,8 +352,9 @@ export function containFit(sw, sh, dw, dh) {
 
 export const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-// Text layers. Every family here is loaded by index.html (Google Fonts) or is a
-// system stack, so the canvas paints exactly what the picker offers.
+// Text layers. Every family here is loaded on demand by the editor font loader
+// (src/tools/shared/editorFonts.ts) or is a system stack, so the canvas paints
+// exactly what the picker offers.
 export const TEXT_FONTS = [
   // ── Sans serif ────────────────────────────────────────────────────────────
   { id: 'sans', group: 'Sans serif', label: 'Roboto', css: '"Roboto", "Helvetica Neue", Arial, sans-serif' },

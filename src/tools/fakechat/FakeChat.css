@@ -1,0 +1,100 @@
+.fakechat-tool{max-width:1320px;margin:0 auto;padding:22px clamp(16px,4vw,44px) 80px;color:#1c2025}
+.fakechat-layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start}
+.fakechat-controls{display:grid;gap:16px;min-width:0}
+.fakechat-block{background:#fff;border:1px solid #e7e9ec;border-radius:16px;padding:18px;box-shadow:0 10px 30px #15192208}
+.fakechat-block-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:14px}
+.fakechat-block-head h2{font-size:14px;margin:0;letter-spacing:-.01em}
+.fakechat-block-head span{font-size:11px;color:#8a93a0;font-weight:600}
+.fakechat-segmented{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px;background:#f3f5f7;border-radius:11px;padding:4px}
+.fakechat-segmented button{display:flex;align-items:center;justify-content:center;gap:7px;border:0;background:transparent;border-radius:8px;padding:9px 10px;font-size:12px;font-weight:700;color:#68717d;cursor:pointer;transition:background .15s,color .15s,box-shadow .15s}
+.fakechat-segmented button:hover{color:#2a3440}
+.fakechat-segmented button.is-active{background:#fff;color:#0b7a48;box-shadow:0 2px 8px #15192214}
+.fakechat-style-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.fakechat-style-dot.whatsapp{background:#25d366}
+.fakechat-style-dot.messenger{background:#0084ff}
+.fakechat-inline-row{display:flex;gap:14px;align-items:flex-end;justify-content:space-between;margin-top:14px;flex-wrap:wrap}
+.fakechat-switch{display:flex;align-items:center;gap:8px;border:0;background:none;padding:0;font-size:12px;font-weight:700;color:#52606d;cursor:pointer}
+.fakechat-switch-track{width:40px;height:22px;border-radius:999px;background:#dfe4e8;position:relative;transition:background .18s;flex-shrink:0}
+.fakechat-switch-track span{position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .18s;box-shadow:0 1px 3px #0003}
+.fakechat-switch.is-on .fakechat-switch-track{background:#0a9f62}
+.fakechat-switch.is-on .fakechat-switch-track span{transform:translateX(18px)}
+.fakechat-field{display:grid;gap:6px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#7d8792;position:relative}
+.fakechat-field input,.fakechat-field textarea,.fakechat-field select{width:100%;border:1px solid #e3e7ea;border-radius:9px;padding:9px 11px;font:inherit;font-size:12.5px;font-weight:500;letter-spacing:0;text-transform:none;color:#1c2025;background:#fff;outline:none;resize:vertical;min-width:0}
+.fakechat-field input:focus,.fakechat-field textarea:focus,.fakechat-field select:focus{border-color:#8fd3b0;box-shadow:0 0 0 3px #0a9f6214}
+.fakechat-field select:disabled{color:#a5adb6;background:#f7f8f9}
+.fakechat-field-inline{min-width:130px;max-width:180px}
+.fakechat-field-time{width:100px;flex-shrink:0}
+.fakechat-two-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.fakechat-three-fields{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.fakechat-avatar-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.fakechat-avatar-preview{width:52px;height:52px;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:#e9f6ef;color:#0a7a4a;font-weight:800;font-size:18px;flex-shrink:0;border:1px solid #d6ece0}
+.fakechat-avatar-preview img{width:100%;height:100%;object-fit:cover}
+.fakechat-upload{display:inline-flex;align-items:center;gap:6px;border:1px solid #d9e2e6;background:#fff;border-radius:8px;padding:8px 11px;font-size:11.5px;font-weight:700;color:#46515c;cursor:pointer;white-space:nowrap;position:relative}
+.fakechat-upload:hover{border-color:#9fd9b9;color:#0a7a48;background:#f5fbf8}
+.fakechat-upload input{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.fakechat-upload-small{padding:7px 10px;font-size:11px}
+.fakechat-link-button{border:0;background:none;color:#c0392b;font-size:11.5px;font-weight:700;cursor:pointer;padding:4px}
+.fakechat-link-button:hover{text-decoration:underline}
+.fakechat-message-list{display:grid;gap:8px;max-height:430px;overflow-y:auto;padding:2px}
+.fakechat-message-list::-webkit-scrollbar{width:6px}
+.fakechat-message-list::-webkit-scrollbar-thumb{background:#d9e0e5;border-radius:3px}
+.fakechat-message{border:1px solid #e7eaee;border-radius:12px;overflow:hidden;background:#fbfcfd}
+.fakechat-message.me{background:#f7fbf9}
+.fakechat-message.is-open{border-color:#b8dfc9;background:#fff;box-shadow:0 0 0 3px #0a9f620f}
+.fakechat-message-row{display:flex;align-items:center;gap:10px;width:100%;border:0;background:transparent;padding:10px 12px;text-align:left;cursor:pointer}
+.fakechat-message-index{width:20px;height:20px;border-radius:6px;background:#eef1f4;color:#7b8590;display:grid;place-items:center;font-size:10px;font-weight:800;flex-shrink:0}
+.fakechat-message.me .fakechat-message-index{background:#e1f3e9;color:#0a7a48}
+.fakechat-message-copy{display:grid;gap:3px;min-width:0;flex:1}
+.fakechat-message-text{font-size:12px;font-weight:600;color:#2a3440;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:4px}
+.fakechat-message-meta{font-size:10px;color:#8a93a0;font-weight:600}
+.fakechat-message-editor{display:grid;gap:10px;padding:12px;border-top:1px solid #edf0f2;background:#fff}
+.fakechat-message-tools{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.fakechat-message-actions{display:flex;gap:5px}
+.fakechat-icon-button{width:30px;height:30px;border:1px solid #e2e6ea;background:#fff;border-radius:8px;display:grid;place-items:center;color:#5b6672;cursor:pointer}
+.fakechat-icon-button:hover:not(:disabled){border-color:#b9c4cc;color:#222}
+.fakechat-icon-button:disabled{opacity:.35;cursor:not-allowed}
+.fakechat-icon-button.danger{color:#c0392b}
+.fakechat-attach{display:flex;align-items:center;gap:8px}
+.fakechat-attach img{width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid #e3e7ea}
+.fakechat-attach-draft{margin-top:2px}
+.fakechat-composer{margin-top:12px;border-top:1px solid #eef1f3;padding-top:12px;display:grid;gap:10px}
+.fakechat-composer-row{display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap}
+.fakechat-segmented-small{width:122px;flex-shrink:0;padding:3px}
+.fakechat-segmented-small button{padding:6px 8px;font-size:11px}
+.fakechat-add{margin-left:auto;display:inline-flex;align-items:center;gap:6px;border:0;background:#0a9f62;color:#fff;border-radius:9px;padding:10px 14px;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 6px 16px #0a9f6226}
+.fakechat-add:hover:not(:disabled){background:#088c56}
+.fakechat-add:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+.fakechat-empty{margin:0;padding:10px;color:#8a93a0;font-size:12px}
+.fakechat-error{margin:0;color:#c0392b;font-size:12px;font-weight:600}
+.fakechat-preview-card{position:sticky;top:78px;background:#fff;border:1px solid #e7e9ec;border-radius:18px;padding:16px;box-shadow:0 14px 45px #15192212}
+.fakechat-preview-head{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#7d8792;margin-bottom:12px}
+.fakechat-preview-head span:last-child{color:#0a7a48;letter-spacing:0;text-transform:none;font-size:11px}
+.fakechat-screen{background:#101820;border-radius:26px;padding:9px;box-shadow:inset 0 0 0 1px #ffffff14;max-height:min(560px,calc(100vh - 232px));overflow-y:auto}
+.fakechat-screen::-webkit-scrollbar{width:6px}
+.fakechat-screen::-webkit-scrollbar-thumb{background:#3a4550;border-radius:3px}
+.fakechat-canvas{display:block;width:100%;height:auto;border-radius:19px;background:#fff}
+.fakechat-export{display:grid;gap:10px;margin-top:14px}
+.fakechat-export-actions{display:flex;gap:8px}
+.fakechat-download{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;border:0;border-radius:10px;background:#0a9f62;color:#fff;padding:11px 14px;font-size:12px;font-weight:800;cursor:pointer}
+.fakechat-download:hover:not(:disabled){background:#088c56}
+.fakechat-download:disabled{opacity:.5;cursor:not-allowed}
+.fakechat-reset{display:inline-flex;align-items:center;gap:6px;border:1px solid #e0e5e9;background:#fff;border-radius:10px;padding:11px 12px;font-size:11.5px;font-weight:700;color:#5b6672;cursor:pointer}
+.fakechat-reset:hover{border-color:#c6cfd6;color:#222}
+.fakechat-note{margin:10px 0 0;font-size:10.5px;line-height:1.5;color:#8a93a0}
+.fakechat-disclaimer{margin:0;font-size:11px;color:#8a93a0;line-height:1.5;text-align:center}
+@media(max-width:1040px){.fakechat-layout{grid-template-columns:1fr}.fakechat-preview-card{position:static;max-width:340px;margin:0 auto;width:100%}}
+@media(max-width:560px){.fakechat-two-fields,.fakechat-three-fields{grid-template-columns:1fr}.fakechat-composer-row{align-items:stretch}.fakechat-add{width:100%;justify-content:center;margin-left:0}.fakechat-field-time{flex:1}.fakechat-field-inline{max-width:none;flex:1}.fakechat-inline-row{align-items:stretch}}
+.fakechat-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.fakechat-emoji-toggle{display:inline-flex;align-items:center;gap:6px;flex-shrink:0;border:1px solid #d9e2e6;background:#fff;border-radius:8px;padding:8px 11px;font-size:11.5px;font-weight:700;color:#46515c;cursor:pointer;white-space:nowrap}
+.fakechat-emoji-toggle:hover,.fakechat-emoji-toggle.is-active{border-color:#9fd9b9;color:#0a7a48;background:#f5fbf8}
+.fakechat-icon-button.is-active{border-color:#9fd9b9;color:#0a7a48;background:#f5fbf8}
+.fakechat-emoji{border:1px solid #e7eaee;border-radius:12px;background:#fff;box-shadow:0 10px 26px #15192210;overflow:hidden;min-width:0}
+.fakechat-emoji-tabs{display:flex;gap:2px;padding:6px;background:#fafbfc;border-bottom:1px solid #eef1f3;overflow-x:auto}
+.fakechat-emoji-tabs button{flex:0 0 auto;width:30px;height:28px;display:grid;place-items:center;border:0;border-radius:7px;background:transparent;font-size:15px;line-height:1;cursor:pointer}
+.fakechat-emoji-tabs button:hover{background:#eef1f4}
+.fakechat-emoji-tabs button.is-active{background:#e1f3e9;box-shadow:inset 0 0 0 1px #c8e8d8}
+.fakechat-emoji-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(32px,1fr));gap:2px;padding:8px;max-height:184px;overflow-y:auto}
+.fakechat-emoji-grid button{height:32px;border:0;border-radius:7px;background:transparent;font-size:20px;line-height:1;cursor:pointer;display:grid;place-items:center;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+.fakechat-emoji-grid button:hover{background:#f0f3f6}
+.fakechat-emoji-grid::-webkit-scrollbar{width:6px}
+.fakechat-emoji-grid::-webkit-scrollbar-thumb{background:#d9e0e5;border-radius:3px}

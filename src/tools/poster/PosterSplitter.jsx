@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, ArrowUpRight, Check, Image as ImageIcon, Loader2, Layers, ShieldCheck, X } from 'lucide-react'
-import { POSTER_LABEL, posterEditUrl, readPosterSource, splitPostIntoPosterEdits } from '../data/blogger-poster-split'
-import { hasBloggerSession } from '../data/blogger-auth'
+import { POSTER_LABEL, posterEditUrl, readPosterSource, splitPostIntoPosterEdits } from '../../data/blogger-poster-split'
+import { hasBloggerSession } from '../../data/blogger-auth'
 import './PosterSplitter.css'
 
 const SOURCE_LINK = 'https://www.blogger.com/blog/post/edit/1194691713972639537/2401058807252053039'
@@ -64,7 +64,7 @@ export default function PosterSplitter() {
     <>
       <div className="admin-page-heading">
         <div>
-          <span className="admin-kicker">PROMPTSEEN / CREATIVE POSTER</span>
+          <span className="admin-kicker">IMGMOJO / CREATIVE POSTER</span>
           <h1>Split a post into poster edits</h1>
           <p>One Blogger post holding many photos becomes one post per photo. Each post carries only the image and a <strong>Create your poster</strong> button that opens the poster editor with that photo — no titles, no instructions, no prompt text.</p>
         </div>

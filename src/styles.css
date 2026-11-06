@@ -286,3 +286,38 @@
 @media(max-width:650px){.home-showcase{gap:13px;margin:17px 0}.showcase-block{padding:15px;border-radius:14px}.showcase-head{align-items:flex-start;flex-direction:column;gap:10px;margin-bottom:13px}.showcase-title h2{font-size:24px}.showcase-title p{font-size:10px}.showcase-actions{justify-content:flex-start}.showcase-grid{gap:9px}.showcase-card{border-radius:10px}.showcase-card-body{padding:10px 10px 11px}.showcase-card-body h3{font-size:10px}.showcase-card-body p{font-size:8px}.showcase-card-meta{font-size:7px}.showcase-card-tag{top:7px;left:7px;padding:4px 6px;font-size:7px}.showcase-poster{border-radius:10px}.showcase-poster-hashtag{top:7px;left:7px;padding:4px 6px;font-size:7px}.showcase-poster-empty{flex-wrap:wrap;padding:13px}.showcase-poster-empty p{font-size:8px}}
 @media(hover:none){.showcase-poster-overlay{opacity:1;transform:none}}
 @media(max-width:390px){.showcase-grid{grid-template-columns:1fr}.showcase-card-image{aspect-ratio:1.3}.showcase-poster{aspect-ratio:1.2}}
+.tool-loading{min-height:calc(100vh - 74px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#87909a;font-size:12px}.tool-loading-dot{width:26px;height:26px;border-radius:50%;border:2px solid #dcefe3;border-top-color:#0a9f62;animation:tool-loading-spin .7s linear infinite}@keyframes tool-loading-spin{to{transform:rotate(360deg)}}.tool-loading p{margin:0}
+
+/* Admin → Tools */
+.tools-manager-row{min-height:52px;display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #f0f2f0}
+.tools-manager-icon{flex:0 0 auto;width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--brand-dark)}
+.tools-manager-copy{display:grid;gap:2px;min-width:0;flex:1}
+.tools-manager-copy strong{font-size:11px;color:#2c3630}
+.tools-manager-copy small{font-size:9px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tools-manager-row .admin-text-link{margin-left:auto}
+.tools-manager-row .admin-text-link+.ai-model-toggle{margin-left:0}
+.tools-manager-row>.ai-model-toggle,.tools-manager-row>.menu-remove-button{margin-left:auto}
+.tools-manager-row .menu-remove-button+.ai-model-toggle{margin-left:8px}
+.tools-manager-add{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.4fr) minmax(130px,.7fr) auto;gap:10px;align-items:end}
+.tools-manager-custom{margin-top:14px}
+.tools-manager-save{display:flex;align-items:center;gap:12px;margin:14px 0 0;flex-wrap:wrap}
+.tools-manager-save span{color:var(--muted);font-size:9px}
+@media(max-width:760px){.tools-manager-add{grid-template-columns:1fr}.tools-manager-save .admin-primary{width:100%}}
+
+.qr-frame-field{display:grid;gap:8px}
+.qr-frame-field>.qr-field-label{padding:0}
+.qr-frame-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;max-height:252px;overflow-y:auto;padding:2px}
+.qr-frame-grid::-webkit-scrollbar{width:6px}
+.qr-frame-grid::-webkit-scrollbar-thumb{background:#d5e2d9;border-radius:3px}
+.qr-frame-option{display:grid;justify-items:center;align-content:center;gap:5px;min-height:76px;padding:6px 4px 7px;border:1px solid #e1e9e3;border-radius:10px;background:#fbfdfb;cursor:pointer;transition:border-color .15s,box-shadow .15s,background .15s}
+.qr-frame-option canvas{display:block;width:auto;height:auto;max-width:100%;max-height:46px}
+.qr-frame-option span{color:#67766c;font-size:9px;font-weight:700;letter-spacing:.02em;line-height:1;white-space:nowrap}
+.qr-frame-option:hover{border-color:#bcd8c5;background:#fff}
+.qr-frame-option.is-active{border-color:#218c48;background:#f2faf5;box-shadow:0 0 0 2px #218c481f}
+.qr-frame-option.is-active span{color:#177a42}
+.qr-framed-canvas{display:block;width:auto;height:auto;max-width:100%;max-height:420px}
+@media(max-width:760px){.qr-frame-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* ImgMojo logo mark */
+.brand-symbol.brand-logo{display:block;object-fit:cover;background:none;box-shadow:0 4px 10px #7d43dc35}
+.auth-brand .brand-symbol.brand-logo{background:none;box-shadow:0 4px 14px #00000038}
