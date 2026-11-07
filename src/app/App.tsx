@@ -37,7 +37,7 @@ const TOP_MENU_SECTIONS: { id: string; label: string; items: { toolId?: string; 
   { id: 'image', label: 'Image', items: [{ toolId: 'collage' }, { toolId: 'poster' }, { toolId: 'remove-object' }] },
   { id: 'write', label: 'Write', items: [{ toolId: 'fakechat' }, { toolId: 'emoji-text' }, { toolId: 'mindcloud' }] },
   { id: 'video', label: 'Video', items: [{ toolId: 'screen-recorder' }, { toolId: 'shorts' }] },
-  { id: 'file', label: 'File', items: [{ toolId: 'qr-code' }, { toolId: 'instagram-downloader' }, { toolId: 'video-downloader' }] },
+  { id: 'file', label: 'File', items: [{ toolId: 'qr-code' }, { toolId: 'video-downloader' }] },
 ]
 
 /** Category dropdowns in the top bar, styled after classic AI tool menus. */

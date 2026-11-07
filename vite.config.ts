@@ -3,7 +3,6 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { getSocialTrends } from './api/social-trends.js'
 import { handleStoreRequest } from './api/store.js'
-import instagramHandler from './api/instagram.js'
 import generatePromptHandler from './api/generate-prompt.js'
 import aiModelSettingsHandler from './api/ai-model-settings.js'
 import adminAuthHandler from './api/admin-auth.js'
@@ -131,29 +130,6 @@ function localSocialTrendsApi() {
           json(value: unknown) { response.setHeader('Content-Type', 'application/json; charset=utf-8'); response.end(JSON.stringify(value)); return this },
         })
         await handleStoreRequest(request, apiResponse, serverEnv, 'products')
-      })
-      server.middlewares.use('/api/instagram', async (request, response) => {
-        if ((request as unknown as { method?: string }).method !== 'GET') {
-          response.statusCode = 405
-          response.setHeader('Allow', 'GET')
-          response.end(JSON.stringify({ error: 'Method not allowed.' }))
-          return
-        }
-        try {
-          const rawQuery = (request as unknown as { url?: string }).url ?? ''
-          const grab = (key: string) => {
-            const match = new RegExp(`[?&]${key}=([^&]*)`).exec(rawQuery)
-            return match ? decodeURIComponent(match[1].replace(/\+/g, ' ')) : ''
-          }
-          const apiResponse = Object.assign(response, {
-            status(code: number) { response.statusCode = code; return this },
-            json(value: unknown) { response.setHeader('Content-Type', 'application/json; charset=utf-8'); response.end(JSON.stringify(value)); return this },
-          })
-          await instagramHandler({ method: 'GET', query: { url: grab('url'), thumb: grab('thumb'), u: grab('u') } }, apiResponse, serverEnv)
-        } catch {
-          response.statusCode = 500
-          response.end(JSON.stringify({ error: 'Could not resolve this Instagram link.' }))
-        }
       })
       server.middlewares.use('/api/social-trends', async (request, response) => {
         if ((request as unknown as { method?: string }).method !== 'GET') {

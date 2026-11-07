@@ -43,7 +43,6 @@ export const toolsConfig: readonly ToolDefinition[] = [
   { id: 'fakechat', title: 'FakeChat', placement: 'library', path: '/fakechat', href: '/fakechat', icon: 'bot', enabled: true, load: () => import('../tools/fakechat/FakeChat') },
   { id: 'emoji-text', title: 'Emoji Text Generator', placement: 'library', path: '/emoji-text', href: '/emoji-text', icon: 'smile', enabled: true, load: () => import('../tools/emoji-text/EmojiTextGenerator') },
   { id: 'remove-object', title: 'Remove Object from Image', placement: 'library', path: '/remove-object', href: '/remove-object', icon: 'eraser', enabled: true, load: () => import('../tools/remove-object/RemoveObject') },
-  { id: 'instagram-downloader', title: 'Instagram Downloader', placement: 'library', path: '/instagram-downloader', href: '/instagram-downloader', icon: 'instagram', enabled: true, load: () => import('../tools/instagram-downloader/InstagramDownloader') },
   { id: 'mindcloud', title: 'Mind Cloud', placement: 'feature', path: '/mindcloud', href: '/mindcloud', icon: 'network', enabled: true, load: () => import('../tools/mindcloud/MindCloud') },
   { id: 'video-downloader', title: 'Video Downloader', placement: 'library', icon: 'download', enabled: false },
   { id: 'element-scanner', title: 'Element Scanner', placement: 'admin', path: '/admin/elements', icon: 'scan', enabled: true, load: () => import('../tools/poster/ElementScanner') },
