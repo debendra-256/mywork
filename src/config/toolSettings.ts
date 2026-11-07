@@ -24,10 +24,11 @@ export interface EffectiveTools {
   admin: ToolDefinition[]
   pages: ToolDefinition[]
   libraryMenu: ToolDefinition[]
+  feature: ToolDefinition[]
 }
 
 const storageKey = 'promptseen:tools-config'
-const toolIcons: readonly ToolIcon[] = ['images', 'youtube', 'image-plus', 'video', 'qr-code', 'download', 'scan', 'layers', 'message']
+const toolIcons: readonly ToolIcon[] = ['images', 'youtube', 'image-plus', 'video', 'qr-code', 'download', 'scan', 'layers', 'message', 'network', 'eraser', 'sparkles', 'wand', 'bot', 'monitor-play', 'zap', 'instagram', 'smile']
 const idPattern = /^[a-z0-9][a-z0-9-]{1,47}$/
 const emptySettings: ToolSettings = { version: 1, overrides: {}, customTools: [] }
 
@@ -138,8 +139,9 @@ export function mergeToolSettings(current: ToolSettings): EffectiveTools {
     enabled,
     utility: enabled.filter((tool) => tool.placement === 'utility'),
     admin: enabled.filter((tool) => tool.placement === 'admin'),
-    pages: enabled.filter((tool) => tool.placement === 'library' && Boolean(tool.path) && typeof tool.load === 'function'),
+    pages: enabled.filter((tool) => (tool.placement === 'library' || tool.placement === 'feature') && Boolean(tool.path) && typeof tool.load === 'function'),
     libraryMenu: all.filter((tool) => tool.placement === 'library' && tool.enabled !== false),
+    feature: enabled.filter((tool) => tool.placement === 'feature'),
   }
 }
 

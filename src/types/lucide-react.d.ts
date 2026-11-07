@@ -7,6 +7,7 @@ declare module 'lucide-react' {
   export const ArrowUpRight: LucideIcon
   export const Bookmark: LucideIcon
   export const BadgeCheck: LucideIcon
+  export const Bot: LucideIcon
   export const Camera: LucideIcon
   export const Check: LucideIcon
   export const ChevronDown: LucideIcon
@@ -15,6 +16,7 @@ declare module 'lucide-react' {
   export const Copy: LucideIcon
   export const DatabaseBackup: LucideIcon
   export const Download: LucideIcon
+  export const Eraser: LucideIcon
   export const Facebook: LucideIcon
   export const Flame: LucideIcon
   export const Headphones: LucideIcon
@@ -29,27 +31,37 @@ declare module 'lucide-react' {
   export const Lock: LucideIcon
   export const LockOpen: LucideIcon
   export const LogOut: LucideIcon
+  export const Maximize2: LucideIcon
   export const Menu: LucideIcon
   export const MessageCircle: LucideIcon
   export const Mic: LucideIcon
   export const MicOff: LucideIcon
   export const Monitor: LucideIcon
+  export const MonitorPlay: LucideIcon
+  export const Network: LucideIcon
   export const Pause: LucideIcon
   export const Play: LucideIcon
   export const Plus: LucideIcon
   export const QrCode: LucideIcon
+  export const Redo2: LucideIcon
   export const ScanLine: LucideIcon
   export const Search: LucideIcon
   export const Send: LucideIcon
   export const Share2: LucideIcon
   export const ShieldCheck: LucideIcon
   export const SlidersHorizontal: LucideIcon
+  export const Smile: LucideIcon
   export const Square: LucideIcon
   export const Sparkles: LucideIcon
+  export const Star: LucideIcon
   export const Store: LucideIcon
   export const Trash2: LucideIcon
+  export const Undo2: LucideIcon
   export const Video: LucideIcon
+  export const Wand2: LucideIcon
   export const X: LucideIcon
   export const Youtube: LucideIcon
   export const Zap: LucideIcon
+  export const ZoomIn: LucideIcon
+  export const ZoomOut: LucideIcon
 }

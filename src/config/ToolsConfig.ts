@@ -1,9 +1,9 @@
 import type { ComponentType } from 'react'
 
-export type ToolIcon = 'images' | 'youtube' | 'image-plus' | 'video' | 'qr-code' | 'download' | 'scan' | 'layers' | 'message'
+export type ToolIcon = 'images' | 'youtube' | 'image-plus' | 'video' | 'qr-code' | 'download' | 'scan' | 'layers' | 'message' | 'network' | 'eraser' | 'sparkles' | 'wand' | 'bot' | 'monitor-play' | 'zap' | 'instagram' | 'smile'
 
-/** Where a tool is surfaced: its own page, an inline/overlay panel on the home page, or Creator Studio. */
-export type ToolPlacement = 'library' | 'utility' | 'admin'
+/** Where a tool is surfaced: its own page, an inline/overlay panel on the home page, Creator Studio, or its own sidebar menu. */
+export type ToolPlacement = 'library' | 'utility' | 'admin' | 'feature'
 
 export interface ToolDefinition {
   id: string
@@ -35,12 +35,16 @@ export interface ToolDefinition {
  * from the app without touching any other file.
  */
 export const toolsConfig: readonly ToolDefinition[] = [
-  { id: 'screen-recorder', title: 'Screen Recorder', placement: 'utility', icon: 'video', overlay: true, enabled: true, load: () => import('../tools/screen-recorder/ScreenRecorder') },
+  { id: 'screen-recorder', title: 'Screen Recorder', placement: 'utility', icon: 'monitor-play', overlay: true, enabled: true, load: () => import('../tools/screen-recorder/ScreenRecorder') },
   { id: 'qr-code', title: 'QR Code Generator', placement: 'utility', icon: 'qr-code', enabled: true, load: () => import('../tools/qr-code/QRCodeGenerator') },
-  { id: 'collage', title: 'Photo and Video Editor', placement: 'library', path: '/collage', href: '/collage', icon: 'images', editorFonts: true, enabled: true, load: () => import('../tools/collage/CollageStudio') },
-  { id: 'shorts', title: 'YouTube to Shorts Maker', placement: 'library', path: '/shorts', href: '/shorts', icon: 'youtube', enabled: true, load: () => import('../tools/shorts/ShortsCreator') },
-  { id: 'poster', title: 'Create Poster', placement: 'library', path: '/poster/*', href: '/poster', icon: 'image-plus', editorFonts: true, enabled: true, load: () => import('../tools/poster/CreatePoster') },
-  { id: 'fakechat', title: 'FakeChat', placement: 'library', path: '/fakechat', href: '/fakechat', icon: 'message', enabled: true, load: () => import('../tools/fakechat/FakeChat') },
+  { id: 'collage', title: 'Photo and Video Editor', placement: 'library', path: '/collage', href: '/collage', icon: 'wand', editorFonts: true, enabled: true, load: () => import('../tools/collage/CollageStudio') },
+  { id: 'shorts', title: 'YouTube to Shorts Maker', placement: 'library', path: '/shorts', href: '/shorts', icon: 'zap', enabled: true, load: () => import('../tools/shorts/ShortsCreator') },
+  { id: 'poster', title: 'Create Poster', placement: 'library', path: '/poster/*', href: '/poster', icon: 'sparkles', editorFonts: true, enabled: true, load: () => import('../tools/poster/CreatePoster') },
+  { id: 'fakechat', title: 'FakeChat', placement: 'library', path: '/fakechat', href: '/fakechat', icon: 'bot', enabled: true, load: () => import('../tools/fakechat/FakeChat') },
+  { id: 'emoji-text', title: 'Emoji Text Generator', placement: 'library', path: '/emoji-text', href: '/emoji-text', icon: 'smile', enabled: true, load: () => import('../tools/emoji-text/EmojiTextGenerator') },
+  { id: 'remove-object', title: 'Remove Object from Image', placement: 'library', path: '/remove-object', href: '/remove-object', icon: 'eraser', enabled: true, load: () => import('../tools/remove-object/RemoveObject') },
+  { id: 'instagram-downloader', title: 'Instagram Downloader', placement: 'library', path: '/instagram-downloader', href: '/instagram-downloader', icon: 'instagram', enabled: true, load: () => import('../tools/instagram-downloader/InstagramDownloader') },
+  { id: 'mindcloud', title: 'Mind Cloud', placement: 'feature', path: '/mindcloud', href: '/mindcloud', icon: 'network', enabled: true, load: () => import('../tools/mindcloud/MindCloud') },
   { id: 'video-downloader', title: 'Video Downloader', placement: 'library', icon: 'download', enabled: false },
   { id: 'element-scanner', title: 'Element Scanner', placement: 'admin', path: '/admin/elements', icon: 'scan', enabled: true, load: () => import('../tools/poster/ElementScanner') },
   { id: 'poster-splitter', title: 'Poster Split', placement: 'admin', path: '/admin/poster-split', icon: 'layers', enabled: true, load: () => import('../tools/poster/PosterSplitter') },

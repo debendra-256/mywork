@@ -12,7 +12,7 @@ async function hasBloggerAuthorization(request) {
   return String(tokenInfo.scope ?? '').split(' ').includes('https://www.googleapis.com/auth/blogger')
 }
 
-const toolIcons = ['images', 'youtube', 'image-plus', 'video', 'qr-code', 'download', 'scan', 'layers', 'message']
+const toolIcons = ['images', 'youtube', 'image-plus', 'video', 'qr-code', 'download', 'scan', 'layers', 'message', 'network', 'eraser', 'sparkles', 'wand', 'bot', 'monitor-play', 'zap', 'instagram']
 const idPattern = /^[a-z0-9][a-z0-9-]{1,47}$/
 
 function configFile(env) {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ChevronDown, Clock3, Copy, DatabaseBackup, Download, Facebook, Flame, Headphones, Heart, Home, ImagePlus, Images, Instagram, KeyRound, Layers, LayoutDashboard, Lock, LockOpen, LogOut, Menu, MessageCircle, Plus, QrCode, ScanLine, Search, Send, Share2, ShieldCheck, SlidersHorizontal, Sparkles, Store, Trash2, Video, X, Youtube, Zap } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Bot, Check, ChevronDown, Clock3, Copy, DatabaseBackup, Download, Eraser, Facebook, Flame, Headphones, Heart, Home, ImagePlus, Images, Instagram, KeyRound, Layers, LayoutDashboard, Lock, LockOpen, LogOut, Menu, MessageCircle, MonitorPlay, Network, Plus, QrCode, ScanLine, Search, Send, Share2, ShieldCheck, SlidersHorizontal, Smile, Sparkles, Store, Trash2, Video, Wand2, X, Youtube, Zap } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { appConfig } from '../config/app.config'
 import { toolsConfig, type ToolDefinition, type ToolIcon } from '../config/ToolsConfig'
@@ -32,6 +32,61 @@ function openNewBloggerPost() {
   window.open(`https://www.blogger.com/blog/posts/${encodeURIComponent(blogId)}`, '_blank', 'noopener,noreferrer')
 }
 
+const TOP_MENU_SECTIONS: { id: string; label: string; items: { toolId?: string; label?: string; href?: string }[] }[] = [
+  { id: 'pdf', label: 'PDF', items: [{ label: 'Digital PDFs', href: '/store?type=pdf' }] },
+  { id: 'image', label: 'Image', items: [{ toolId: 'collage' }, { toolId: 'poster' }, { toolId: 'remove-object' }] },
+  { id: 'write', label: 'Write', items: [{ toolId: 'fakechat' }, { toolId: 'emoji-text' }, { toolId: 'mindcloud' }] },
+  { id: 'video', label: 'Video', items: [{ toolId: 'screen-recorder' }, { toolId: 'shorts' }] },
+  { id: 'file', label: 'File', items: [{ toolId: 'qr-code' }, { toolId: 'instagram-downloader' }, { toolId: 'video-downloader' }] },
+]
+
+/** Category dropdowns in the top bar, styled after classic AI tool menus. */
+function TopMenu() {
+  const [open, setOpen] = useState<string | null>(null)
+  const ref = useRef<HTMLDivElement>(null)
+  const navigate = useNavigate()
+  const { utility, libraryMenu, feature } = useTools()
+  useEffect(() => {
+    if (!open) return
+    const onPointerDown = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(null)
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(null)
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [open])
+  const tools = new Map([...utility, ...libraryMenu, ...feature].map((tool) => [tool.id, tool]))
+  const pick = (item: { toolId?: string; label?: string; href?: string }) => {
+    setOpen(null)
+    const tool = item.toolId ? tools.get(item.toolId) : undefined
+    if (tool && tool.enabled === false) return
+    if (tool?.placement === 'utility') {
+      try { window.sessionStorage.setItem('imgmojo:open-utility', tool.id) } catch { /* The utility panel just won't auto-open. */ }
+      if (window.location.pathname === '/') window.dispatchEvent(new Event('imgmojo:open-utility'))
+      else navigate('/')
+      return
+    }
+    const target = tool?.href ?? item.href
+    if (target) navigate(target)
+  }
+  return <div className="top-cats" ref={ref}>{TOP_MENU_SECTIONS.map((section) => {
+    const items = section.items
+      .map((item) => ({ item, tool: item.toolId ? tools.get(item.toolId) : undefined }))
+      .filter(({ item, tool }) => (item.href || tool) && (!tool || tool.enabled !== false))
+    if (!items.length) return null
+    return <div className="top-cat" key={section.id}>
+      <button type="button" className={`top-cat-btn ${open === section.id ? 'is-open' : ''}`} aria-expanded={open === section.id} onClick={() => setOpen(open === section.id ? null : section.id)}>{section.label}<ChevronDown size={14} /></button>
+      {open === section.id && <div className="top-cat-menu" role="menu">{items.map(({ item, tool }) => <button type="button" role="menuitem" className="top-cat-item" key={item.toolId ?? item.label} onClick={() => pick(item)}><span className="top-cat-item-icon"><ToolIcon icon={tool?.icon ?? 'images'} /></span><span className="top-cat-item-label">{tool?.title ?? item.label}</span>{tool?.placement === 'feature' && <small>New</small>}</button>)}</div>}
+    </div>
+  })}</div>
+}
+
 function Header({ onMenu, adminLoggedIn = false }: { onMenu: () => void; adminLoggedIn?: boolean }) {
   const [search, setSearch] = useState('')
   const navigate = useNavigate()
@@ -43,7 +98,8 @@ function Header({ onMenu, adminLoggedIn = false }: { onMenu: () => void; adminLo
   return <header className="topbar">
     <button className="menu-toggle" onClick={onMenu} aria-label="Open navigation"><Menu size={21} /></button>
     <Link to="/" className="brand"><img className="brand-symbol brand-logo" src="/images/imgmojo-mark.png" alt="" /><span>{appConfig.appName || 'ImgMojo'}<i>.</i></span></Link>
-    <nav className="top-links" aria-label="Main navigation"><Link to="/">Home</Link><a href="#trending">Trending</a><a href="#explore">Explore</a><Link to="/store">Sell online</Link><Link to="/account">My account</Link></nav>
+    <nav className="top-links" aria-label="Main navigation"><Link to="/">Home</Link></nav>
+    <TopMenu />
     <form className="top-search" onSubmit={submit}><Search size={17} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search prompts, styles, ideas" aria-label="Search prompts" /><kbd>⌘ K</kbd></form>
     <Link className="creator-link" to={signedIn ? '/admin' : '/login'}>{signedIn ? 'Dashboard' : 'Log in'} <ArrowUpRight size={15} /></Link>
   </header>
@@ -59,6 +115,15 @@ const toolIcons: Record<ToolIcon, typeof Images> = {
   scan: ScanLine,
   layers: Layers,
   message: MessageCircle,
+  network: Network,
+  eraser: Eraser,
+  sparkles: Sparkles,
+  wand: Wand2,
+  bot: Bot,
+  'monitor-play': MonitorPlay,
+  zap: Zap,
+  instagram: Instagram,
+  smile: Smile,
 }
 
 function ToolIcon({ icon, size = 17 }: { icon: ToolIcon; size?: number }) {
@@ -67,7 +132,7 @@ function ToolIcon({ icon, size = 17 }: { icon: ToolIcon; size?: number }) {
 }
 
 function Sidebar({ open, active, categories, onSelect, onHome, onClose, menuSections, activeUtility, onOpenUtility }: { open: boolean; active: string; categories: PromptFilter[]; onSelect: (category: string) => void; onHome: () => void; onClose: () => void; menuSections: SideMenuSection[]; activeUtility: string | null; onOpenUtility: (id: string) => void }) {
-  const { utility, libraryMenu } = useTools()
+  const { utility, libraryMenu, feature } = useTools()
   return <>
     {open && <button className="sidebar-scrim" aria-label="Close navigation" onClick={onClose} />}
     <aside className={`sidebar ${open ? 'sidebar-open' : ''}`}>
@@ -75,22 +140,23 @@ function Sidebar({ open, active, categories, onSelect, onHome, onClose, menuSect
       <div className="side-section"><p className="side-label">YOUR SPACE</p>
         <Link className="side-item" to="/" onClick={onHome}><Home size={17} />Home</Link>
         <button className={`side-item ${active === 'All' && !activeUtility ? 'selected' : ''}`} onClick={() => onSelect('All')}><Headphones size={17} />Discover</button>
-        {utility.map((tool) => <button key={tool.id} className={`side-item ${activeUtility === tool.id ? 'selected' : ''}`} onClick={() => onOpenUtility(tool.id)}><ToolIcon icon={tool.icon} />{tool.title}</button>)}
+        {utility.map((tool) => <button key={tool.id} className={`side-item side-tool side-tool-${tool.icon} ${activeUtility === tool.id ? 'selected' : ''}`} onClick={() => onOpenUtility(tool.id)}><span className="side-tool-chip"><ToolIcon icon={tool.icon} /></span><span className="side-tool-label">{tool.title}</span></button>)}
         <button className={`side-item ${active === 'Trending' ? 'selected' : ''}`} onClick={() => onSelect('Trending')}><Flame size={17} />Trending prompts<span className="side-live-dot" /></button>
         {libraryMenu.map((tool) => tool.href && /^https?:/i.test(tool.href)
-          ? <a key={tool.id} className="side-item" href={tool.href} target="_blank" rel="noreferrer" onClick={onClose}><ToolIcon icon={tool.icon} />{tool.title}</a>
+          ? <a key={tool.id} className={`side-item side-tool side-tool-${tool.icon}`} href={tool.href} target="_blank" rel="noreferrer" onClick={onClose}><span className="side-tool-chip"><ToolIcon icon={tool.icon} /></span><span className="side-tool-label">{tool.title}</span></a>
           : tool.load || tool.href
-            ? <Link key={tool.id} className="side-item" to={tool.href ?? '/'} onClick={onClose}><ToolIcon icon={tool.icon} />{tool.title}</Link>
-            : <button key={tool.id} className="side-item" type="button" disabled title="Coming soon"><ToolIcon icon={tool.icon} />{tool.title}</button>)}
+            ? <Link key={tool.id} className={`side-item side-tool side-tool-${tool.icon}`} to={tool.href ?? '/'} onClick={onClose}><span className="side-tool-chip"><ToolIcon icon={tool.icon} /></span><span className="side-tool-label">{tool.title}</span></Link>
+            : <button key={tool.id} className={`side-item side-tool side-tool-${tool.icon}`} type="button" disabled title="Coming soon"><span className="side-tool-chip"><ToolIcon icon={tool.icon} /></span><span className="side-tool-label">{tool.title}</span></button>)}
         <button className={`side-item ${active === 'Latest' ? 'selected' : ''}`} onClick={() => onSelect('Latest')}><Clock3 size={17} />Latest prompts</button>
         <button className="side-item" onClick={() => onSelect('Saved')}><Bookmark size={17} />Saved collection</button>
       </div>
+      {feature.length > 0 && <div className="side-section side-special-menus"><details className="side-menu-group" open><summary className="side-menu-heading"><span className="side-menu-mark">M</span>Mind Cloud<span className="side-menu-count">{feature.length}</span></summary><div className="side-menu-items">{feature.map((tool) => <Link key={tool.id} className="side-item side-subcategory" to={tool.href ?? '/'} onClick={onClose}><span>{tool.id === 'mindcloud' ? 'Mind map maker' : tool.title}</span><small>New</small></Link>)}</div></details></div>}
       <div className="side-section side-special-menus">{menuSections.map((section) => <details className="side-menu-group" key={section.id}><summary className="side-menu-heading"><span className="side-menu-mark">{section.id === 'events' ? 'E' : 'F'}</span>{section.title}<span className="side-menu-count">{section.items.length}</span></summary><div className="side-menu-items">{section.items.map((item) => <button key={item.id} className={`side-item side-subcategory ${active === item.name ? 'selected' : ''}`} title={item.timing ? `${item.name} · ${item.timing}` : item.name} onClick={() => onSelect(item.name)}><span>{item.name}</span>{item.timing && <small>{item.timing}</small>}</button>)}</div></details>)}</div>
       <div className="side-section side-special-menus"><details className="side-menu-group" open><summary className="side-menu-heading"><span className="side-menu-mark">$</span>Sell online<span className="side-menu-count">2</span></summary><div className="side-menu-items"><Link className="side-item side-subcategory" to="/store?type=software" onClick={onClose}><span>Software</span></Link><Link className="side-item side-subcategory" to="/store?type=pdf" onClick={onClose}><span>PDF</span></Link></div></details></div>
       <div className="side-section side-categories" id="categories"><div className="side-label-row"><p className="side-label">CATEGORIES</p><SlidersHorizontal size={14} /></div>
         {categories.map((category) => <button key={category.key} className={`side-item category-side-item ${active.toLowerCase() === category.key ? 'selected' : ''}`} onClick={() => onSelect(category.label)}><span className="side-category-mark">{category.label.slice(0, 1)}</span>{category.label}</button>)}
       </div>
-      <div className="sidebar-bottom"><div className="sidebar-promo"><span className="promo-icon"><Sparkles size={17} /></span><strong>Your next idea starts here.</strong><p>Browse the library and make it your own.</p><a href="#explore">Explore prompts <ArrowRight size={14} /></a></div><span className="sidebar-version">IMGMOJO · A CREATIVE LIBRARY</span></div>
+      <div className="sidebar-bottom"><span className="sidebar-version">IMGMOJO · A CREATIVE LIBRARY</span></div>
     </aside>
   </>
 }
@@ -377,6 +443,21 @@ function HomePage({ prompts, blogStatus, canGenerate, onAddTrend, menuSections, 
   const utilityOpen = Boolean(utilityTool)
   const location = useLocation()
   useEffect(() => { setQuery(new URLSearchParams(location.search).get('q') ?? '') }, [location.search])
+  useEffect(() => {
+    const openPending = () => {
+      try {
+        const pending = window.sessionStorage.getItem('imgmojo:open-utility')
+        if (pending && utility.some((tool) => tool.id === pending)) {
+          window.sessionStorage.removeItem('imgmojo:open-utility')
+          setActiveUtility(pending)
+          setSidebarOpen(false)
+        }
+      } catch { /* sessionStorage unavailable */ }
+    }
+    openPending()
+    window.addEventListener('imgmojo:open-utility', openPending)
+    return () => window.removeEventListener('imgmojo:open-utility', openPending)
+  }, [utility])
   const filters = useMemo(() => collectPromptFilters(prompts), [prompts])
   const shown = useMemo(() => {
     const term = query.trim().toLowerCase()
@@ -1067,11 +1148,11 @@ function ToolsManager() {
       <div className="managed-menu-list">{toolsConfig.map((tool) => {
         const enabled = enabledFor(tool)
         const overridden = settings.overrides[tool.id] !== undefined
-        return <div className="tools-manager-row" key={tool.id}><span className="tools-manager-icon"><ToolIcon icon={tool.icon} size={15} /></span><span className="tools-manager-copy"><strong>{tool.title}</strong><small>{tool.placement} · {tool.load ? 'bundled component' : 'coming soon'}{overridden ? ' · custom setting' : ''}</small></span>{overridden && <button className="admin-text-link" type="button" disabled={busy} onClick={() => resetOverride(tool.id)}>Reset</button>}<button className={`ai-model-toggle ${enabled ? 'enabled' : ''}`} type="button" role="switch" aria-checked={enabled} aria-label={`${enabled ? 'Disable' : 'Enable'} ${tool.title}`} disabled={busy} onClick={() => setOverride(tool.id, !enabled)}><span />{enabled ? 'ON' : 'OFF'}</button></div>
+        return <div className="tools-manager-row" key={tool.id}><span className="tools-manager-icon"><ToolIcon icon={tool.icon} size={15} /></span><span className="tools-manager-copy"><strong>{tool.title}</strong><small>{tool.placement} · {tool.load ? 'bundled component' : tool.href ? 'external link' : 'coming soon'}{overridden ? ' · custom setting' : ''}</small></span>{overridden && <button className="admin-text-link" type="button" disabled={busy} onClick={() => resetOverride(tool.id)}>Reset</button>}<button className={`ai-model-toggle ${enabled ? 'enabled' : ''}`} type="button" role="switch" aria-checked={enabled} aria-label={`${enabled ? 'Disable' : 'Enable'} ${tool.title}`} disabled={busy} onClick={() => setOverride(tool.id, !enabled)}><span />{enabled ? 'ON' : 'OFF'}</button></div>
       })}</div>
     </section>
     <section className="editor-panel menu-create-panel tools-manager-custom"><div className="editor-panel-heading"><div><span className="admin-kicker">CUSTOM TOOL LINK</span><h2>Add a tool</h2><p>Adds a shortcut to the public sidebar. External links open in a new tab.</p></div></div>
-      <form className="tools-manager-add" onSubmit={addTool}><label className="editor-field">Tool name<input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={60} placeholder="e.g. Canva" required /></label><label className="editor-field">Link<input value={href} onChange={(event) => setHref(event.target.value)} placeholder="https://www.canva.com or /store" required /></label><label className="editor-field">Icon<select value={icon} onChange={(event) => setIcon(event.target.value as ToolIcon)}>{(['images', 'youtube', 'image-plus', 'video', 'qr-code', 'download', 'scan', 'layers', 'message'] as ToolIcon[]).map((name) => <option key={name} value={name}>{name}</option>)}</select></label><button className="admin-primary" type="submit" disabled={busy}><Plus size={15} /> Add tool</button></form>
+      <form className="tools-manager-add" onSubmit={addTool}><label className="editor-field">Tool name<input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={60} placeholder="e.g. Canva" required /></label><label className="editor-field">Link<input value={href} onChange={(event) => setHref(event.target.value)} placeholder="https://www.canva.com or /store" required /></label><label className="editor-field">Icon<select value={icon} onChange={(event) => setIcon(event.target.value as ToolIcon)}>{(['images', 'youtube', 'image-plus', 'video', 'qr-code', 'download', 'scan', 'layers', 'message', 'network', 'eraser', 'sparkles', 'wand', 'bot', 'monitor-play', 'zap', 'instagram'] as ToolIcon[]).map((name) => <option key={name} value={name}>{name}</option>)}</select></label><button className="admin-primary" type="submit" disabled={busy}><Plus size={15} /> Add tool</button></form>
     </section>
     <section className="admin-table-card"><div className="admin-table-head"><div><span className="admin-kicker">CUSTOM TOOLS</span><h2>Custom tools <small>{settings.customTools.length}</small></h2></div></div>
       <div className="managed-menu-list">{settings.customTools.length ? settings.customTools.map((tool) => <div className="tools-manager-row" key={tool.id}><span className="tools-manager-icon"><ToolIcon icon={tool.icon} size={15} /></span><span className="tools-manager-copy"><strong>{tool.title}</strong><small>{tool.href}</small></span><button className={`ai-model-toggle ${tool.enabled ? 'enabled' : ''}`} type="button" role="switch" aria-checked={tool.enabled} aria-label={`${tool.enabled ? 'Disable' : 'Enable'} ${tool.title}`} disabled={busy} onClick={() => void persist({ ...settings, customTools: settings.customTools.map((item) => item.id === tool.id ? { ...item, enabled: !item.enabled } : item) }, `“${tool.title}” turned ${tool.enabled ? 'off' : 'on'}.`)}><span />{tool.enabled ? 'ON' : 'OFF'}</button><button className="menu-remove-button" type="button" disabled={busy} onClick={() => void persist({ ...settings, customTools: settings.customTools.filter((item) => item.id !== tool.id) }, `“${tool.title}” removed.`)} aria-label={`Remove ${tool.title}`}><Trash2 size={15} /></button></div>) : <p className="account-empty">No custom tools yet. Add one above.</p>}</div>

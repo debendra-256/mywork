@@ -1,0 +1,88 @@
+.mindcloud-tool{--mc-line:#e3e9e4;--mc-brand:#0a9f62;height:calc(100dvh - 74px);display:flex;flex-direction:column;overflow:hidden;background:#eef2ef;color:#1c2025}
+.mindcloud-tool button:focus-visible,.mindcloud-tool input:focus-visible,.mindcloud-tool textarea:focus-visible{outline:2px solid #0a9f62;outline-offset:1px}
+
+.mindcloud-toolbar{display:flex;align-items:center;gap:16px;padding:11px clamp(14px,2.5vw,26px);background:#fff;border-bottom:1px solid var(--mc-line);flex-wrap:wrap}
+.mindcloud-brand{display:flex;align-items:center;gap:9px;flex:0 1 280px;min-width:0}
+.mindcloud-brand-mark{width:31px;height:31px;flex-shrink:0;display:grid;place-items:center;border-radius:9px;background:linear-gradient(135deg,#27c47c,#07884f);color:#fff;box-shadow:0 4px 10px #07884f26}
+.mindcloud-title{width:100%;min-width:0;padding:4px 6px;border:0;border-radius:7px;background:transparent;color:#20262d;font-size:16px;font-weight:750;letter-spacing:-.03em;outline:none}
+.mindcloud-title:hover{background:#f4f7f5}
+.mindcloud-title:focus{background:#fff;box-shadow:0 0 0 2px #0a9f6226}
+
+.mindcloud-tools{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.mindcloud-tools-end{margin-left:auto}
+.mindcloud-icon-btn{width:32px;height:32px;display:grid;place-items:center;border:1px solid #e1e7e2;border-radius:8px;background:#fff;color:#59656d;cursor:pointer;transition:border-color .15s,color .15s,background .15s}
+.mindcloud-icon-btn:hover:not(:disabled){border-color:#b7d9c5;color:#087d4e;background:#f6fbf8}
+.mindcloud-icon-btn:disabled{opacity:.38;cursor:not-allowed}
+.mindcloud-icon-btn.danger{color:#c0392b}
+.mindcloud-icon-btn.danger:hover:not(:disabled){border-color:#e8b4ad;background:#fdf4f2;color:#a93226}
+.mindcloud-divider{width:1px;height:20px;margin:0 4px;background:#e6ebe7}
+.mindcloud-btn{height:32px;display:inline-flex;align-items:center;gap:6px;padding:0 10px;border:1px solid #e1e7e2;border-radius:8px;background:#fff;color:#4d5a54;font-size:11.5px;font-weight:700;cursor:pointer;transition:border-color .15s,color .15s,background .15s}
+.mindcloud-btn:hover:not(:disabled){border-color:#b7d9c5;color:#087d4e;background:#f6fbf8}
+.mindcloud-btn:disabled{opacity:.38;cursor:not-allowed}
+.mindcloud-zoom-value{min-width:38px;text-align:center;color:#7a8580;font-size:10.5px;font-weight:700}
+.mindcloud-download{height:32px;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 13px;border:0;border-radius:8px;background:#0a9f62;color:#fff;font-size:11.5px;font-weight:800;white-space:nowrap;cursor:pointer;box-shadow:0 6px 14px #0a9f6222;transition:background .15s}
+.mindcloud-download:hover:not(:disabled){background:#088c56}
+.mindcloud-download:disabled{opacity:.5;cursor:not-allowed;box-shadow:none}
+
+.mindcloud-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 312px}
+.mindcloud-stage{position:relative;min-width:0;min-height:0;overflow:hidden;background:#eef2ef}
+.mindcloud-canvas{display:block;width:100%;height:100%;cursor:grab;touch-action:none;user-select:none}
+.mindcloud-canvas.is-panning{cursor:grabbing}
+.mindcloud-node{cursor:grab}
+.mindcloud-node:hover{filter:drop-shadow(0 3px 8px #17382a1f)}
+.mindcloud-node.is-dragging{cursor:grabbing;filter:drop-shadow(0 7px 16px #17382a33);opacity:.95}
+.mindcloud-add-bubble{cursor:pointer}
+.mindcloud-add-bubble:hover circle{fill:#088c56}
+.mindcloud-hint{position:absolute;left:14px;bottom:12px;max-width:calc(100% - 28px);margin:0;padding:6px 10px;border:1px solid #e3e9e4;border-radius:8px;background:#ffffffd9;color:#8a948e;font-size:9.5px;font-weight:600;pointer-events:none;backdrop-filter:blur(4px)}
+.mindcloud-notice{position:absolute;left:14px;top:12px;max-width:min(380px,80%);margin:0;padding:8px 11px;border-radius:8px;background:#17382a;color:#e8fff2;font-size:10.5px;font-weight:650;box-shadow:0 8px 24px #17382a33;pointer-events:none}
+
+.mindcloud-inspector{display:grid;gap:12px;align-content:start;overflow-y:auto;padding:14px;background:#fff;border-left:1px solid var(--mc-line);scrollbar-width:thin}
+.mindcloud-inspector::-webkit-scrollbar{width:6px}
+.mindcloud-inspector::-webkit-scrollbar-thumb{background:#dbe3dd;border-radius:3px}
+.mindcloud-panel{display:grid;gap:10px;padding:12px;border:1px solid #e8ede9;border-radius:12px;background:#fff}
+.mindcloud-panel-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.mindcloud-panel-head h2{margin:0;font-size:12px;letter-spacing:-.01em}
+.mindcloud-panel-head span{color:#95a099;font-size:9.5px;font-weight:700;white-space:nowrap}
+.mindcloud-path{margin:0;padding:6px 8px;border-radius:6px;background:#f5f8f6;color:#7c8781;font-size:9.5px;font-weight:600;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mindcloud-field{display:grid;gap:5px;color:#8a958f;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.mindcloud-field textarea{width:100%;min-height:56px;padding:8px 9px;border:1px solid #e2e8e3;border-radius:8px;background:#fff;color:#1c2025;font:inherit;font-size:12px;font-weight:500;letter-spacing:0;text-transform:none;resize:vertical;outline:none}
+.mindcloud-field textarea:focus{border-color:#8fd3b0;box-shadow:0 0 0 3px #0a9f6214}
+.mindcloud-field textarea:disabled{background:#f7f9f8;color:#a5ada8}
+.mindcloud-node-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mindcloud-node-actions button{height:30px;display:inline-flex;align-items:center;justify-content:center;gap:5px;border:1px solid #e0e7e2;border-radius:7px;background:#fff;color:#52605a;font-size:10.5px;font-weight:700;cursor:pointer}
+.mindcloud-node-actions button:hover:not(:disabled){border-color:#a9d8bd;background:#f6fbf8;color:#087d4e}
+.mindcloud-node-actions button:disabled{opacity:.38;cursor:not-allowed}
+.mindcloud-node-actions .danger{grid-column:span 2;color:#c0392b}
+.mindcloud-node-actions .danger:hover:not(:disabled){border-color:#e8b4ad;background:#fdf4f2;color:#a93226}
+
+.mindcloud-themes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.mindcloud-theme{display:grid;gap:4px;padding:5px;border:1px solid #e5ebe6;border-radius:8px;background:#fff;text-align:left;cursor:pointer}
+.mindcloud-theme:hover{border-color:#bcdfc9}
+.mindcloud-theme.is-active{border-color:#0a9f62;box-shadow:0 0 0 2px #0a9f621f}
+.mindcloud-theme-chip{height:26px;display:flex;gap:3px;padding:4px;border:1px solid;border-radius:5px}
+.mindcloud-theme-chip i{flex:1;border-radius:3px}
+.mindcloud-theme small{color:#7c8781;font-size:8.5px;font-weight:700;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mindcloud-theme.is-active small{color:#087d4e}
+.mindcloud-row{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#78847e;font-size:10px;font-weight:700}
+.mindcloud-segmented{display:flex;gap:3px;padding:3px;border-radius:7px;background:#f2f5f3}
+.mindcloud-segmented button{padding:4px 9px;border:0;border-radius:5px;background:transparent;color:#748078;font-size:9.5px;font-weight:700;cursor:pointer}
+.mindcloud-segmented button.is-active{background:#fff;color:#087d4e;box-shadow:0 1px 4px #15192214}
+
+.mindcloud-templates{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mindcloud-templates button{display:grid;gap:2px;padding:8px 9px;border:1px solid #e5ebe6;border-radius:8px;background:#fbfdfb;text-align:left;cursor:pointer}
+.mindcloud-templates button:hover{border-color:#a9d8bd;background:#f4fbf7}
+.mindcloud-templates strong{color:#2c3731;font-size:10.5px;font-weight:750}
+.mindcloud-templates small{color:#96a09a;font-size:8.5px;font-weight:600}
+
+.mindcloud-export{display:grid;gap:7px}
+.mindcloud-download.wide{width:100%;height:34px}
+.mindcloud-export-row{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mindcloud-export-row button{height:30px;border:1px solid #e0e7e2;border-radius:7px;background:#fff;color:#52605a;font-size:10px;font-weight:700;cursor:pointer}
+.mindcloud-export-row button:hover{border-color:#a9d8bd;color:#087d4e}
+.mindcloud-reset{height:30px;display:inline-flex;align-items:center;justify-content:center;gap:5px;border:1px dashed #dbe3dd;border-radius:7px;background:#fbfcfb;color:#78847e;font-size:10px;font-weight:700;cursor:pointer}
+.mindcloud-reset:hover{border-color:#e0b7b2;background:#fdf6f5;color:#b03a2e}
+.mindcloud-export p{margin:2px 0 0;color:#9aa49e;font-size:8.5px;line-height:1.5}
+
+@media(max-width:1100px){.mindcloud-body{grid-template-columns:minmax(0,1fr) 286px}}
+@media(max-width:900px){.mindcloud-tool{height:auto;min-height:calc(100dvh - 74px);overflow:visible}.mindcloud-brand{flex:1 1 100%}.mindcloud-tools-end{margin-left:0}.mindcloud-body{grid-template-columns:1fr}.mindcloud-stage{height:62vh;min-height:400px}.mindcloud-inspector{border-left:0;border-top:1px solid var(--mc-line)}}
+@media(max-width:650px){.mindcloud-tool{min-height:calc(100dvh - 62px)}.mindcloud-toolbar{gap:8px;padding:9px 12px}.mindcloud-title{font-size:14px}.mindcloud-stage{height:54vh;min-height:340px}.mindcloud-tools{flex-wrap:wrap}.mindcloud-tools-end{width:100%;justify-content:flex-end}.mindcloud-hint{right:12px;left:12px;font-size:8.5px}.mindcloud-inspector{padding:12px}}

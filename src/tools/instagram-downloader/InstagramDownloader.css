@@ -1,0 +1,44 @@
+.igdl-page{min-height:calc(100vh - 74px);padding:34px clamp(16px,4vw,54px) 50px;background:linear-gradient(180deg,#fdf7fb 0%,#f5f6f8 340px)}
+.igdl-card{width:min(760px,100%);margin:0 auto;padding:clamp(22px,4vw,38px);border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:var(--shadow)}
+.igdl-heading{display:flex;align-items:center;gap:15px;margin-bottom:22px}
+.igdl-icon{width:52px;height:52px;flex:0 0 52px;display:grid;place-items:center;border-radius:14px;background:linear-gradient(135deg,#f58529,#dd2a7b 55%,#8134af);color:#fff;box-shadow:0 6px 16px #dd2a7b33}
+.igdl-heading h1{margin:0;font-size:clamp(19px,2.6vw,25px);letter-spacing:-.04em;color:#22212a}
+.igdl-heading p{margin:4px 0 0;color:#87909a;font-size:11px;line-height:1.5}
+.igdl-bar{display:flex;align-items:center;gap:8px;padding:7px;border:1px solid #e5e7eb;border-radius:12px;background:#f8f9fb;transition:border-color .15s, box-shadow .15s}
+.igdl-bar:focus-within{border-color:#50b97d;box-shadow:0 0 0 3px #27aa6519;background:#fff}
+.igdl-bar input{min-width:0;flex:1;border:0;outline:0;background:transparent;padding:8px 6px;color:var(--ink);font-size:12px}
+.igdl-bar input::placeholder{color:#9da4ad}
+.igdl-paste{width:37px;height:37px;flex:0 0 37px;display:grid;place-items:center;border:1px solid #e5e7eb;border-radius:9px;background:#fff;color:#6e7781;transition:all .15s}
+.igdl-paste:hover{border-color:#a9e2c6;color:#087d4e}
+.igdl-fetch{height:37px;flex:0 0 auto;display:flex;align-items:center;gap:7px;padding:0 16px;border:0;border-radius:9px;background:#07884f;color:#fff;font-size:11px;font-weight:750;transition:background .15s}
+.igdl-fetch:hover:not(:disabled){background:#056c3e}
+.igdl-fetch:disabled{opacity:.55;cursor:not-allowed}
+.igdl-spin{animation:igdl-rotate 1s linear infinite}
+@keyframes igdl-rotate{to{transform:rotate(360deg)}}
+.igdl-error{margin:12px 0 0;padding:9px 11px;border-radius:8px;background:#fff0ed;color:#a33d2c;font-size:10px;line-height:1.5}
+.igdl-result{display:flex;gap:16px;margin-top:20px;padding:15px;border:1px solid #eceef0;border-radius:13px;background:#fcfcfd}
+.igdl-thumb{position:relative;flex:0 0 168px;aspect-ratio:.8;overflow:hidden;border-radius:10px;background:#e9e6ee}
+.igdl-thumb img{width:100%;height:100%;display:block;object-fit:cover}
+.igdl-thumb-fallback{position:absolute;inset:0;display:grid;place-items:center;color:#b9b2c4}
+.igdl-kind{position:absolute;left:8px;top:8px;padding:4px 8px;border-radius:20px;background:#22212bcc;color:#fff;font-size:8px;font-weight:800;letter-spacing:.06em;backdrop-filter:blur(6px)}
+.igdl-meta{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.igdl-author{display:inline-flex;align-items:center;gap:4px;color:#7c3aed;font-size:11px;font-weight:750}
+.igdl-author:hover{text-decoration:underline}
+.igdl-caption{display:-webkit-box;overflow:hidden;margin:0;color:#5d656f;font-size:10px;line-height:1.6;-webkit-line-clamp:4;-webkit-box-orient:vertical;white-space:pre-line}
+.igdl-download{display:inline-flex;align-items:center;gap:8px;margin-top:auto;padding:11px 16px;border:0;border-radius:9px;background:#07884f;color:#fff;font-size:11px;font-weight:750;transition:background .15s,transform .15s}
+.igdl-download:hover{background:#056c3e;transform:translateY(-1px)}
+.igdl-note{margin:0;color:#8a94a0;font-size:9px;line-height:1.6}
+.igdl-open{display:inline-flex;align-items:center;gap:5px;color:#087d4e;font-size:10px;font-weight:700}
+.igdl-open:hover{text-decoration:underline}
+.igdl-steps{width:min(760px,100%);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px auto 0}
+.igdl-step{display:flex;gap:10px;align-items:flex-start;padding:14px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.igdl-step span{width:22px;height:22px;flex:0 0 22px;display:grid;place-items:center;border-radius:50%;background:#eaf6ee;color:#0a9f62;font-size:10px;font-weight:800}
+.igdl-step p{margin:2px 0 0;color:#78828d;font-size:9px;line-height:1.55}
+.igdl-fineprint{width:min(760px,100%);display:flex;align-items:center;gap:6px;margin:16px auto 0;color:#a4acb5;font-size:9px}
+.igdl-fineprint svg{color:#37b979;flex:0 0 auto}
+@media(max-width:650px){
+  .igdl-result{flex-direction:column}
+  .igdl-thumb{flex-basis:auto;width:100%;aspect-ratio:1.1}
+  .igdl-steps{grid-template-columns:1fr}
+  .igdl-fetch{padding:0 12px;font-size:10px}
+}
