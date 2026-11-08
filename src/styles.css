@@ -675,6 +675,26 @@
 /* Hide Social Trends section as requested */
 .social-trends { display: none; }
 
+/* Brand and Logo styles */
+.brand-full-logo {
+  height: 44px;
+  width: auto;
+  max-width: 170px;
+  object-fit: contain;
+  display: block;
+}
+
+[data-scheme="dark"] .brand-full-logo {
+  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.45)) drop-shadow(0 2px 8px rgba(0, 0, 0, 0.6));
+}
+
+@media (max-width: 650px) {
+  .brand-full-logo {
+    height: 36px;
+    max-width: 140px;
+  }
+}
+
 /* Video frames for Blogger / Video Prompts */
 .tile-video-frame {
   position: relative;
