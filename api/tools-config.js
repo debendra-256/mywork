@@ -15,8 +15,8 @@ export async function hasBloggerAuthorization(request) {
 
 const toolIcons = [
   'images', 'youtube', 'image-plus', 'video', 'qr-code', 'download', 'scan', 'layers',
-  'message', 'network', 'eraser', 'sparkles', 'wand', 'bot', 'monitor-play', 'zap',
-  'instagram', 'smile', 'palette'
+  'message', 'network', 'eraser', 'droplets', 'sparkles', 'wand', 'bot', 'monitor-play', 'zap',
+  'instagram', 'smile', 'palette', 'panel-left', 'id-card', 'file-archive'
 ];
 const idPattern = /^[a-z0-9][a-z0-9-]{1,47}$/;
 

@@ -4,6 +4,7 @@
     "qr-code": true,
     "screen-recorder": true,
     "shorts": true,
+    "compress-image": true,
     "element-scanner": false,
     "site-theme": true
   },
