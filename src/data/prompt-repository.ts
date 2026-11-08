@@ -77,23 +77,57 @@ function mapPosterPost(post: BloggerPost): Prompt {
   }
 }
 
+function extractVideoUrl(html: string): string | undefined {
+  if (!html) return undefined
+  if (typeof DOMParser !== 'undefined') {
+    try {
+      const doc = new DOMParser().parseFromString(html, 'text/html')
+      const iframe = doc.querySelector('iframe')
+      if (iframe?.getAttribute('src')) return iframe.getAttribute('src')!
+      const video = doc.querySelector('video')
+      if (video?.getAttribute('src')) return video.getAttribute('src')!
+      const source = doc.querySelector('video > source')
+      if (source?.getAttribute('src')) return source.getAttribute('src')!
+    } catch {}
+  }
+  const iframeMatch = html.match(/<iframe[^>]+src=["']([^"']+)["']/i)
+  if (iframeMatch?.[1]) return iframeMatch[1]
+  const videoMatch = html.match(/<video[^>]+src=["']([^"']+)["']/i)
+  if (videoMatch?.[1]) return videoMatch[1]
+  const sourceMatch = html.match(/<source[^>]+src=["']([^"']+)["']/i)
+  if (sourceMatch?.[1]) return sourceMatch[1]
+  const ytMatch = html.match(/https?:\/\/(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i)
+  if (ytMatch?.[1]) return 'https://www.youtube.com/embed/' + ytMatch[1]
+  return undefined
+}
+
+function extractVideoThumbnail(videoUrl: string | undefined): string | undefined {
+  if (!videoUrl) return undefined
+  const ytMatch = videoUrl.match(/(?:youtube\.com\/embed\/|youtu\.be\/|youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/i)
+  if (ytMatch?.[1]) return 'https://img.youtube.com/vi/' + ytMatch[1] + '/hqdefault.jpg'
+  return undefined
+}
+
 function mapBloggerPost(post: BloggerPost): Prompt {
   const content = stripHtml(post.content)
   const pathParts = new URL(post.url).pathname.split('/').filter(Boolean)
+  const video = extractVideoUrl(post.content)
+  const image = post.images?.[0]?.url ?? post.content.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1] ?? extractVideoThumbnail(video)
   return {
     id: post.id,
     slug: pathParts.at(-1) || post.id,
     title: stripHtml(post.title),
     description: content.length > 180 ? `${content.slice(0, 177)}…` : content,
     promptText: extractBloggerPrompt(post.content),
-    category: post.labels?.[0] ?? 'Articles',
-    tool: 'Blogger',
-    style: 'Article',
+    category: post.labels?.[0] ?? (video ? 'AI Video' : 'Articles'),
+    tool: video ? 'Video AI' : 'Blogger',
+    style: video ? 'Video' : 'Article',
     featured: post.labels?.some((label) => label.toLowerCase() === 'featured') ?? false,
     hashtags: post.labels?.filter((label) => label.startsWith('#')).map((label) => label.slice(1)),
     labels: post.labels,
     createdAt: post.published,
-    image: post.images?.[0]?.url ?? post.content.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1],
+    image,
+    video,
     sourceUrl: post.url,
   }
 }

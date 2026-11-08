@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ChevronDown, Clock3, Copy, DatabaseBackup, Facebook, Flame, Headphones, Heart, Home, ImagePlus, Images, KeyRound, Layers, LayoutDashboard, LayoutGrid, Lock, LockOpen, LogOut, Menu, MessageCircle, Play, Plus, Search, Send, Share2, ShieldCheck, SlidersHorizontal, Sparkles, Store, Sun, Trash2, X, Zap } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ChevronDown, Clock3, Copy, DatabaseBackup, Facebook, Video, Flame, Headphones, Heart, Home, ImagePlus, Images, KeyRound, Layers, LayoutDashboard, LayoutGrid, Lock, LockOpen, LogOut, Menu, MessageCircle, Play, Plus, Search, Send, Share2, ShieldCheck, SlidersHorizontal, Sparkles, Store, Sun, Trash2, X, Zap } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { appConfig } from '../config/app.config'
 import { toolsConfig, type ToolDefinition, type ToolIcon } from '../config/ToolsConfig'
@@ -410,6 +410,36 @@ function Sidebar({ open, active, onSelect, onHome, onClose, activeUtility, onOpe
   </>
 }
 
+function isDirectVideo(url: string | undefined): boolean {
+  if (!url) return false
+  return /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(url)
+}
+
+function PromptVideo({ src, title, className }: { src: string; title: string; className?: string }) {
+  if (isDirectVideo(src)) {
+    return (
+      <video
+        src={src}
+        controls
+        playsInline
+        preload="metadata"
+        className={className || 'tile-video-iframe'}
+        aria-label={title}
+      />
+    )
+  }
+  return (
+    <iframe
+      src={src}
+      title={title}
+      className={className || 'tile-video-iframe'}
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+      allowFullScreen
+      loading="lazy"
+    />
+  )
+}
+
 function PromptCard({ prompt, index, saved, engagement, onToggleSave, onCopy, onHashtag }: { prompt: Prompt; index: number; saved: boolean; engagement: EngagementCounts; onToggleSave: () => void; onCopy: () => void; onHashtag: (tag: string) => void }) {
   const [copied, setCopied] = useState(false)
   if (isPosterPrompt(prompt)) {
@@ -428,13 +458,22 @@ function PromptCard({ prompt, index, saved, engagement, onToggleSave, onCopy, on
   }
   const tags = promptHashtags(prompt)
   return <article className="prompt-tile">
-    <Link to={`/prompt/${prompt.slug}`} className={`tile-image tile-image-${index % 6}`}>
-      {prompt.image ? <img {...responsiveImage(prompt.image, '(max-width: 700px) 45vw, 23vw')} alt={prompt.imageAlt || ''} loading="lazy" /> : <span className="tile-image-fallback"><Sparkles size={28} /></span>}
-      <span className="tile-vignette" />
-      <span className="tile-tag">{prompt.category}</span>
-      {prompt.featured && <span className="tile-featured"><Sparkles size={12} /> EDITOR’S PICK</span>}
-      <span className="tile-open"><ArrowUpRight size={17} /></span>
-    </Link>
+    {prompt.video ? (
+      <div className={`tile-image tile-video-frame tile-image-${index % 6}`}>
+        <PromptVideo src={prompt.video} title={prompt.title} className="tile-video-iframe" />
+        <span className="tile-tag tile-video-tag"><Video size={11} style={{ verticalAlign: 'middle', marginRight: 4 }} />{prompt.category}</span>
+        {prompt.featured && <span className="tile-featured"><Sparkles size={12} /> EDITOR’S PICK</span>}
+        <Link to={`/prompt/${prompt.slug}`} className="tile-open" aria-label={`View ${prompt.title} details`}><ArrowUpRight size={17} /></Link>
+      </div>
+    ) : (
+      <Link to={`/prompt/${prompt.slug}`} className={`tile-image tile-image-${index % 6}`}>
+        {prompt.image ? <img {...responsiveImage(prompt.image, '(max-width: 700px) 45vw, 23vw')} alt={prompt.imageAlt || ''} loading="lazy" /> : <span className="tile-image-fallback"><Sparkles size={28} /></span>}
+        <span className="tile-vignette" />
+        <span className="tile-tag">{prompt.category}</span>
+        {prompt.featured && <span className="tile-featured"><Sparkles size={12} /> EDITOR’S PICK</span>}
+        <span className="tile-open"><ArrowUpRight size={17} /></span>
+      </Link>
+    )}
     {tags.length > 0 && <div className="tile-hashtags">{tags.map((tag) => <button key={tag} className="tile-hashtag" title={`Show every ${tag} prompt`} onClick={() => onHashtag(tag)}>#{tag}</button>)}</div>}
     <div className="tile-content"><div className="tile-heading"><Link to={`/prompt/${prompt.slug}`} className="tile-title">{prompt.title}</Link><button className={`tile-save ${saved ? 'is-saved' : ''}`} onClick={onToggleSave} aria-label={saved ? 'Remove from saved' : 'Save prompt'}><Heart size={17} fill={saved ? 'currentColor' : 'none'} /></button></div>
       <p>{prompt.description}</p>
@@ -860,7 +899,8 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
   const [shareMenuOpen, setShareMenuOpen] = useState(false)
   const [shareMessage, setShareMessage] = useState('')
   const { counts, record } = useEngagement()
-  const prompt = prompts.find((item) => item.slug === slug)
+  const normalizeSlug = (s: string) => (s || '').replace(/\.html$/i, '').toLowerCase()
+  const prompt = prompts.find((item) => item.slug === slug || normalizeSlug(item.slug) === normalizeSlug(slug || ''))
   useEffect(() => {
     if (!prompt) return
     const originalTitle = document.title
@@ -918,7 +958,7 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
       window.setTimeout(() => setShareMessage(''), 4000)
     })
   }
-  return <div className="detail-shell"><Header onMenu={() => navigate('/')} /><main className="prompt-detail"><button className="detail-back" onClick={() => navigate(-1)}><ArrowLeft size={16} /> Back to prompts</button><div className="detail-columns"><div className="detail-cover">{prompt.image && <img src={imageAtWidth(prompt.image, 1000)} alt={prompt.imageAlt || ''} />}<span>{prompt.category}</span></div><div className="detail-info">{!prompt.sourceUrl && <span className="section-kicker">{prompt.tool} · {prompt.style}</span>}<h1>{prompt.title}</h1><p>{prompt.description}</p><div className="detail-prompt-label">THE PROMPT <span>READY TO COPY</span></div><div className="detail-prompt-text">{prompt.promptText}</div><button className="copy-large" onClick={copy}>{copied ? <Check size={17} /> : <Copy size={17} />}{copied ? 'Copied to clipboard' : 'Copy prompt'} <ArrowRight size={16} /></button><div className="detail-stats"><span><Copy size={13} /> {formatCount(engagement.copy)} copies</span><span><Share2 size={13} /> {formatCount(engagement.share)} shares</span></div><section className="prompt-share-panel"><button type="button" className="prompt-share-toggle" aria-expanded={shareMenuOpen} onClick={() => setShareMenuOpen((open) => !open)}><Copy size={17} /> Share prompt <span>{shareMenuOpen ? '−' : '+'}</span></button>{shareMenuOpen && <div className="prompt-share-options"><div className="share-group"><strong>Send to someone</strong><div className="share-target-list">{appConfig.promptSharing.messaging.map((target) => {
+  return <div className="detail-shell"><Header onMenu={() => navigate('/')} /><main className="prompt-detail"><button className="detail-back" onClick={() => navigate(-1)}><ArrowLeft size={16} /> Back to prompts</button><div className="detail-columns"><div className={`detail-cover ${prompt.video ? 'detail-cover-video' : ''}`}>{prompt.video ? <PromptVideo src={prompt.video} title={prompt.title} className="detail-video-iframe" /> : prompt.image ? <img src={imageAtWidth(prompt.image, 1000)} alt={prompt.imageAlt || ''} /> : <span className="tile-image-fallback"><Sparkles size={28} /></span>}<span>{prompt.category}</span></div><div className="detail-info">{!prompt.sourceUrl && <span className="section-kicker">{prompt.tool} · {prompt.style}</span>}<h1>{prompt.title}</h1><p>{prompt.description}</p><div className="detail-prompt-label">THE PROMPT <span>READY TO COPY</span></div><div className="detail-prompt-text">{prompt.promptText}</div><button className="copy-large" onClick={copy}>{copied ? <Check size={17} /> : <Copy size={17} />}{copied ? 'Copied to clipboard' : 'Copy prompt'} <ArrowRight size={16} /></button><div className="detail-stats"><span><Copy size={13} /> {formatCount(engagement.copy)} copies</span><span><Share2 size={13} /> {formatCount(engagement.share)} shares</span></div><section className="prompt-share-panel"><button type="button" className="prompt-share-toggle" aria-expanded={shareMenuOpen} onClick={() => setShareMenuOpen((open) => !open)}><Copy size={17} /> Share prompt <span>{shareMenuOpen ? '−' : '+'}</span></button>{shareMenuOpen && <div className="prompt-share-options"><div className="share-group"><strong>Send to someone</strong><div className="share-target-list">{appConfig.promptSharing.messaging.map((target) => {
         const url = target.id === 'whatsapp'
           ? `${target.baseUrl}?text=${encodeURIComponent(shareText)}`
           : `${target.baseUrl}?url=${encodeURIComponent(prompt.image || pageUrl)}&text=${encodeURIComponent(`${prompt.title}\n\n${prompt.promptText}${prompt.image ? `\n\n${pageUrl}` : ''}`)}`

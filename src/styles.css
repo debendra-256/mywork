@@ -674,3 +674,53 @@
 }
 /* Hide Social Trends section as requested */
 .social-trends { display: none; }
+
+/* Video frames for Blogger / Video Prompts */
+.tile-video-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1.25;
+  background: #000;
+  overflow: hidden;
+  border-radius: 12px 12px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tile-video-frame .tile-video-iframe,
+.tile-video-frame video {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  object-fit: cover;
+  background: #000;
+}
+
+.tile-video-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.detail-cover-video {
+  position: relative;
+  aspect-ratio: 1.25 !important;
+  background: #000 !important;
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.detail-cover-video .detail-video-iframe,
+.detail-cover-video video {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  object-fit: contain;
+  background: #000;
+}

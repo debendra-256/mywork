@@ -11,6 +11,7 @@ export interface Prompt {
   createdAt: string
   image?: string
   imageAlt?: string
+  video?: string
   hashtags?: string[]
   /** All labels the source gives this prompt, so a filter can match any of them instead of only the first. */
   labels?: string[]
