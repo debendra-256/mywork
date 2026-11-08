@@ -528,3 +528,5 @@
   color: #dc2626;
   font-size: 10px;
 }
+/* Hide Social Trends section as requested */
+.social-trends { display: none; }

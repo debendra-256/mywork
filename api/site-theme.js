@@ -1,8 +1,8 @@
-import { randomBytes } from 'node:crypto'
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { isValidAdminSession } from './admin-auth.js'
 import { hasBloggerAuthorization } from './tools-config.js'
+import { safeWriteJson, safeReadJson } from './config-writer.js'
 
 const themeIds = ['premium-purple', 'dark-neon', 'ocean-cyan', 'sunset-gradient']
 const defaultTheme = themeIds[0]
@@ -19,7 +19,7 @@ function normalizeTheme(input) {
 
 async function readTheme(env) {
   try {
-    return normalizeTheme(JSON.parse(await readFile(configFile(env), 'utf8')))
+    return normalizeTheme(await safeReadJson(configFile(env)))
   } catch (error) {
     if (error?.code === 'ENOENT') return { version: 1, theme: defaultTheme }
     throw error
@@ -28,10 +28,7 @@ async function readTheme(env) {
 
 async function writeTheme(env, config) {
   const target = configFile(env)
-  await mkdir(path.dirname(target), { recursive: true })
-  const temporary = `${target}.${process.pid}.${randomBytes(4).toString('hex')}.tmp`
-  await writeFile(temporary, `${JSON.stringify(config, null, 2)}\n`, { encoding: 'utf8' })
-  await rename(temporary, target)
+  await safeWriteJson(target, config)
 }
 
 export default async function handler(request, response, env = process.env) {

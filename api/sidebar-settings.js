@@ -1,8 +1,8 @@
-import { randomBytes } from 'node:crypto'
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { isValidAdminSession } from './admin-auth.js'
 import { hasBloggerAuthorization } from './tools-config.js'
+import { safeWriteJson, safeReadJson } from './config-writer.js'
 
 const defaultSettings = { version: 1, visible: true }
 
@@ -17,7 +17,7 @@ function normalizeSettings(input) {
 
 async function readSettings(env) {
   try {
-    return normalizeSettings(JSON.parse(await readFile(configFile(env), 'utf8')))
+    return normalizeSettings(await safeReadJson(configFile(env)))
   } catch (error) {
     if (error?.code === 'ENOENT') return defaultSettings
     throw error
@@ -26,10 +26,7 @@ async function readSettings(env) {
 
 async function writeSettings(env, config) {
   const target = configFile(env)
-  await mkdir(path.dirname(target), { recursive: true })
-  const temporary = `${target}.${process.pid}.${randomBytes(4).toString('hex')}.tmp`
-  await writeFile(temporary, `${JSON.stringify(config, null, 2)}\n`, { encoding: 'utf8' })
-  await rename(temporary, target)
+  await safeWriteJson(target, config)
 }
 
 export default async function handler(request, response, env = process.env) {
