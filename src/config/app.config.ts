@@ -7,7 +7,7 @@ function normalizeBaseUrl(value: string | undefined): string {
 const communitySettings: { whatsappPhone: string; instagramUsername: string; facebookPageId: string; telegramUsername: string } = {
   // Add the community IDs here. WhatsApp must include the country code, digits only.
   whatsappPhone: '',
-  instagramUsername: '',
+  instagramUsername: 'imgmojo',
   facebookPageId: '',
   telegramUsername: '',
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ChevronDown, Clock3, Copy, DatabaseBackup, Facebook, Flame, Headphones, Heart, Home, ImagePlus, Images, Instagram, KeyRound, Layers, LayoutDashboard, LayoutGrid, Lock, LockOpen, LogOut, Menu, MessageCircle, Play, Plus, Search, Send, Share2, ShieldCheck, SlidersHorizontal, Sparkles, Store, Sun, Trash2, X, Zap } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ChevronDown, Clock3, Copy, DatabaseBackup, Facebook, Flame, Headphones, Heart, Home, ImagePlus, Images, KeyRound, Layers, LayoutDashboard, LayoutGrid, Lock, LockOpen, LogOut, Menu, MessageCircle, Play, Plus, Search, Send, Share2, ShieldCheck, SlidersHorizontal, Sparkles, Store, Sun, Trash2, X, Zap } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { appConfig } from '../config/app.config'
 import { toolsConfig, type ToolDefinition, type ToolIcon } from '../config/ToolsConfig'
@@ -96,7 +96,6 @@ const NAV_SECTIONS: { id: string; label: string; href?: string; items?: NavItem[
       { label: 'Creator dashboard', href: '/login', glyph: 'dashboard' },
     ],
   },
-  { id: 'pricing', label: 'Pricing', href: '/store' },
 ]
 
 const TOOL_MEGA_GROUPS = [
@@ -326,8 +325,29 @@ function ThemeMenu() {
   </div>
 }
 
-function Sidebar({ open, active, categories, onSelect, onHome, onClose, menuSections, activeUtility, onOpenUtility }: { open: boolean; active: string; categories: PromptFilter[]; onSelect: (category: string) => void; onHome: () => void; onClose: () => void; menuSections: SideMenuSection[]; activeUtility: string | null; onOpenUtility: (id: string) => void }) {
+function InstagramIcon({ size = 15 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={{ verticalAlign: 'middle', flexShrink: 0 }}>
+      <defs>
+        <radialGradient id="ig-real-grad" cx="20%" cy="110%" r="130%">
+          <stop offset="0%" stopColor="#ffda77" />
+          <stop offset="10%" stopColor="#fca84e" />
+          <stop offset="50%" stopColor="#e95950" />
+          <stop offset="70%" stopColor="#d62976" />
+          <stop offset="90%" stopColor="#962fbf" />
+          <stop offset="100%" stopColor="#4f5bd5" />
+        </radialGradient>
+      </defs>
+      <rect x="2" y="2" width="20" height="20" rx="5.5" stroke="url(#ig-real-grad)" strokeWidth="2.2" />
+      <circle cx="12" cy="12" r="4.2" stroke="url(#ig-real-grad)" strokeWidth="2.2" />
+      <circle cx="17.6" cy="6.4" r="1.4" fill="url(#ig-real-grad)" />
+    </svg>
+  )
+}
+
+function Sidebar({ open, active, onSelect, onHome, onClose, activeUtility, onOpenUtility }: { open: boolean; active: string; onSelect: (category: string) => void; onHome: () => void; onClose: () => void; activeUtility: string | null; onOpenUtility: (id: string) => void }) {
   const { utility, libraryMenu, feature } = useTools()
+  const allTools = [...utility, ...libraryMenu, ...feature].filter((tool) => tool.enabled !== false)
   return <>
     {open && <button className="sidebar-scrim" aria-label="Close navigation" onClick={onClose} />}
     <aside className={`sidebar ${open ? 'sidebar-open' : ''}`}>
@@ -335,21 +355,53 @@ function Sidebar({ open, active, categories, onSelect, onHome, onClose, menuSect
       <div className="side-section"><p className="side-label">YOUR SPACE</p>
         <Link className="side-item" to="/" onClick={onHome}><Home size={17} />Home</Link>
         <button className={`side-item ${active === 'All' && !activeUtility ? 'selected' : ''}`} onClick={() => onSelect('All')}><Headphones size={17} />Discover</button>
-        {utility.map((tool) => <button key={tool.id} className={`side-item side-tool side-tool-${tool.icon} ${activeUtility === tool.id ? 'selected' : ''}`} onClick={() => onOpenUtility(tool.id)}><span className="side-tool-chip"><ToolGlyph icon={tool.icon} /></span><span className="side-tool-label">{tool.title}</span></button>)}
         <button className={`side-item ${active === 'Trending' ? 'selected' : ''}`} onClick={() => onSelect('Trending')}><Flame size={17} />Trending prompts<span className="side-live-dot" /></button>
-        {libraryMenu.map((tool) => tool.href && /^https?:/i.test(tool.href)
-          ? <a key={tool.id} className={`side-item side-tool side-tool-${tool.icon}`} href={tool.href} target="_blank" rel="noreferrer" onClick={onClose}><span className="side-tool-chip"><ToolGlyph icon={tool.icon} /></span><span className="side-tool-label">{tool.title}</span></a>
-          : tool.load || tool.href
-            ? <Link key={tool.id} className={`side-item side-tool side-tool-${tool.icon}`} to={tool.href ?? '/'} onClick={onClose}><span className="side-tool-chip"><ToolGlyph icon={tool.icon} /></span><span className="side-tool-label">{tool.title}</span></Link>
-            : <button key={tool.id} className={`side-item side-tool side-tool-${tool.icon}`} type="button" disabled title="Coming soon"><span className="side-tool-chip"><ToolGlyph icon={tool.icon} /></span><span className="side-tool-label">{tool.title}</span></button>)}
         <button className={`side-item ${active === 'Latest' ? 'selected' : ''}`} onClick={() => onSelect('Latest')}><Clock3 size={17} />Latest prompts</button>
         <button className="side-item" onClick={() => onSelect('Saved')}><Bookmark size={17} />Saved collection</button>
       </div>
-      {feature.length > 0 && <div className="side-section side-special-menus">{feature.map((tool) => <details className="side-menu-group" open key={tool.id}><summary className="side-menu-heading"><span className="side-menu-mark">{tool.menu?.mark ?? tool.title.slice(0, 1)}</span>{tool.menu?.heading ?? tool.title}<span className="side-menu-count">1</span></summary><div className="side-menu-items"><Link className="side-item side-subcategory" to={tool.href ?? '/'} onClick={onClose}><span>{tool.menu?.label ?? tool.title}</span><small>New</small></Link></div></details>)}</div>}
-      <div className="side-section side-special-menus">{menuSections.map((section) => <details className="side-menu-group" key={section.id}><summary className="side-menu-heading"><span className="side-menu-mark">{section.id === 'events' ? 'E' : 'F'}</span>{section.title}<span className="side-menu-count">{section.items.length}</span></summary><div className="side-menu-items">{section.items.map((item) => <button key={item.id} className={`side-item side-subcategory ${active === item.name ? 'selected' : ''}`} title={item.timing ? `${item.name} · ${item.timing}` : item.name} onClick={() => onSelect(item.name)}><span>{item.name}</span>{item.timing && <small>{item.timing}</small>}</button>)}</div></details>)}</div>
-      <div className="side-section side-special-menus"><details className="side-menu-group" open><summary className="side-menu-heading"><span className="side-menu-mark">$</span>Sell online<span className="side-menu-count">2</span></summary><div className="side-menu-items"><Link className="side-item side-subcategory" to="/store?type=software" onClick={onClose}><span>Software</span></Link><Link className="side-item side-subcategory" to="/store?type=pdf" onClick={onClose}><span>PDF</span></Link></div></details></div>
-      <div className="side-section side-categories" id="categories"><div className="side-label-row"><p className="side-label">CATEGORIES</p><SlidersHorizontal size={14} /></div>
-        {categories.map((category) => <button key={category.key} className={`side-item category-side-item ${active.toLowerCase() === category.key ? 'selected' : ''}`} onClick={() => onSelect(category.label)}><span className="side-category-mark">{category.label.slice(0, 1)}</span>{category.label}</button>)}
+      <div className="side-section">
+        <p className="side-label">TOOLS</p>
+        {allTools.map((tool) => {
+          if (tool.placement === 'utility') {
+            return (
+              <button
+                key={tool.id}
+                className={`side-item side-tool side-tool-${tool.icon} ${activeUtility === tool.id ? 'selected' : ''}`}
+                onClick={() => { onOpenUtility(tool.id); onClose() }}
+              >
+                <span className="side-tool-chip"><ToolGlyph icon={tool.icon} /></span>
+                <span className="side-tool-label">{tool.title}</span>
+              </button>
+            )
+          }
+          if (tool.href && /^https?:/i.test(tool.href)) {
+            return (
+              <a
+                key={tool.id}
+                className={`side-item side-tool side-tool-${tool.icon}`}
+                href={tool.href}
+                target="_blank"
+                rel="noreferrer"
+                onClick={onClose}
+              >
+                <span className="side-tool-chip"><ToolGlyph icon={tool.icon} /></span>
+                <span className="side-tool-label">{tool.title}</span>
+              </a>
+            )
+          }
+          return (
+            <Link
+              key={tool.id}
+              className={`side-item side-tool side-tool-${tool.icon}`}
+              to={tool.href ?? '/'}
+              onClick={onClose}
+            >
+              <span className="side-tool-chip"><ToolGlyph icon={tool.icon} /></span>
+              <span className="side-tool-label">{tool.title}</span>
+              {tool.placement === 'feature' && <small>New</small>}
+            </Link>
+          )
+        })}
       </div>
       <div className="sidebar-bottom"><span className="sidebar-version">IMGMOJO · A CREATIVE LIBRARY</span></div>
     </aside>
@@ -582,7 +634,7 @@ function CategoryPills({ active, categories, onSelect }: { active: string; categ
   return <div className="category-pills" aria-label="Filter by category">{visible.map((item) => <button key={item.key} className={active.toLowerCase() === item.key ? 'category-pill active' : 'category-pill'} onClick={() => onSelect(item.label)}>{item.label === 'Trending' && <Flame size={14} />}{item.label === 'Latest' && <Clock3 size={14} />}{item.label !== 'Trending' && item.label !== 'Latest' && item.label !== 'All' && <span className="pill-mark">✳</span>}{item.label}</button>)}</div>
 }
 
-function HomePage({ prompts, blogStatus, onAddTrend, menuSections, adminLoggedIn = false }: { prompts: Prompt[]; blogStatus: 'idle' | 'loading' | 'connected' | 'error'; onAddTrend: (trend: SocialTrend) => boolean; menuSections: SideMenuSection[]; adminLoggedIn?: boolean }) {
+function HomePage({ prompts, blogStatus, onAddTrend, adminLoggedIn = false }: { prompts: Prompt[]; blogStatus: 'idle' | 'loading' | 'connected' | 'error'; onAddTrend: (trend: SocialTrend) => boolean; menuSections?: SideMenuSection[]; adminLoggedIn?: boolean }) {
   const [active, setActive] = useState('All')
   const [query, setQuery] = useState(() => new URLSearchParams(window.location.search).get('q') ?? '')
   const [savedIds, setSavedIds] = useState<string[]>([])
@@ -664,7 +716,7 @@ function HomePage({ prompts, blogStatus, onAddTrend, menuSections, adminLoggedIn
   }, [location.hash])
   const addedTrendIds = useMemo(() => new Set(prompts.filter((prompt) => prompt.id.startsWith('social-')).map((prompt) => prompt.id.slice('social-'.length))), [prompts])
   const title = active === 'All' ? 'All prompts' : active === 'Saved' ? 'Your saved prompts' : active === 'Trending' ? 'Trending prompts' : active === 'Latest' ? 'Latest prompts' : `${active} prompts`
-  return <div className={`app-layout ${sidebarVisible ? '' : 'no-sidebar'}`}><Header onMenu={() => setSidebarOpen(true)} onJump={jumpTo} onFilter={(filter) => { setActive(filter); setActiveUtility(null); jumpTo('explore') }} adminLoggedIn={adminLoggedIn} /><div className="page-body">{sidebarVisible && <Sidebar open={sidebarOpen} active={active} categories={filters} onHome={() => { setActive('All'); setQuery(''); setActiveUtility(null); setSidebarOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }} activeUtility={activeUtility} onOpenUtility={(id) => { setActiveUtility(id); setSidebarOpen(false); window.setTimeout(() => document.getElementById('home-utility-area')?.scrollIntoView({ behavior: 'smooth' }), 0) }} onSelect={(category) => { setActive(category); setActiveUtility(null); setSidebarOpen(false); document.getElementById('explore')?.scrollIntoView({ behavior: 'smooth' }) }} onClose={() => setSidebarOpen(false)} menuSections={menuSections} />}
+  return <div className={`app-layout ${sidebarVisible ? '' : 'no-sidebar'}`}><Header onMenu={() => setSidebarOpen(true)} onJump={jumpTo} onFilter={(filter) => { setActive(filter); setActiveUtility(null); jumpTo('explore') }} adminLoggedIn={adminLoggedIn} /><div className="page-body">{sidebarVisible && <Sidebar open={sidebarOpen} active={active} onHome={() => { setActive('All'); setQuery(''); setActiveUtility(null); setSidebarOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }} activeUtility={activeUtility} onOpenUtility={(id) => { setActiveUtility(id); setSidebarOpen(false); window.setTimeout(() => document.getElementById('home-utility-area')?.scrollIntoView({ behavior: 'smooth' }), 0) }} onSelect={(category) => { setActive(category); setActiveUtility(null); setSidebarOpen(false); document.getElementById('explore')?.scrollIntoView({ behavior: 'smooth' }) }} onClose={() => setSidebarOpen(false)} />}
     <main className={`main-content ${utilityOpen ? 'recorder-main-wide' : ''}`}><div className={`content-inner ${utilityOpen ? 'recorder-content-wide' : ''}`}>{!utilityOpen && <HomeLanding onJump={jumpTo} onOpenTool={openTool} onNavigate={navigate} />}<div id="home-utility-area">{utilityTool?.overlay ? null : utilityTool && <ToolSurface tool={utilityTool} />}</div>{utilityTool?.overlay && <ToolSurface tool={utilityTool} onClose={() => setActiveUtility(null)} />}<FeatureHero prompts={prompts} /><HomeCategoryShowcase prompts={prompts} onViewAll={showHashtag} /><ProductScroller /><SocialTrendSection addedIds={addedTrendIds} onAdd={onAddTrend} />
       <section className="browse-section" id="explore"><div className="section-topline"><div><span className="section-kicker">THE PROMPT LIBRARY</span><h2>Find your next <em>favorite.</em></h2></div><span className="collection-count">{prompts.length} IDEAS <span>↗</span></span></div>
         
@@ -673,7 +725,7 @@ function HomePage({ prompts, blogStatus, onAddTrend, menuSections, adminLoggedIn
         <div className="results-heading"><div><span className="results-label">BROWSE THE LIBRARY</span><h3>{title}</h3></div><span className="results-number">{String(shown.length).padStart(2, '0')} <span>prompts</span></span></div>
         {shown.length ? <><div className="prompt-grid">{pageItems.map((prompt, index) => <PromptCard key={prompt.id} prompt={prompt} index={(currentPage - 1) * libraryPageSize + index} saved={savedIds.includes(prompt.id)} engagement={engagementFor(counts, prompt.id)} onToggleSave={() => toggleSave(prompt.id)} onCopy={() => record(prompt.id, 'copy')} onHashtag={showHashtag} />)}</div>{totalPages > 1 && <nav className="library-pagination" aria-label="Prompt pages"><button className="pagination-edge" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}><ArrowLeft size={15} /> Prev</button><div className="pagination-pages">{pageNumbers(currentPage, totalPages).map((entry, index) => entry === 'gap' ? <span className="pagination-gap" key={`gap-${index}`}>…</span> : <button key={entry} className={`pagination-page ${entry === currentPage ? 'is-current' : ''}`} onClick={() => goToPage(entry)} aria-current={entry === currentPage ? 'page' : undefined}>{entry}</button>)}</div><span className="pagination-range">{String((currentPage - 1) * libraryPageSize + 1).padStart(2, '0')}–{String((currentPage - 1) * libraryPageSize + pageItems.length).padStart(2, '0')} of {String(shown.length).padStart(2, '0')}</span><button className="pagination-edge" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}>Next <ArrowRight size={15} /></button></nav>}</> : <div className="no-results"><span>✳</span><h3>{blogStatus === 'connected' && prompts.length === 0 ? 'No published posts yet' : 'No prompts here yet'}</h3><p>{blogStatus === 'connected' && prompts.length === 0 ? 'Your Blogger connection is working. Publish a post on the blog and it will appear here.' : 'Try another category or search term.'}</p>{!(blogStatus === 'connected' && prompts.length === 0) && <button onClick={() => { setActive('All'); setQuery('') }}>Show all prompts <ArrowRight size={15} /></button>}</div>}
       </section>
-      <footer className="page-footer"><Link to="/" className="brand"><img className="brand-symbol brand-logo" src="/images/imgmojo-mark.png" alt="" /><span>{appConfig.appName}<i>.</i></span></Link><p>Good ideas like being shared.</p><div className="community-links"><strong>Join our community</strong><nav aria-label="Join our social communities">{appConfig.community.whatsappPhone && <a className="community-whatsapp" href={`https://wa.me/${appConfig.community.whatsappPhone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"><MessageCircle size={16} /> WhatsApp</a>}{appConfig.community.instagramUsername && <a className="community-instagram" href={`https://instagram.com/${encodeURIComponent(appConfig.community.instagramUsername)}`} target="_blank" rel="noreferrer"><Instagram size={16} /> Instagram</a>}{appConfig.community.facebookPageId && <a className="community-facebook" href={`https://facebook.com/${encodeURIComponent(appConfig.community.facebookPageId)}`} target="_blank" rel="noreferrer"><Facebook size={16} /> Facebook</a>}{appConfig.community.telegramUsername && <a className="community-telegram" href={`https://t.me/${encodeURIComponent(appConfig.community.telegramUsername)}`} target="_blank" rel="noreferrer"><Send size={16} /> Telegram</a>}</nav></div><span>© {new Date().getFullYear()} {appConfig.appName}</span></footer>
+      <footer className="page-footer"><Link to="/" className="brand"><img className="brand-symbol brand-logo" src="/images/imgmojo-mark.png" alt="" /><span>{appConfig.appName}<i>.</i></span></Link><p>Good ideas like being shared.</p><div className="community-links"><strong>Join our community</strong><nav aria-label="Join our social communities"><a className="community-instagram" href="https://instagram.com/imgmojo" target="_blank" rel="noreferrer"><InstagramIcon size={16} /> @imgmojo</a>{appConfig.community.whatsappPhone && <a className="community-whatsapp" href={`https://wa.me/${appConfig.community.whatsappPhone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"><MessageCircle size={16} /> WhatsApp</a>}{appConfig.community.facebookPageId && <a className="community-facebook" href={`https://facebook.com/${encodeURIComponent(appConfig.community.facebookPageId)}`} target="_blank" rel="noreferrer"><Facebook size={16} /> Facebook</a>}{appConfig.community.telegramUsername && <a className="community-telegram" href={`https://t.me/${encodeURIComponent(appConfig.community.telegramUsername)}`} target="_blank" rel="noreferrer"><Send size={16} /> Telegram</a>}</nav></div><span>© {new Date().getFullYear()} {appConfig.appName}</span></footer>
     </div></main></div></div>
 }
 
