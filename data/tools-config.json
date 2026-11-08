@@ -3,8 +3,9 @@
   "overrides": {
     "qr-code": true,
     "screen-recorder": true,
-    "shorts": false,
-    "element-scanner": false
+    "shorts": true,
+    "element-scanner": false,
+    "site-theme": true
   },
   "customTools": []
 }

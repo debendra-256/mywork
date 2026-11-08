@@ -11,23 +11,33 @@ declare module 'lucide-react' {
   export const Camera: LucideIcon
   export const Check: LucideIcon
   export const ChevronDown: LucideIcon
+  export const ChevronLeft: LucideIcon
+  export const ChevronRight: LucideIcon
   export const Clock3: LucideIcon
   export const Command: LucideIcon
   export const Copy: LucideIcon
   export const DatabaseBackup: LucideIcon
   export const Download: LucideIcon
+  export const Droplets: LucideIcon
   export const Eraser: LucideIcon
   export const Facebook: LucideIcon
+  export const FileText: LucideIcon
   export const Flame: LucideIcon
+  export const FolderOpen: LucideIcon
+  export const Gift: LucideIcon
+  export const Globe: LucideIcon
   export const Headphones: LucideIcon
   export const Heart: LucideIcon
   export const Home: LucideIcon
+  export const Image: LucideIcon
   export const ImagePlus: LucideIcon
   export const Images: LucideIcon
   export const Instagram: LucideIcon
+  export const IdCard: LucideIcon
   export const KeyRound: LucideIcon
   export const Layers: LucideIcon
   export const LayoutDashboard: LucideIcon
+  export const LayoutGrid: LucideIcon
   export const Lock: LucideIcon
   export const LockOpen: LucideIcon
   export const LogOut: LucideIcon
@@ -38,8 +48,14 @@ declare module 'lucide-react' {
   export const MicOff: LucideIcon
   export const Monitor: LucideIcon
   export const MonitorPlay: LucideIcon
+  export const Moon: LucideIcon
   export const Network: LucideIcon
+  export const Palette: LucideIcon
+  export const PanelLeft: LucideIcon
+  export const PanelLeftClose: LucideIcon
+  export const PanelLeftOpen: LucideIcon
   export const Pause: LucideIcon
+  export const PenLine: LucideIcon
   export const Play: LucideIcon
   export const Plus: LucideIcon
   export const QrCode: LucideIcon
@@ -55,8 +71,10 @@ declare module 'lucide-react' {
   export const Sparkles: LucideIcon
   export const Star: LucideIcon
   export const Store: LucideIcon
+  export const Sun: LucideIcon
   export const Trash2: LucideIcon
   export const Undo2: LucideIcon
+  export const Users: LucideIcon
   export const Video: LucideIcon
   export const Wand2: LucideIcon
   export const X: LucideIcon

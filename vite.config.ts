@@ -11,6 +11,8 @@ import accountHandler from './api/account.js'
 import socialAuthHandler from './api/social-auth.js'
 import posterPhotoHandler from './api/poster-photo.js'
 import toolsConfigHandler from './api/tools-config.js'
+import siteThemeHandler from './api/site-theme.js'
+import sidebarSettingsHandler from './api/sidebar-settings.js'
 
 type ApiHandler = (request: any, response: any, env: Record<string, string>) => Promise<unknown>
 
@@ -44,6 +46,8 @@ function localSocialTrendsApi() {
       }
       server.middlewares.use('/api/admin-store', jsonApi(adminStoreHandler))
       server.middlewares.use('/api/tools-config', jsonApi(toolsConfigHandler))
+      server.middlewares.use('/api/site-theme', jsonApi(siteThemeHandler))
+      server.middlewares.use('/api/sidebar-settings', jsonApi(sidebarSettingsHandler))
       server.middlewares.use('/api/account', jsonApi(accountHandler))
       server.middlewares.use('/api/social-auth', jsonApi(socialAuthHandler))
       server.middlewares.use('/api/poster-photo', posterPhotoHandler)

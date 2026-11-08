@@ -1,0 +1,38 @@
+/* ============================================================
+   Sidebar layout (src/tools/sidebar)
+   Loaded from main.tsx so the public pages know both states.
+   Only .app-layout.no-sidebar — i.e. the admin switched the
+   navigation rail off — is restyled here; every rule below the
+   900px line keeps the phone layout exactly as it was.
+   Colours come from the site theme tokens, never hardcoded.
+   ============================================================ */
+
+.app-layout.no-sidebar .menu-toggle{display:none}
+
+@media(min-width:901px){
+  /* The window is ~250px wider without the rail, so the landing takes it. */
+  .app-layout.no-sidebar .landing{max-width:1330px}
+
+  .app-layout.no-sidebar .landing-hero{border-radius:clamp(20px,2.2vw,30px);box-shadow:var(--shadow-strong)}
+  .app-layout.no-sidebar .landing-hero::after{content:"";position:absolute;z-index:0;inset:0;pointer-events:none;background:radial-gradient(46% 62% at 84% 12%,var(--hero-glow),transparent 68%)}
+  .app-layout.no-sidebar .landing-hero-panel{position:relative;z-index:1;gap:clamp(30px,3.6vw,64px);padding:clamp(34px,4.2vw,62px) clamp(32px,4.4vw,70px) clamp(64px,6vw,84px)}
+  .app-layout.no-sidebar .landing-hero-copy{gap:19px}
+  .app-layout.no-sidebar .landing-hero-copy h1{max-width:16ch;font-size:clamp(40px,4.3vw,64px)}
+  .app-layout.no-sidebar .landing-hero-copy p{max-width:46ch;font-size:clamp(15px,1.25vw,18px)}
+  .app-layout.no-sidebar .landing-eyebrow{padding:8px 15px;font-size:12px}
+  .app-layout.no-sidebar .landing-cta{height:52px;padding:0 24px;border-radius:14px;font-size:13px}
+  .app-layout.no-sidebar .landing-arrow{width:44px;height:44px}
+  .app-layout.no-sidebar .landing-art{min-height:330px}
+  .app-layout.no-sidebar .landing-art-screen{width:min(100%,470px);border-radius:20px}
+  .app-layout.no-sidebar .landing-art-body{gap:16px;padding:22px}
+  .app-layout.no-sidebar .landing-art-chip{width:44px;height:44px;border-radius:14px}
+
+  .app-layout.no-sidebar .landing-trust-item{gap:14px;padding:18px 20px}
+  .app-layout.no-sidebar .landing-trust-icon{width:44px;height:44px;flex:0 0 44px;border-radius:13px}
+  .app-layout.no-sidebar .landing-trust-item strong{font-size:13px}
+  .app-layout.no-sidebar .landing-trust-item span{font-size:11px}
+  .app-layout.no-sidebar .landing-category-card{gap:15px;min-height:104px;padding:18px}
+  .app-layout.no-sidebar .landing-category-icon{width:50px;height:50px;flex:0 0 50px;border-radius:15px}
+  .app-layout.no-sidebar .landing-category-copy strong{font-size:14px}
+  .app-layout.no-sidebar .landing-category-copy small{font-size:11px}
+}

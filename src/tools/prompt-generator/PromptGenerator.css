@@ -1,0 +1,8 @@
+/* The generator keeps its home-page artwork; this only frames it as a standalone tool page. */
+.prompt-generator-page{width:min(100%,1180px);margin:0 auto;padding:26px clamp(12px,2.5vw,28px) 60px}
+.prompt-generator-page .home-photo-generator{margin:0}
+@media(max-width:700px){.prompt-generator-page{padding:16px 10px 36px}}
+/* The composer's three controls need 320px more room than the row gives them. */
+@media(max-width:360px){.prompt-generator-page .home-prompt-composer-footer{flex-wrap:wrap;gap:8px}.prompt-generator-page .home-photo-generate-button{width:100%}}
+/* A themed card paints dark in a dark site theme, so the file name can't stay the light-theme grey. */
+html[data-scheme='dark'] .home-photo-selected{color:var(--ink-soft)}

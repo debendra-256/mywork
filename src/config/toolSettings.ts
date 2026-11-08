@@ -28,7 +28,7 @@ export interface EffectiveTools {
 }
 
 const storageKey = 'promptseen:tools-config'
-const toolIcons: readonly ToolIcon[] = ['images', 'youtube', 'image-plus', 'video', 'qr-code', 'download', 'scan', 'layers', 'message', 'network', 'eraser', 'sparkles', 'wand', 'bot', 'monitor-play', 'zap', 'instagram', 'smile']
+const toolIcons: readonly ToolIcon[] = ['images', 'youtube', 'image-plus', 'video', 'qr-code', 'download', 'scan', 'layers', 'message', 'network', 'eraser', 'droplets', 'sparkles', 'wand', 'bot', 'monitor-play', 'zap', 'instagram', 'smile', 'palette', 'panel-left', 'id-card']
 const idPattern = /^[a-z0-9][a-z0-9-]{1,47}$/
 const emptySettings: ToolSettings = { version: 1, overrides: {}, customTools: [] }
 

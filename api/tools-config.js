@@ -3,7 +3,7 @@ import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { isValidAdminSession } from './admin-auth.js'
 
-async function hasBloggerAuthorization(request) {
+export async function hasBloggerAuthorization(request) {
   const token = String(request.headers.authorization ?? '').match(/^Bearer\s+(.+)$/i)?.[1]
   if (!token) return false
   const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(token)}`)
@@ -12,7 +12,7 @@ async function hasBloggerAuthorization(request) {
   return String(tokenInfo.scope ?? '').split(' ').includes('https://www.googleapis.com/auth/blogger')
 }
 
-const toolIcons = ['images', 'youtube', 'image-plus', 'video', 'qr-code', 'download', 'scan', 'layers', 'message', 'network', 'eraser', 'sparkles', 'wand', 'bot', 'monitor-play', 'zap', 'instagram']
+const toolIcons = ['images', 'youtube', 'image-plus', 'video', 'qr-code', 'download', 'scan', 'layers', 'message', 'network', 'eraser', 'sparkles', 'wand', 'bot', 'monitor-play', 'zap', 'instagram', 'smile', 'palette']
 const idPattern = /^[a-z0-9][a-z0-9-]{1,47}$/
 
 function configFile(env) {

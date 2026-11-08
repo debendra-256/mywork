@@ -1,9 +1,14 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Bot, Check, ChevronDown, Clock3, Copy, DatabaseBackup, Download, Eraser, Facebook, Flame, Headphones, Heart, Home, ImagePlus, Images, Instagram, KeyRound, Layers, LayoutDashboard, Lock, LockOpen, LogOut, Menu, MessageCircle, MonitorPlay, Network, Plus, QrCode, ScanLine, Search, Send, Share2, ShieldCheck, SlidersHorizontal, Smile, Sparkles, Store, Trash2, Video, Wand2, X, Youtube, Zap } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ChevronDown, Clock3, Copy, DatabaseBackup, Facebook, Flame, Headphones, Heart, Home, ImagePlus, Images, Instagram, KeyRound, Layers, LayoutDashboard, LayoutGrid, Lock, LockOpen, LogOut, Menu, MessageCircle, Play, Plus, Search, Send, Share2, ShieldCheck, SlidersHorizontal, Sparkles, Store, Sun, Trash2, X, Zap } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { appConfig } from '../config/app.config'
 import { toolsConfig, type ToolDefinition, type ToolIcon } from '../config/ToolsConfig'
+import { ToolGlyph, toolIconNames } from '../config/toolIcons'
 import { applyToolSettings, saveToolSettings, useToolSettings, useToolSettingsStatus, useTools, type ToolSettings } from '../config/toolSettings'
+import { saveSiteTheme, useSiteTheme } from '../theme/siteTheme'
+import { useSidebarVisible } from '../tools/sidebar/sidebarSettings'
+import { themeList, type ThemeId } from '../theme/themes'
+import { HomeLanding } from '../landing/Landing'
 import { ToolSurface } from '../tools/toolRuntime'
 import { promptCatalog, promptCategories } from '../data/prompt-catalog'
 import { createPromptRepository } from '../data/prompt-repository'
@@ -32,16 +37,70 @@ function openNewBloggerPost() {
   window.open(`https://www.blogger.com/blog/posts/${encodeURIComponent(blogId)}`, '_blank', 'noopener,noreferrer')
 }
 
-const TOP_MENU_SECTIONS: { id: string; label: string; items: { toolId?: string; label?: string; href?: string }[] }[] = [
-  { id: 'pdf', label: 'PDF', items: [{ label: 'Digital PDFs', href: '/store?type=pdf' }] },
-  { id: 'image', label: 'Image', items: [{ toolId: 'collage' }, { toolId: 'poster' }, { toolId: 'remove-object' }] },
-  { id: 'write', label: 'Write', items: [{ toolId: 'fakechat' }, { toolId: 'emoji-text' }, { toolId: 'mindcloud' }] },
-  { id: 'video', label: 'Video', items: [{ toolId: 'screen-recorder' }, { toolId: 'shorts' }] },
-  { id: 'file', label: 'File', items: [{ toolId: 'qr-code' }, { toolId: 'video-downloader' }] },
+const navGlyphs = { library: Images, trending: Flame, latest: Clock3, saved: Bookmark, categories: LayoutGrid, store: Store, how: Play, dashboard: LayoutDashboard }
+
+interface NavItem {
+  label?: string
+  group?: string
+  toolId?: string
+  href?: string
+  /** Scrolls to an element id on the home page. */
+  jump?: string
+  /** Applies a library filter on the home page. */
+  filter?: string
+  glyph?: keyof typeof navGlyphs
+}
+
+/** The top-bar navigation from the design: Home, Tools, Prompts, Resources, Pricing. */
+const NAV_SECTIONS: { id: string; label: string; href?: string; items?: NavItem[] }[] = [
+  { id: 'home', label: 'Home', href: '/' },
+  {
+    id: 'tools',
+    label: 'Tools',
+    items: [
+      { group: 'Image', toolId: 'collage' },
+      { toolId: 'poster' },
+      { toolId: 'remove-object' },
+      { toolId: 'watermark-remover' },
+      { toolId: 'passport-photo' },
+      { group: 'PDF', label: 'Digital PDFs', href: '/store?type=pdf', glyph: 'store' },
+      { group: 'Video', toolId: 'screen-recorder' },
+      { toolId: 'shorts' },
+      { group: 'Writing', toolId: 'fakechat' },
+      { toolId: 'emoji-text' },
+      { group: 'File', toolId: 'qr-code' },
+      { toolId: 'video-downloader' },
+      { group: 'AI & Utilities', toolId: 'prompt-generator' },
+      { toolId: 'mindcloud' },
+    ],
+  },
+  {
+    id: 'prompts',
+    label: 'Prompts',
+    items: [
+      { label: 'Prompt library', jump: 'explore', glyph: 'library' },
+      { label: 'Trending prompts', filter: 'Trending', glyph: 'trending' },
+      { label: 'Latest prompts', filter: 'Latest', glyph: 'latest' },
+      { label: 'Saved collection', filter: 'Saved', glyph: 'saved' },
+      { label: 'Browse categories', jump: 'categories', glyph: 'categories' },
+    ],
+  },
+  {
+    id: 'resources',
+    label: 'Resources',
+    items: [
+      { label: 'Digital store', href: '/store', glyph: 'store' },
+      { toolId: 'prompt-generator' },
+      { toolId: 'passport-photo' },
+      { label: 'How ImgMojo works', jump: 'how-it-works', glyph: 'how' },
+      { label: 'Creator dashboard', href: '/login', glyph: 'dashboard' },
+    ],
+  },
+  { id: 'pricing', label: 'Pricing', href: '/store' },
 ]
 
 /** Category dropdowns in the top bar, styled after classic AI tool menus. */
-function TopMenu() {
+function TopMenu({ onJump, onFilter, signedIn }: { onJump?: (id: string) => void; onFilter?: (filter: string) => void; signedIn: boolean }) {
   const [open, setOpen] = useState<string | null>(null)
   const ref = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
@@ -62,7 +121,7 @@ function TopMenu() {
     }
   }, [open])
   const tools = new Map([...utility, ...libraryMenu, ...feature].map((tool) => [tool.id, tool]))
-  const pick = (item: { toolId?: string; label?: string; href?: string }) => {
+  const pick = (item: NavItem) => {
     setOpen(null)
     const tool = item.toolId ? tools.get(item.toolId) : undefined
     if (tool && tool.enabled === false) return
@@ -72,23 +131,43 @@ function TopMenu() {
       else navigate('/')
       return
     }
-    const target = tool?.href ?? item.href
+    if (item.jump) {
+      if (window.location.pathname === '/') onJump?.(item.jump)
+      else navigate(`/#${item.jump}`)
+      return
+    }
+    if (item.filter) {
+      if (window.location.pathname === '/') onFilter?.(item.filter)
+      else navigate('/?filter=' + encodeURIComponent(item.filter))
+      return
+    }
+    const target = tool?.href ?? (item.href === '/login' && signedIn ? '/admin' : item.href)
     if (target) navigate(target)
   }
-  return <div className="top-cats" ref={ref}>{TOP_MENU_SECTIONS.map((section) => {
+  return <div className="top-cats" ref={ref}>{NAV_SECTIONS.map((section) => {
+    if (!section.items) return <Link key={section.id} className="top-nav-link" to={section.href ?? '/'} onClick={() => setOpen(null)}>{section.label}</Link>
     const items = section.items
       .map((item) => ({ item, tool: item.toolId ? tools.get(item.toolId) : undefined }))
-      .filter(({ item, tool }) => (item.href || tool) && (!tool || tool.enabled !== false))
+      .filter(({ item, tool }) => (item.label || tool) && (!tool || tool.enabled !== false))
     if (!items.length) return null
     return <div className="top-cat" key={section.id}>
       <button type="button" className={`top-cat-btn ${open === section.id ? 'is-open' : ''}`} aria-expanded={open === section.id} onClick={() => setOpen(open === section.id ? null : section.id)}>{section.label}<ChevronDown size={14} /></button>
-      {open === section.id && <div className="top-cat-menu" role="menu">{items.map(({ item, tool }) => <button type="button" role="menuitem" className="top-cat-item" key={item.toolId ?? item.label} onClick={() => pick(item)}><span className="top-cat-item-icon"><ToolIcon icon={tool?.icon ?? 'images'} /></span><span className="top-cat-item-label">{tool?.title ?? item.label}</span>{tool?.placement === 'feature' && <small>New</small>}</button>)}</div>}
+      {open === section.id && <div className={`top-cat-menu ${section.items.some((item) => item.group) ? 'is-grouped' : ''}`} role="menu">{items.map(({ item, tool }) => {
+        const Glyph = item.glyph ? navGlyphs[item.glyph] : null
+        return <button type="button" role="menuitem" className="top-cat-item" key={`${item.group ?? ''}-${item.toolId ?? item.label}`} onClick={() => pick(item)}>
+          {item.group && <span className="top-cat-group">{item.group}</span>}
+          <span className="top-cat-item-icon">{tool ? <ToolGlyph icon={tool.icon} /> : Glyph ? <Glyph size={15} /> : null}</span>
+          <span className="top-cat-item-label">{tool?.title ?? item.label}</span>
+          {tool?.placement === 'feature' && <small>New</small>}
+        </button>
+      })}</div>}
     </div>
   })}</div>
 }
 
-function Header({ onMenu, adminLoggedIn = false }: { onMenu: () => void; adminLoggedIn?: boolean }) {
+function Header({ onMenu, onJump, onFilter, adminLoggedIn = false }: { onMenu: () => void; onJump?: (id: string) => void; onFilter?: (filter: string) => void; adminLoggedIn?: boolean }) {
   const [search, setSearch] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
   const navigate = useNavigate()
   const signedIn = adminLoggedIn || hasBloggerSession()
   const submit = (event: FormEvent) => {
@@ -98,37 +177,52 @@ function Header({ onMenu, adminLoggedIn = false }: { onMenu: () => void; adminLo
   return <header className="topbar">
     <button className="menu-toggle" onClick={onMenu} aria-label="Open navigation"><Menu size={21} /></button>
     <Link to="/" className="brand"><img className="brand-symbol brand-logo" src="/images/imgmojo-mark.png" alt="" /><span>{appConfig.appName || 'ImgMojo'}<i>.</i></span></Link>
-    <nav className="top-links" aria-label="Main navigation"><Link to="/">Home</Link></nav>
-    <TopMenu />
-    <form className="top-search" onSubmit={submit}><Search size={17} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search prompts, styles, ideas" aria-label="Search prompts" /><kbd>⌘ K</kbd></form>
-    <Link className="creator-link" to={signedIn ? '/admin' : '/login'}>{signedIn ? 'Dashboard' : 'Log in'} <ArrowUpRight size={15} /></Link>
+    <TopMenu onJump={onJump} onFilter={onFilter} signedIn={signedIn} />
+    <div className="top-actions">
+      <form className={`top-search ${searchOpen ? 'is-open' : ''}`} onSubmit={submit}>
+        <button type="button" className="top-search-toggle" aria-label={searchOpen ? 'Close search' : 'Search the site'} aria-expanded={searchOpen} onClick={() => setSearchOpen((open) => !open)}><Search size={18} /></button>
+        {searchOpen && <input autoFocus value={search} onChange={(event) => setSearch(event.target.value)} onBlur={() => { if (!search) setSearchOpen(false) }} onKeyDown={(event) => { if (event.key === 'Escape') { setSearch(''); setSearchOpen(false) } }} placeholder="Search tools, prompts, ideas" aria-label="Search prompts" />}
+      </form>
+      {signedIn && <ThemeMenu />}
+      <Link className="creator-link" to={signedIn ? '/admin' : '/login'}><LayoutDashboard size={15} />{signedIn ? 'Dashboard' : 'Log in'}</Link>
+    </div>
   </header>
 }
 
-const toolIcons: Record<ToolIcon, typeof Images> = {
-  images: Images,
-  youtube: Youtube,
-  'image-plus': ImagePlus,
-  video: Video,
-  'qr-code': QrCode,
-  download: Download,
-  scan: ScanLine,
-  layers: Layers,
-  message: MessageCircle,
-  network: Network,
-  eraser: Eraser,
-  sparkles: Sparkles,
-  wand: Wand2,
-  bot: Bot,
-  'monitor-play': MonitorPlay,
-  zap: Zap,
-  instagram: Instagram,
-  smile: Smile,
-}
-
-function ToolIcon({ icon, size = 17 }: { icon: ToolIcon; size?: number }) {
-  const Icon = toolIcons[icon]
-  return <Icon size={size} />
+/**
+ * Header shortcut for a signed-in admin: switch the live site theme straight from
+ * the top bar. It writes through the same endpoint as Admin → Site Theme, so the
+ * choice is saved for every visitor, not just this tab.
+ */
+function ThemeMenu() {
+  const [open, setOpen] = useState(false)
+  const [notice, setNotice] = useState('')
+  const ref = useRef<HTMLDivElement>(null)
+  const theme = useSiteTheme()
+  useEffect(() => {
+    if (!open) return
+    const onPointerDown = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    return () => document.removeEventListener('mousedown', onPointerDown)
+  }, [open])
+  const choose = (id: ThemeId) => {
+    setNotice('')
+    void saveSiteTheme(id).catch((reason) => setNotice(reason instanceof Error ? reason.message : 'Could not save the theme.'))
+  }
+  return <div className="theme-menu" ref={ref}>
+    <button type="button" className={`theme-menu-btn ${open ? 'is-open' : ''}`} aria-expanded={open} aria-label="Site theme" onClick={() => setOpen((value) => !value)}><Sun size={18} /></button>
+    {open && <div className="theme-menu-panel" role="menu">
+      <p className="theme-menu-title">Site theme</p>
+      {themeList.map((item) => <button type="button" role="menuitem" className={`theme-menu-item ${item.id === theme ? 'is-active' : ''}`} key={item.id} onClick={() => choose(item.id)}>
+        <span className="theme-menu-swatches">{item.swatches.map((color) => <i style={{ background: color }} key={color} />)}</span>
+        <span className="theme-menu-name"><strong>{item.name}</strong><small>Theme {item.number}</small></span>
+        {item.id === theme && <Check size={15} />}
+      </button>)}
+      <p className={`theme-menu-note ${notice ? 'is-error' : ''}`}>{notice || 'Saves for every visitor. Full previews in Admin → Site Theme.'}</p>
+    </div>}
+  </div>
 }
 
 function Sidebar({ open, active, categories, onSelect, onHome, onClose, menuSections, activeUtility, onOpenUtility }: { open: boolean; active: string; categories: PromptFilter[]; onSelect: (category: string) => void; onHome: () => void; onClose: () => void; menuSections: SideMenuSection[]; activeUtility: string | null; onOpenUtility: (id: string) => void }) {
@@ -140,17 +234,17 @@ function Sidebar({ open, active, categories, onSelect, onHome, onClose, menuSect
       <div className="side-section"><p className="side-label">YOUR SPACE</p>
         <Link className="side-item" to="/" onClick={onHome}><Home size={17} />Home</Link>
         <button className={`side-item ${active === 'All' && !activeUtility ? 'selected' : ''}`} onClick={() => onSelect('All')}><Headphones size={17} />Discover</button>
-        {utility.map((tool) => <button key={tool.id} className={`side-item side-tool side-tool-${tool.icon} ${activeUtility === tool.id ? 'selected' : ''}`} onClick={() => onOpenUtility(tool.id)}><span className="side-tool-chip"><ToolIcon icon={tool.icon} /></span><span className="side-tool-label">{tool.title}</span></button>)}
+        {utility.map((tool) => <button key={tool.id} className={`side-item side-tool side-tool-${tool.icon} ${activeUtility === tool.id ? 'selected' : ''}`} onClick={() => onOpenUtility(tool.id)}><span className="side-tool-chip"><ToolGlyph icon={tool.icon} /></span><span className="side-tool-label">{tool.title}</span></button>)}
         <button className={`side-item ${active === 'Trending' ? 'selected' : ''}`} onClick={() => onSelect('Trending')}><Flame size={17} />Trending prompts<span className="side-live-dot" /></button>
         {libraryMenu.map((tool) => tool.href && /^https?:/i.test(tool.href)
-          ? <a key={tool.id} className={`side-item side-tool side-tool-${tool.icon}`} href={tool.href} target="_blank" rel="noreferrer" onClick={onClose}><span className="side-tool-chip"><ToolIcon icon={tool.icon} /></span><span className="side-tool-label">{tool.title}</span></a>
+          ? <a key={tool.id} className={`side-item side-tool side-tool-${tool.icon}`} href={tool.href} target="_blank" rel="noreferrer" onClick={onClose}><span className="side-tool-chip"><ToolGlyph icon={tool.icon} /></span><span className="side-tool-label">{tool.title}</span></a>
           : tool.load || tool.href
-            ? <Link key={tool.id} className={`side-item side-tool side-tool-${tool.icon}`} to={tool.href ?? '/'} onClick={onClose}><span className="side-tool-chip"><ToolIcon icon={tool.icon} /></span><span className="side-tool-label">{tool.title}</span></Link>
-            : <button key={tool.id} className={`side-item side-tool side-tool-${tool.icon}`} type="button" disabled title="Coming soon"><span className="side-tool-chip"><ToolIcon icon={tool.icon} /></span><span className="side-tool-label">{tool.title}</span></button>)}
+            ? <Link key={tool.id} className={`side-item side-tool side-tool-${tool.icon}`} to={tool.href ?? '/'} onClick={onClose}><span className="side-tool-chip"><ToolGlyph icon={tool.icon} /></span><span className="side-tool-label">{tool.title}</span></Link>
+            : <button key={tool.id} className={`side-item side-tool side-tool-${tool.icon}`} type="button" disabled title="Coming soon"><span className="side-tool-chip"><ToolGlyph icon={tool.icon} /></span><span className="side-tool-label">{tool.title}</span></button>)}
         <button className={`side-item ${active === 'Latest' ? 'selected' : ''}`} onClick={() => onSelect('Latest')}><Clock3 size={17} />Latest prompts</button>
         <button className="side-item" onClick={() => onSelect('Saved')}><Bookmark size={17} />Saved collection</button>
       </div>
-      {feature.length > 0 && <div className="side-section side-special-menus"><details className="side-menu-group" open><summary className="side-menu-heading"><span className="side-menu-mark">M</span>Mind Cloud<span className="side-menu-count">{feature.length}</span></summary><div className="side-menu-items">{feature.map((tool) => <Link key={tool.id} className="side-item side-subcategory" to={tool.href ?? '/'} onClick={onClose}><span>{tool.id === 'mindcloud' ? 'Mind map maker' : tool.title}</span><small>New</small></Link>)}</div></details></div>}
+      {feature.length > 0 && <div className="side-section side-special-menus">{feature.map((tool) => <details className="side-menu-group" open key={tool.id}><summary className="side-menu-heading"><span className="side-menu-mark">{tool.menu?.mark ?? tool.title.slice(0, 1)}</span>{tool.menu?.heading ?? tool.title}<span className="side-menu-count">1</span></summary><div className="side-menu-items"><Link className="side-item side-subcategory" to={tool.href ?? '/'} onClick={onClose}><span>{tool.menu?.label ?? tool.title}</span><small>New</small></Link></div></details>)}</div>}
       <div className="side-section side-special-menus">{menuSections.map((section) => <details className="side-menu-group" key={section.id}><summary className="side-menu-heading"><span className="side-menu-mark">{section.id === 'events' ? 'E' : 'F'}</span>{section.title}<span className="side-menu-count">{section.items.length}</span></summary><div className="side-menu-items">{section.items.map((item) => <button key={item.id} className={`side-item side-subcategory ${active === item.name ? 'selected' : ''}`} title={item.timing ? `${item.name} · ${item.timing}` : item.name} onClick={() => onSelect(item.name)}><span>{item.name}</span>{item.timing && <small>{item.timing}</small>}</button>)}</div></details>)}</div>
       <div className="side-section side-special-menus"><details className="side-menu-group" open><summary className="side-menu-heading"><span className="side-menu-mark">$</span>Sell online<span className="side-menu-count">2</span></summary><div className="side-menu-items"><Link className="side-item side-subcategory" to="/store?type=software" onClick={onClose}><span>Software</span></Link><Link className="side-item side-subcategory" to="/store?type=pdf" onClick={onClose}><span>PDF</span></Link></div></details></div>
       <div className="side-section side-categories" id="categories"><div className="side-label-row"><p className="side-label">CATEGORIES</p><SlidersHorizontal size={14} /></div>
@@ -387,50 +481,7 @@ function CategoryPills({ active, categories, onSelect }: { active: string; categ
   return <div className="category-pills" aria-label="Filter by category">{visible.map((item) => <button key={item.key} className={active.toLowerCase() === item.key ? 'category-pill active' : 'category-pill'} onClick={() => onSelect(item.label)}>{item.label === 'Trending' && <Flame size={14} />}{item.label === 'Latest' && <Clock3 size={14} />}{item.label !== 'Trending' && item.label !== 'Latest' && item.label !== 'All' && <span className="pill-mark">✳</span>}{item.label}</button>)}</div>
 }
 
-function HomePhotoPromptGenerator({ canGenerate }: { canGenerate: boolean }) {
-  const [generatorMode, setGeneratorMode] = useState<'text' | 'image'>('text')
-  const [photo, setPhoto] = useState('')
-  const [photoName, setPhotoName] = useState('')
-  const [instruction, setInstruction] = useState('')
-  const [prompt, setPrompt] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
-  const choosePhoto = (file: File | undefined) => {
-    setError('')
-    if (!file) return
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { setError('Choose a JPG, PNG, or WebP photo.'); return }
-    if (file.size > 3 * 1024 * 1024) { setError('Choose an image smaller than 3 MB.'); return }
-    const reader = new FileReader()
-    reader.onload = () => {
-      if (typeof reader.result === 'string') { setPhoto(reader.result); setPhotoName(file.name) }
-      else setError('Could not read this photo. Try another one.')
-    }
-    reader.onerror = () => setError('Could not read this photo. Try another one.')
-    reader.readAsDataURL(file)
-  }
-  const generate = async () => {
-    if (generatorMode === 'image' && !photo) { setError('Choose a photo first.'); return }
-    if (generatorMode === 'text' && !instruction.trim()) { setError('Describe a prompt idea first.'); return }
-    setBusy(true); setError('')
-    try {
-      const response = await fetch('/api/generate-prompt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: generatorMode === 'image' ? photo : '', instruction }),
-      })
-      const result = await response.json().catch(() => ({})) as { prompt?: string; error?: string }
-      if (!response.ok || !result.prompt) throw new Error(result.error || `Prompt generation failed (${response.status}).`)
-      setPrompt(result.prompt)
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not generate a prompt from this photo.') }
-    finally { setBusy(false) }
-  }
-  const copyPrompt = async () => {
-    try { await navigator.clipboard.writeText(prompt) } catch { setError('Could not copy the prompt. Select the text and copy it instead.') }
-  }
-  return <section className="home-photo-generator" aria-labelledby="home-photo-generator-title"><div className="home-photo-generator-heading"><span className="section-kicker">AI PROMPT GENERATOR</span><h2 id="home-photo-generator-title">Free AI Prompt Generator</h2></div>{canGenerate ? <div className="home-photo-generator-workspace"><div className="home-prompt-composer"><textarea aria-label="Describe an image to generate a prompt for" value={instruction} onChange={(event) => setInstruction(event.target.value)} placeholder="Generate a prompt for..." rows={5} /><div className="home-prompt-composer-footer"><label className="home-generator-mode"><select value={generatorMode} aria-label="Input mode" onChange={(event) => { const mode = event.target.value as 'text' | 'image'; setGeneratorMode(mode); setError('') }}><option value="text">Text</option><option value="image">Image</option></select><ChevronDown size={15} /></label><label className="home-image-attach"><ImagePlus size={15} />{photo ? photoName : 'Add image'}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { setGeneratorMode('image'); choosePhoto(event.currentTarget.files?.[0]) }} /></label><button className="home-photo-generate-button" type="button" onClick={() => void generate()} disabled={busy || (generatorMode === 'image' ? !photo : !instruction.trim())}>{busy ? 'Generating…' : 'Generate'} <ArrowRight size={16} /></button></div></div>{generatorMode === 'image' && photo && <div className="home-photo-selected"><img src={photo} alt="Selected photo preview" /><span>{photoName}</span></div>}{prompt && <div className="home-generated-prompt"><label htmlFor="generated-home-prompt">Generated prompt</label><textarea id="generated-home-prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={7} /><button type="button" onClick={() => void copyPrompt()}><Copy size={14} /> Copy prompt</button></div>}{error && <p className="editor-error" role="alert">{error}</p>}</div> : <div className="home-photo-generator-login"><p>Sign in with your Blogger account to use the prompt generator.</p><Link to="/login" className="home-photo-generate-button">Sign in to generate <ArrowRight size={15} /></Link></div>}</section>
-}
-
-function HomePage({ prompts, blogStatus, canGenerate, onAddTrend, menuSections, adminLoggedIn = false }: { prompts: Prompt[]; blogStatus: 'idle' | 'loading' | 'connected' | 'error'; canGenerate: boolean; onAddTrend: (trend: SocialTrend) => boolean; menuSections: SideMenuSection[]; adminLoggedIn?: boolean }) {
+function HomePage({ prompts, blogStatus, onAddTrend, menuSections, adminLoggedIn = false }: { prompts: Prompt[]; blogStatus: 'idle' | 'loading' | 'connected' | 'error'; onAddTrend: (trend: SocialTrend) => boolean; menuSections: SideMenuSection[]; adminLoggedIn?: boolean }) {
   const [active, setActive] = useState('All')
   const [query, setQuery] = useState(() => new URLSearchParams(window.location.search).get('q') ?? '')
   const [savedIds, setSavedIds] = useState<string[]>([])
@@ -438,11 +489,17 @@ function HomePage({ prompts, blogStatus, canGenerate, onAddTrend, menuSections, 
   const [activeUtility, setActiveUtility] = useState<string | null>(null)
   const [page, setPage] = useState(1)
   const { counts, record } = useEngagement()
-  const { utility } = useTools()
+  const { utility, libraryMenu, feature } = useTools()
+  const sidebarVisible = useSidebarVisible()
   const utilityTool = activeUtility ? utility.find((tool) => tool.id === activeUtility) ?? null : null
   const utilityOpen = Boolean(utilityTool)
   const location = useLocation()
-  useEffect(() => { setQuery(new URLSearchParams(location.search).get('q') ?? '') }, [location.search])
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const filter = params.get('filter')
+    setQuery(params.get('q') ?? '')
+    if (filter === 'Trending' || filter === 'Latest' || filter === 'Saved') setActive(filter)
+  }, [location.search])
   useEffect(() => {
     const openPending = () => {
       try {
@@ -484,10 +541,30 @@ function HomePage({ prompts, blogStatus, canGenerate, onAddTrend, menuSections, 
     setActive(tag)
     document.getElementById('explore')?.scrollIntoView({ behavior: 'smooth' })
   }
+  const navigate = useNavigate()
+  /** Landing and top-bar links name a section id on the home page. */
+  const jumpTo = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
+  }
+  const openTool = (toolId: string) => {
+    const tool = [...utility, ...libraryMenu, ...feature].find((item) => item.id === toolId)
+    if (!tool?.enabled) return
+    if (tool.placement === 'utility') {
+      setActiveUtility(tool.id)
+      setSidebarOpen(false)
+      window.setTimeout(() => jumpTo('home-utility-area'), 0)
+      return
+    }
+    if (tool.href) navigate(tool.href)
+  }
+  useEffect(() => {
+    const id = decodeURIComponent(location.hash.slice(1))
+    if (id) window.setTimeout(() => jumpTo(id), 80)
+  }, [location.hash])
   const addedTrendIds = useMemo(() => new Set(prompts.filter((prompt) => prompt.id.startsWith('social-')).map((prompt) => prompt.id.slice('social-'.length))), [prompts])
   const title = active === 'All' ? 'All prompts' : active === 'Saved' ? 'Your saved prompts' : active === 'Trending' ? 'Trending prompts' : active === 'Latest' ? 'Latest prompts' : `${active} prompts`
-  return <div className="app-layout"><Header onMenu={() => setSidebarOpen(true)} adminLoggedIn={adminLoggedIn} /><div className="page-body"><Sidebar open={sidebarOpen} active={active} categories={filters} onHome={() => { setActive('All'); setQuery(''); setActiveUtility(null); setSidebarOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }} activeUtility={activeUtility} onOpenUtility={(id) => { setActiveUtility(id); setSidebarOpen(false); window.setTimeout(() => document.getElementById('home-generator-area')?.scrollIntoView({ behavior: 'smooth' }), 0) }} onSelect={(category) => { setActive(category); setActiveUtility(null); setSidebarOpen(false); document.getElementById('explore')?.scrollIntoView({ behavior: 'smooth' }) }} onClose={() => setSidebarOpen(false)} menuSections={menuSections} />
-    <main className={`main-content ${utilityOpen ? 'recorder-main-wide' : ''}`}><div className={`content-inner ${utilityOpen ? 'recorder-content-wide' : ''}`}><div id="home-generator-area">{utilityTool?.overlay ? null : utilityTool ? <ToolSurface tool={utilityTool} /> : <HomePhotoPromptGenerator canGenerate={canGenerate} />}</div>{utilityTool?.overlay && <ToolSurface tool={utilityTool} onClose={() => setActiveUtility(null)} />}<FeatureHero prompts={prompts} /><HomeCategoryShowcase prompts={prompts} onViewAll={showHashtag} /><ProductScroller /><SocialTrendSection addedIds={addedTrendIds} onAdd={onAddTrend} />
+  return <div className={`app-layout ${sidebarVisible ? '' : 'no-sidebar'}`}><Header onMenu={() => setSidebarOpen(true)} onJump={jumpTo} onFilter={(filter) => { setActive(filter); setActiveUtility(null); jumpTo('explore') }} adminLoggedIn={adminLoggedIn} /><div className="page-body">{sidebarVisible && <Sidebar open={sidebarOpen} active={active} categories={filters} onHome={() => { setActive('All'); setQuery(''); setActiveUtility(null); setSidebarOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }} activeUtility={activeUtility} onOpenUtility={(id) => { setActiveUtility(id); setSidebarOpen(false); window.setTimeout(() => document.getElementById('home-utility-area')?.scrollIntoView({ behavior: 'smooth' }), 0) }} onSelect={(category) => { setActive(category); setActiveUtility(null); setSidebarOpen(false); document.getElementById('explore')?.scrollIntoView({ behavior: 'smooth' }) }} onClose={() => setSidebarOpen(false)} menuSections={menuSections} />}
+    <main className={`main-content ${utilityOpen ? 'recorder-main-wide' : ''}`}><div className={`content-inner ${utilityOpen ? 'recorder-content-wide' : ''}`}>{!utilityOpen && <HomeLanding onJump={jumpTo} onOpenTool={openTool} onNavigate={navigate} />}<div id="home-utility-area">{utilityTool?.overlay ? null : utilityTool && <ToolSurface tool={utilityTool} />}</div>{utilityTool?.overlay && <ToolSurface tool={utilityTool} onClose={() => setActiveUtility(null)} />}<FeatureHero prompts={prompts} /><HomeCategoryShowcase prompts={prompts} onViewAll={showHashtag} /><ProductScroller /><SocialTrendSection addedIds={addedTrendIds} onAdd={onAddTrend} />
       <section className="browse-section" id="explore"><div className="section-topline"><div><span className="section-kicker">THE PROMPT LIBRARY</span><h2>Find your next <em>favorite.</em></h2></div><span className="collection-count">{prompts.length} IDEAS <span>↗</span></span></div>
         
         <div className="inline-search"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search prompts, styles, ideas" aria-label="Filter the prompt library" />{query && <button onClick={() => setQuery('')} aria-label="Clear search"><X size={15} /></button>}</div>
@@ -618,7 +695,7 @@ function AccountPage() {
 }
 
 function ToolPage({ tool }: { tool: ToolDefinition }) {
-  return <div className="detail-shell"><Header onMenu={() => {}} /><ToolSurface tool={tool} /></div>
+  return <div className="detail-shell tool-page"><Header onMenu={() => {}} /><ToolSurface tool={tool} /></div>
 }
 
 function PromptPage({ prompts }: { prompts: Prompt[] }) {
@@ -731,7 +808,7 @@ function AdminShell({ onLogout, bloggerConnected, children }: { onLogout: () => 
   const { admin: adminTools } = useTools()
   const pathname = location.pathname.replace(/\/$/, '')
   const onAdminToolPage = adminTools.some((tool) => tool.path === pathname)
-  return <div className="admin-shell"><header className="admin-topbar"><Link to="/" className="brand"><img className="brand-symbol brand-logo" src="/images/imgmojo-mark.png" alt="" /><span>{appConfig.appName}<i>.</i></span></Link><div className="admin-topbar-right">{!bloggerConnected && <Link className="admin-connect-blogger" to="/login">Connect Blogger</Link>}<Link className="admin-view-site" to="/">View site <ArrowUpRight size={14} /></Link><button className="admin-header-logout" onClick={onLogout}><LogOut size={15} />Logout</button><button className="admin-avatar" aria-label={`${appConfig.adminDisplayName} profile`}>{appConfig.adminDisplayName.slice(0, 1).toUpperCase()}</button></div></header><div className="admin-body"><aside className="admin-nav"><span className="admin-nav-title">WORKSPACE</span><Link to="/admin" className={!isCreate && !isMenus && !isPdfUpload && !isAiModels && !isProducts && !isTools && !onAdminToolPage ? 'admin-nav-link active' : 'admin-nav-link'}><LayoutDashboard size={17} />Overview</Link><Link to="/admin/new" onClick={openNewBloggerPost} className={isCreate ? 'admin-nav-link active' : 'admin-nav-link'}><Plus size={18} />Create prompt</Link><Link to="/admin/ai-models" className={isAiModels ? 'admin-nav-link active' : 'admin-nav-link'}><Sparkles size={17} />AI models</Link><Link to="/admin/products" className={isProducts ? 'admin-nav-link active' : 'admin-nav-link'}><Store size={17} />Digital store</Link>{adminTools.map((tool) => <Link key={tool.id} to={tool.href ?? tool.path ?? '/admin'} className={tool.path === pathname ? 'admin-nav-link active' : 'admin-nav-link'}><ToolIcon icon={tool.icon} />{tool.title}</Link>)}<Link to="/admin/upload-pdf" className={isPdfUpload ? 'admin-nav-link active' : 'admin-nav-link'}><Copy size={17} />Upload PDF product</Link><Link to="/admin/tools" className={isTools ? 'admin-nav-link active' : 'admin-nav-link'}><Layers size={17} />Tools</Link><Link to="/admin/menus" className={isMenus ? 'admin-nav-link active' : 'admin-nav-link'}><SlidersHorizontal size={17} />Manage menus</Link><a className="admin-nav-link" href="/#categories"><SlidersHorizontal size={17} />Categories</a><div className="admin-nav-bottom"><div className="admin-preview-note"><ShieldCheck size={17} /><strong>Blogger publishing</strong><p>Your connection stays active in this tab until the access token expires.</p></div><button className="admin-nav-link logout-link" onClick={onLogout}><LogOut size={17} />Sign out</button></div></aside><main className="admin-main"><div className="admin-main-inner">{children}</div></main></div></div>
+  return <div className="admin-shell"><header className="admin-topbar"><Link to="/" className="brand"><img className="brand-symbol brand-logo" src="/images/imgmojo-mark.png" alt="" /><span>{appConfig.appName}<i>.</i></span></Link><div className="admin-topbar-right">{!bloggerConnected && <Link className="admin-connect-blogger" to="/login">Connect Blogger</Link>}<Link className="admin-view-site" to="/">View site <ArrowUpRight size={14} /></Link><button className="admin-header-logout" onClick={onLogout}><LogOut size={15} />Logout</button><button className="admin-avatar" aria-label={`${appConfig.adminDisplayName} profile`}>{appConfig.adminDisplayName.slice(0, 1).toUpperCase()}</button></div></header><div className="admin-body"><aside className="admin-nav"><span className="admin-nav-title">WORKSPACE</span><Link to="/admin" className={!isCreate && !isMenus && !isPdfUpload && !isAiModels && !isProducts && !isTools && !onAdminToolPage ? 'admin-nav-link active' : 'admin-nav-link'}><LayoutDashboard size={17} />Overview</Link><Link to="/admin/new" onClick={openNewBloggerPost} className={isCreate ? 'admin-nav-link active' : 'admin-nav-link'}><Plus size={18} />Create prompt</Link><Link to="/admin/ai-models" className={isAiModels ? 'admin-nav-link active' : 'admin-nav-link'}><Sparkles size={17} />AI models</Link><Link to="/admin/products" className={isProducts ? 'admin-nav-link active' : 'admin-nav-link'}><Store size={17} />Digital store</Link>{adminTools.map((tool) => <Link key={tool.id} to={tool.href ?? tool.path ?? '/admin'} className={tool.path === pathname ? 'admin-nav-link active' : 'admin-nav-link'}><ToolGlyph icon={tool.icon} />{tool.title}</Link>)}<Link to="/admin/upload-pdf" className={isPdfUpload ? 'admin-nav-link active' : 'admin-nav-link'}><Copy size={17} />Upload PDF product</Link><Link to="/admin/tools" className={isTools ? 'admin-nav-link active' : 'admin-nav-link'}><Layers size={17} />Tools</Link><Link to="/admin/menus" className={isMenus ? 'admin-nav-link active' : 'admin-nav-link'}><SlidersHorizontal size={17} />Manage menus</Link><a className="admin-nav-link" href="/#categories"><SlidersHorizontal size={17} />Categories</a><div className="admin-nav-bottom"><div className="admin-preview-note"><ShieldCheck size={17} /><strong>Blogger publishing</strong><p>Your connection stays active in this tab until the access token expires.</p></div><button className="admin-nav-link logout-link" onClick={onLogout}><LogOut size={17} />Sign out</button></div></aside><main className="admin-main"><div className="admin-main-inner">{children}</div></main></div></div>
 }
 
 interface ProductDraft { id: string; title: string; type: 'software' | 'pdf'; description: string; price: string; currency: string; watermarkText: string; premium: boolean; sortOrder: number }
@@ -1148,14 +1225,14 @@ function ToolsManager() {
       <div className="managed-menu-list">{toolsConfig.map((tool) => {
         const enabled = enabledFor(tool)
         const overridden = settings.overrides[tool.id] !== undefined
-        return <div className="tools-manager-row" key={tool.id}><span className="tools-manager-icon"><ToolIcon icon={tool.icon} size={15} /></span><span className="tools-manager-copy"><strong>{tool.title}</strong><small>{tool.placement} · {tool.load ? 'bundled component' : tool.href ? 'external link' : 'coming soon'}{overridden ? ' · custom setting' : ''}</small></span>{overridden && <button className="admin-text-link" type="button" disabled={busy} onClick={() => resetOverride(tool.id)}>Reset</button>}<button className={`ai-model-toggle ${enabled ? 'enabled' : ''}`} type="button" role="switch" aria-checked={enabled} aria-label={`${enabled ? 'Disable' : 'Enable'} ${tool.title}`} disabled={busy} onClick={() => setOverride(tool.id, !enabled)}><span />{enabled ? 'ON' : 'OFF'}</button></div>
+        return <div className="tools-manager-row" key={tool.id}><span className="tools-manager-icon"><ToolGlyph icon={tool.icon} size={15} /></span><span className="tools-manager-copy"><strong>{tool.title}</strong><small>{tool.placement} · {tool.load ? 'bundled component' : tool.href ? 'external link' : 'coming soon'}{overridden ? ' · custom setting' : ''}</small></span>{overridden && <button className="admin-text-link" type="button" disabled={busy} onClick={() => resetOverride(tool.id)}>Reset</button>}<button className={`ai-model-toggle ${enabled ? 'enabled' : ''}`} type="button" role="switch" aria-checked={enabled} aria-label={`${enabled ? 'Disable' : 'Enable'} ${tool.title}`} disabled={busy} onClick={() => setOverride(tool.id, !enabled)}><span />{enabled ? 'ON' : 'OFF'}</button></div>
       })}</div>
     </section>
     <section className="editor-panel menu-create-panel tools-manager-custom"><div className="editor-panel-heading"><div><span className="admin-kicker">CUSTOM TOOL LINK</span><h2>Add a tool</h2><p>Adds a shortcut to the public sidebar. External links open in a new tab.</p></div></div>
-      <form className="tools-manager-add" onSubmit={addTool}><label className="editor-field">Tool name<input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={60} placeholder="e.g. Canva" required /></label><label className="editor-field">Link<input value={href} onChange={(event) => setHref(event.target.value)} placeholder="https://www.canva.com or /store" required /></label><label className="editor-field">Icon<select value={icon} onChange={(event) => setIcon(event.target.value as ToolIcon)}>{(['images', 'youtube', 'image-plus', 'video', 'qr-code', 'download', 'scan', 'layers', 'message', 'network', 'eraser', 'sparkles', 'wand', 'bot', 'monitor-play', 'zap', 'instagram'] as ToolIcon[]).map((name) => <option key={name} value={name}>{name}</option>)}</select></label><button className="admin-primary" type="submit" disabled={busy}><Plus size={15} /> Add tool</button></form>
+      <form className="tools-manager-add" onSubmit={addTool}><label className="editor-field">Tool name<input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={60} placeholder="e.g. Canva" required /></label><label className="editor-field">Link<input value={href} onChange={(event) => setHref(event.target.value)} placeholder="https://www.canva.com or /store" required /></label><label className="editor-field">Icon<select value={icon} onChange={(event) => setIcon(event.target.value as ToolIcon)}>{toolIconNames.map((name) => <option key={name} value={name}>{name}</option>)}</select></label><button className="admin-primary" type="submit" disabled={busy}><Plus size={15} /> Add tool</button></form>
     </section>
     <section className="admin-table-card"><div className="admin-table-head"><div><span className="admin-kicker">CUSTOM TOOLS</span><h2>Custom tools <small>{settings.customTools.length}</small></h2></div></div>
-      <div className="managed-menu-list">{settings.customTools.length ? settings.customTools.map((tool) => <div className="tools-manager-row" key={tool.id}><span className="tools-manager-icon"><ToolIcon icon={tool.icon} size={15} /></span><span className="tools-manager-copy"><strong>{tool.title}</strong><small>{tool.href}</small></span><button className={`ai-model-toggle ${tool.enabled ? 'enabled' : ''}`} type="button" role="switch" aria-checked={tool.enabled} aria-label={`${tool.enabled ? 'Disable' : 'Enable'} ${tool.title}`} disabled={busy} onClick={() => void persist({ ...settings, customTools: settings.customTools.map((item) => item.id === tool.id ? { ...item, enabled: !item.enabled } : item) }, `“${tool.title}” turned ${tool.enabled ? 'off' : 'on'}.`)}><span />{tool.enabled ? 'ON' : 'OFF'}</button><button className="menu-remove-button" type="button" disabled={busy} onClick={() => void persist({ ...settings, customTools: settings.customTools.filter((item) => item.id !== tool.id) }, `“${tool.title}” removed.`)} aria-label={`Remove ${tool.title}`}><Trash2 size={15} /></button></div>) : <p className="account-empty">No custom tools yet. Add one above.</p>}</div>
+      <div className="managed-menu-list">{settings.customTools.length ? settings.customTools.map((tool) => <div className="tools-manager-row" key={tool.id}><span className="tools-manager-icon"><ToolGlyph icon={tool.icon} size={15} /></span><span className="tools-manager-copy"><strong>{tool.title}</strong><small>{tool.href}</small></span><button className={`ai-model-toggle ${tool.enabled ? 'enabled' : ''}`} type="button" role="switch" aria-checked={tool.enabled} aria-label={`${tool.enabled ? 'Disable' : 'Enable'} ${tool.title}`} disabled={busy} onClick={() => void persist({ ...settings, customTools: settings.customTools.map((item) => item.id === tool.id ? { ...item, enabled: !item.enabled } : item) }, `“${tool.title}” turned ${tool.enabled ? 'off' : 'on'}.`)}><span />{tool.enabled ? 'ON' : 'OFF'}</button><button className="menu-remove-button" type="button" disabled={busy} onClick={() => void persist({ ...settings, customTools: settings.customTools.filter((item) => item.id !== tool.id) }, `“${tool.title}” removed.`)} aria-label={`Remove ${tool.title}`}><Trash2 size={15} /></button></div>) : <p className="account-empty">No custom tools yet. Add one above.</p>}</div>
     </section>
     {error && <p className="editor-error" role="alert">{error}</p>}
     {notice && <p className="menu-manager-message" role="status">{notice}</p>}
@@ -1283,6 +1360,6 @@ export default function App() {
     void loadCustomerSession()
   }, [])
   const adminAllowed = bloggerConnected || adminAuthenticated
-  return <Routes><Route path="/" element={<HomePage prompts={prompts} blogStatus={blogStatus} canGenerate={true} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /><Route path="/store" element={<StorePage />} />{pages.map((tool) => <Route key={tool.id} path={tool.path} element={<ToolPage tool={tool} />} />)}<Route path="/checkout/:productId" element={<CheckoutPage />} /><Route path="/prompt/:slug" element={<PromptPage prompts={prompts} />} /><Route path="/account" element={<AccountPage />} /><Route path="/login" element={<LoginPage onConnected={() => setBloggerConnected(true)} onAdminLogin={() => { setAdminAuthenticated(true); setAdminAuthReady(true) }} />} /><Route path="/admin/upload-pdf" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="/admin/*" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="*" element={<HomePage prompts={prompts} blogStatus={blogStatus} canGenerate={bloggerConnected} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /></Routes>
+  return <Routes><Route path="/" element={<HomePage prompts={prompts} blogStatus={blogStatus} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /><Route path="/store" element={<StorePage />} />{pages.map((tool) => <Route key={tool.id} path={tool.path} element={<ToolPage tool={tool} />} />)}<Route path="/checkout/:productId" element={<CheckoutPage />} /><Route path="/prompt/:slug" element={<PromptPage prompts={prompts} />} /><Route path="/account" element={<AccountPage />} /><Route path="/login" element={<LoginPage onConnected={() => setBloggerConnected(true)} onAdminLogin={() => { setAdminAuthenticated(true); setAdminAuthReady(true) }} />} /><Route path="/admin/upload-pdf" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="/admin/*" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="*" element={<HomePage prompts={prompts} blogStatus={blogStatus} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /></Routes>
 }
 
