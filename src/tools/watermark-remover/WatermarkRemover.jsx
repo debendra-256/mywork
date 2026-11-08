@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Download, Droplets, Eraser, Film, ImagePlus, LoaderCircle, Paintbrush, RotateCcw, ShieldCheck, Trash2, Undo2, Upload, Wand2, X } from 'lucide-react'
+import { Download, Droplets, Eraser, Film, ImagePlus, LoaderCircle, Paintbrush, Plus, RotateCcw, Scan, ShieldCheck, Square, Trash2, Undo2, Upload, Wand2, X } from 'lucide-react'
 import { ENGINE_DEFAULTS } from './engine'
 import VideoWatermarkRemover from './VideoWatermarkRemover'
 import './WatermarkRemover.css'
@@ -46,8 +46,11 @@ export default function WatermarkRemover() {
   const [busy, setBusy] = useState(false)
   const [progress, setProgress] = useState(0)
   const [stage, setStage] = useState('')
+  const [tool, setTool] = useState('rect')
   const [brushSize, setBrushSize] = useState(42)
   const [erasing, setErasing] = useState(false)
+  const [rectBox, setRectBox] = useState(null)
+  const [isDraggingBox, setIsDraggingBox] = useState(false)
   const [hasMask, setHasMask] = useState(false)
   const [undoDepth, setUndoDepth] = useState(0)
   const [showOriginal, setShowOriginal] = useState(false)
@@ -62,6 +65,9 @@ export default function WatermarkRemover() {
   const [feather, setFeather] = useState(ENGINE_DEFAULTS.feather)
 
   const displayRef = useRef(null)
+  const canvasFrameRef = useRef(null)
+  const boxDragRef = useRef(null)
+  const rectDrawRef = useRef(null)
   const workerRef = useRef(null)
   const sourceRef = useRef(null)
   const maskRef = useRef(null)
@@ -161,7 +167,9 @@ export default function WatermarkRemover() {
         undoRef.current = []
         strokeRef.current = null
         setUndoDepth(0)
-        setHasMask(false)
+        setHasMask(true)
+        setTool('rect')
+        setRectBox({ x: 0.68, y: 0.80, w: 0.28, h: 0.15 })
         setShowOriginal(false)
         setProgress(0)
         setStage('')
@@ -203,6 +211,9 @@ export default function WatermarkRemover() {
     setImage(null)
     setMode('empty')
     setHasMask(false)
+    setTool('rect')
+    setRectBox(null)
+    setIsDraggingBox(false)
     setUndoDepth(0)
     setShowOriginal(false)
     setNotice('')
@@ -215,7 +226,10 @@ export default function WatermarkRemover() {
     resultRef.current = null
     undoRef.current = []
     setUndoDepth(0)
-    setHasMask(false)
+    setHasMask(true)
+    setTool('rect')
+    setRectBox({ x: 0.68, y: 0.80, w: 0.28, h: 0.15 })
+    setIsDraggingBox(false)
     setShowOriginal(false)
     setMode('edit')
     setNotice('')
@@ -314,27 +328,183 @@ export default function WatermarkRemover() {
     const previous = undoRef.current.pop()
     maskCanvas.getContext('2d').putImageData(previous, 0, 0)
     setUndoDepth(undoRef.current.length)
-    setHasMask(maskHasPixels(previous))
+    setHasMask(maskHasPixels(previous) || Boolean(rectBox))
     paint()
   }
 
   const clearMask = () => {
     const maskCanvas = maskRef.current
-    if (!maskCanvas) return
-    const context = maskCanvas.getContext('2d')
-    undoRef.current = [...undoRef.current.slice(-(MAX_UNDO - 1)), context.getImageData(0, 0, maskCanvas.width, maskCanvas.height)]
-    setUndoDepth(undoRef.current.length)
-    context.clearRect(0, 0, maskCanvas.width, maskCanvas.height)
+    if (maskCanvas) {
+      const context = maskCanvas.getContext('2d')
+      undoRef.current = [...undoRef.current.slice(-(MAX_UNDO - 1)), context.getImageData(0, 0, maskCanvas.width, maskCanvas.height)]
+      setUndoDepth(undoRef.current.length)
+      context.clearRect(0, 0, maskCanvas.width, maskCanvas.height)
+    }
+    setRectBox(null)
     setHasMask(false)
     setError('')
     paint()
+  }
+
+  const applyPreset = (presetKey) => {
+    setTool('rect')
+    setHasMask(true)
+    if (presetKey === 'tl') setRectBox({ x: 0.04, y: 0.04, w: 0.25, h: 0.12 })
+    else if (presetKey === 'tr') setRectBox({ x: 0.71, y: 0.04, w: 0.25, h: 0.12 })
+    else if (presetKey === 'bl') setRectBox({ x: 0.04, y: 0.84, w: 0.25, h: 0.12 })
+    else if (presetKey === 'br') setRectBox({ x: 0.71, y: 0.84, w: 0.25, h: 0.12 })
+    else if (presetKey === 'banner') setRectBox({ x: 0.04, y: 0.84, w: 0.92, h: 0.13 })
+  }
+
+  const burnBoxToMask = () => {
+    if (!rectBox || !maskRef.current || !sourceRef.current) return
+    const maskCanvas = maskRef.current
+    const context = maskCanvas.getContext('2d')
+    const sw = sourceRef.current.width
+    const sh = sourceRef.current.height
+    undoRef.current = [...undoRef.current.slice(-(MAX_UNDO - 1)), context.getImageData(0, 0, maskCanvas.width, maskCanvas.height)]
+    setUndoDepth(undoRef.current.length)
+
+    context.fillStyle = '#818cf8'
+    const rx = Math.round(rectBox.x * sw)
+    const ry = Math.round(rectBox.y * sh)
+    const rw = Math.round(rectBox.w * sw)
+    const rh = Math.round(rectBox.h * sh)
+    context.fillRect(rx, ry, rw, rh)
+    setHasMask(true)
+    setNotice('Rectangle added to mask. You can place another box or click Remove watermark.')
+    paint()
+  }
+
+  const onRectPointerDown = (event, handle = null) => {
+    event.stopPropagation()
+    event.preventDefault()
+    if (busy || mode !== 'edit') return
+
+    const frame = canvasFrameRef.current
+    if (!frame || !rectBox) return
+    const rect = frame.getBoundingClientRect()
+
+    boxDragRef.current = {
+      handle,
+      startX: event.clientX,
+      startY: event.clientY,
+      initialBox: { ...rectBox },
+      frameW: rect.width,
+      frameH: rect.height,
+    }
+    if (!handle) setIsDraggingBox(true)
+
+    const onPointerMove = (moveEvent) => {
+      const d = boxDragRef.current
+      if (!d) return
+      const dx = (moveEvent.clientX - d.startX) / d.frameW
+      const dy = (moveEvent.clientY - d.startY) / d.frameH
+
+      if (!d.handle) {
+        const nextX = Math.max(0, Math.min(1 - d.initialBox.w, d.initialBox.x + dx))
+        const nextY = Math.max(0, Math.min(1 - d.initialBox.h, d.initialBox.y + dy))
+        setRectBox((prev) => ({ ...prev, x: nextX, y: nextY }))
+      } else {
+        let { x, y, w, h } = d.initialBox
+        if (d.handle === 'br') {
+          w = Math.max(0.02, Math.min(1 - x, w + dx))
+          h = Math.max(0.02, Math.min(1 - y, h + dy))
+        } else if (d.handle === 'bl') {
+          const newX = Math.max(0, Math.min(x + w - 0.02, x + dx))
+          w = w + (x - newX)
+          x = newX
+          h = Math.max(0.02, Math.min(1 - y, h + dy))
+        } else if (d.handle === 'tr') {
+          w = Math.max(0.02, Math.min(1 - x, w + dx))
+          const newY = Math.max(0, Math.min(y + h - 0.02, y + dy))
+          h = h + (y - newY)
+          y = newY
+        } else if (d.handle === 'tl') {
+          const newX = Math.max(0, Math.min(x + w - 0.02, x + dx))
+          w = w + (x - newX)
+          x = newX
+          const newY = Math.max(0, Math.min(y + h - 0.02, y + dy))
+          h = h + (y - newY)
+          y = newY
+        }
+        setRectBox({ x, y, w, h })
+      }
+    }
+
+    const onPointerUp = () => {
+      boxDragRef.current = null
+      setIsDraggingBox(false)
+      window.removeEventListener('pointermove', onPointerMove)
+      window.removeEventListener('pointerup', onPointerUp)
+    }
+
+    window.addEventListener('pointermove', onPointerMove)
+    window.addEventListener('pointerup', onPointerUp)
+  }
+
+  const onCanvasPointerDown = (event) => {
+    if (mode !== 'edit' || busy) return
+    if (event.pointerType === 'mouse' && event.button !== 0) return
+
+    if (tool === 'rect') {
+      const frame = canvasFrameRef.current
+      if (!frame) return
+      const rect = frame.getBoundingClientRect()
+      const startX = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width))
+      const startY = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height))
+
+      rectDrawRef.current = { startX, startY, frameW: rect.width, frameH: rect.height }
+
+      const onPointerMove = (moveEvent) => {
+        const d = rectDrawRef.current
+        if (!d) return
+        const curX = Math.max(0, Math.min(1, (moveEvent.clientX - rect.left) / d.frameW))
+        const curY = Math.max(0, Math.min(1, (moveEvent.clientY - rect.top) / d.frameH))
+        const minX = Math.min(d.startX, curX)
+        const minY = Math.min(d.startY, curY)
+        const w = Math.max(0.01, Math.abs(curX - d.startX))
+        const h = Math.max(0.01, Math.abs(curY - d.startY))
+        setRectBox({ x: minX, y: minY, w, h })
+        setHasMask(true)
+      }
+
+      const onPointerUp = () => {
+        rectDrawRef.current = null
+        window.removeEventListener('pointermove', onPointerMove)
+        window.removeEventListener('pointerup', onPointerUp)
+      }
+
+      window.addEventListener('pointermove', onPointerMove)
+      window.addEventListener('pointerup', onPointerUp)
+      return
+    }
+
+    startStroke(event)
   }
 
   const removeWatermark = () => {
     const source = sourceRef.current
     const maskCanvas = maskRef.current
     if (!source || !maskCanvas || busy) return
-    const maskData = maskCanvas.getContext('2d').getImageData(0, 0, maskCanvas.width, maskCanvas.height).data
+
+    // Build combined mask from painted strokes AND active rectangle
+    const tempCanvas = document.createElement('canvas')
+    tempCanvas.width = source.width
+    tempCanvas.height = source.height
+    const tempCtx = tempCanvas.getContext('2d')
+    tempCtx.drawImage(maskCanvas, 0, 0)
+
+    if (rectBox && (tool === 'rect' || !hasMask || (rectBox.w > 0.01 && rectBox.h > 0.01))) {
+      tempCtx.fillStyle = '#818cf8'
+      const rx = Math.round(rectBox.x * source.width)
+      const ry = Math.round(rectBox.y * source.height)
+      const rw = Math.round(rectBox.w * source.width)
+      const rh = Math.round(rectBox.h * source.height)
+      tempCtx.fillRect(rx, ry, rw, rh)
+    }
+
+    const maskData = tempCtx.getImageData(0, 0, source.width, source.height).data
     const mask = new Uint8Array(source.width * source.height)
     let painted = 0
     for (let index = 0; index < mask.length; index += 1) {
@@ -344,11 +514,11 @@ export default function WatermarkRemover() {
       }
     }
     if (painted < 12) {
-      setError('Paint over the watermark you want to remove first.')
+      setError('Select or paint over the watermark you want to remove first.')
       return
     }
     if (painted > mask.length * 0.9) {
-      setError('The painted area covers almost the whole photo. Paint only over the watermark.')
+      setError('The selected area covers almost the whole photo. Select only the watermark.')
       return
     }
     setError('')
@@ -495,7 +665,7 @@ export default function WatermarkRemover() {
               ? <button className="wm-ghost" type="button" onClick={cancelRemoval}><X size={14} /> Cancel</button>
               : mode === 'result'
                 ? <button className="wm-primary" type="button" onClick={downloadPng}><Download size={15} /> Download PNG</button>
-                : <button className="wm-primary" type="button" onClick={removeWatermark} disabled={!hasMask || !image}><Wand2 size={15} /> Remove watermark</button>}
+                : <button className="wm-primary" type="button" onClick={removeWatermark} disabled={(!hasMask && !rectBox) || !image}><Wand2 size={15} /> Remove watermark</button>}
           </>
         )}
       </div>
@@ -532,38 +702,74 @@ export default function WatermarkRemover() {
                   </div>
                 </>
                 : <>
-                  <div className="wm-segmented" role="group" aria-label="Brush mode">
-                    <button type="button" className={erasing ? '' : 'is-active'} onClick={() => setErasing(false)}><Paintbrush size={13} /> Brush</button>
-                    <button type="button" className={erasing ? 'is-active' : ''} onClick={() => setErasing(true)}><Eraser size={13} /> Eraser</button>
+                  <div className="wm-segmented" role="group" aria-label="Selection tool">
+                    <button type="button" className={tool === 'rect' ? 'is-active' : ''} onClick={() => { setTool('rect'); setErasing(false) }}><Square size={13} /> Rectangle</button>
+                    <button type="button" className={tool === 'brush' && !erasing ? 'is-active' : ''} onClick={() => { setTool('brush'); setErasing(false) }}><Paintbrush size={13} /> Brush</button>
+                    <button type="button" className={tool === 'brush' && erasing ? 'is-active' : ''} onClick={() => { setTool('brush'); setErasing(true) }}><Eraser size={13} /> Eraser</button>
                   </div>
-                  <label className="wm-size">
-                    <span>Size</span>
-                    <input type="range" min="12" max="140" step="2" value={brushSize} onChange={(event) => setBrushSize(Number(event.target.value))} aria-label="Brush size" />
-                    <span className="wm-size-value">{brushSize}px</span>
-                  </label>
+
+                  {tool === 'rect' ? (
+                    <div className="wm-rect-presets">
+                      <span className="wm-preset-label">Preset:</span>
+                      <button type="button" className="wm-chip-sm" onClick={() => applyPreset('br')}>Bottom-Right</button>
+                      <button type="button" className="wm-chip-sm" onClick={() => applyPreset('bl')}>Bottom-Left</button>
+                      <button type="button" className="wm-chip-sm" onClick={() => applyPreset('tr')}>Top-Right</button>
+                      <button type="button" className="wm-chip-sm" onClick={() => applyPreset('tl')}>Top-Left</button>
+                      <button type="button" className="wm-chip-sm" onClick={() => applyPreset('banner')}>Banner</button>
+                      {rectBox && <button type="button" className="wm-chip-sm primary" onClick={burnBoxToMask} title="Bake current rectangle into mask and draw another"><Plus size={12} /> Add to mask</button>}
+                    </div>
+                  ) : (
+                    <label className="wm-size">
+                      <span>Size</span>
+                      <input type="range" min="12" max="140" step="2" value={brushSize} onChange={(event) => setBrushSize(Number(event.target.value))} aria-label="Brush size" />
+                      <span className="wm-size-value">{brushSize}px</span>
+                    </label>
+                  )}
+
                   <div className="wm-stage-actions">
                     <button className="wm-chip" type="button" onClick={undoMask} disabled={!undoDepth || busy}><Undo2 size={13} /> Undo</button>
-                    <button className="wm-chip danger" type="button" onClick={clearMask} disabled={!hasMask || busy}><Trash2 size={13} /> Clear</button>
+                    <button className="wm-chip danger" type="button" onClick={clearMask} disabled={(!hasMask && !rectBox) || busy}><Trash2 size={13} /> Clear</button>
                   </div>
                 </>}
             </div>
 
             <div className="wm-canvas-wrap">
-              <div className="wm-canvas-frame">
+              <div className="wm-canvas-frame" ref={canvasFrameRef}>
                 <canvas
                   ref={displayRef}
-                  className={`wm-canvas ${mode === 'edit' && !busy ? 'is-painting' : ''}`}
+                  className={`wm-canvas ${mode === 'edit' && !busy ? (tool === 'rect' ? 'is-rect-mode' : 'is-painting') : ''}`}
                   width={image.width}
                   height={image.height}
                   aria-label="Photo with watermark"
-                  onPointerDown={startStroke}
-                  onPointerMove={moveStroke}
-                  onPointerUp={endStroke}
-                  onPointerCancel={endStroke}
+                  onPointerDown={onCanvasPointerDown}
+                  onPointerMove={tool !== 'rect' ? moveStroke : undefined}
+                  onPointerUp={tool !== 'rect' ? endStroke : undefined}
+                  onPointerCancel={tool !== 'rect' ? endStroke : undefined}
                   onPointerLeave={() => setCursor(null)}
                   onDragStart={(event) => event.preventDefault()}
                 />
-                {cursor && mode === 'edit' && !busy && <span className="wm-brush-ring" style={{ left: cursor.x, top: cursor.y, width: brushSize * (cursor.scale || 1), height: brushSize * (cursor.scale || 1), borderStyle: erasing ? 'dashed' : 'solid' }} />}
+
+                {/* Draggable & Resizable Rectangle Box overlay */}
+                {mode === 'edit' && !busy && rectBox && tool === 'rect' && (
+                  <div
+                    className={`wm-rect-box ${isDraggingBox ? 'is-dragging' : ''}`}
+                    style={{
+                      left: `${rectBox.x * 100}%`,
+                      top: `${rectBox.y * 100}%`,
+                      width: `${rectBox.w * 100}%`,
+                      height: `${rectBox.h * 100}%`,
+                    }}
+                    onPointerDown={(e) => onRectPointerDown(e, null)}
+                  >
+                    <span className="wm-rect-tag"><Scan size={10} /> Watermark (Drag to move)</span>
+                    <div className="wm-rect-handle tl" onPointerDown={(e) => onRectPointerDown(e, 'tl')} title="Resize" />
+                    <div className="wm-rect-handle tr" onPointerDown={(e) => onRectPointerDown(e, 'tr')} title="Resize" />
+                    <div className="wm-rect-handle bl" onPointerDown={(e) => onRectPointerDown(e, 'bl')} title="Resize" />
+                    <div className="wm-rect-handle br" onPointerDown={(e) => onRectPointerDown(e, 'br')} title="Resize" />
+                  </div>
+                )}
+
+                {cursor && mode === 'edit' && !busy && tool !== 'rect' && <span className="wm-brush-ring" style={{ left: cursor.x, top: cursor.y, width: brushSize * (cursor.scale || 1), height: brushSize * (cursor.scale || 1), borderStyle: erasing ? 'dashed' : 'solid' }} />}
                 {busy && <div className="wm-busy" role="status" aria-live="polite">
                   <LoaderCircle size={26} className="wm-spin" />
                   <strong>{stage || 'Removing the watermark…'}</strong>
@@ -574,7 +780,13 @@ export default function WatermarkRemover() {
               </div>
             </div>
 
-            <p className="wm-hint">{mode === 'result' ? 'Compare with the original, edit the mask, or download the PNG.' : 'Brush over the watermark. Cover it completely, then press Remove watermark.'}</p>
+            <p className="wm-hint">
+              {mode === 'result'
+                ? 'Compare with the original, edit the mask, or download the PNG.'
+                : tool === 'rect'
+                  ? 'Drag & drop the rectangle over the watermark, or drag handles to resize. Drag anywhere on the photo to draw a new rectangle.'
+                  : 'Brush over the watermark. Cover it completely, then press Remove watermark.'}
+            </p>
           </>}
         {notice && <p className="wm-notice" role="status">{notice}</p>}
         {error && <p className="wm-error" role="alert">{error}</p>}
@@ -585,7 +797,7 @@ export default function WatermarkRemover() {
           <div className="wm-panel-head"><h2>How it works</h2><span>{processing === 'processing' ? 'Working' : 'On-device'}</span></div>
           <ol className="wm-steps">
             <li className={image ? 'is-done' : ''}><b>1</b><div><strong>Upload a photo</strong><small>Drop it, paste it, or browse.</small></div></li>
-            <li className={hasMask ? 'is-done' : ''}><b>2</b><div><strong>Paint over the watermark</strong><small>Cover text, logos, or stamps completely.</small></div></li>
+            <li className={hasMask || rectBox ? 'is-done' : ''}><b>2</b><div><strong>Select watermark</strong><small>Drag the rectangle or paint over logos and text.</small></div></li>
             <li className={mode === 'result' ? 'is-done' : ''}><b>3</b><div><strong>Remove and download</strong><small>Surrounding texture fills the gap.</small></div></li>
           </ol>
         </section>

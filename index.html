@@ -2,6 +2,17 @@
 <html lang="en" data-theme="premium-purple" data-scheme="light">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      (function() {
+        try {
+          var t = localStorage.getItem('imgmojo:user-theme-selected') || localStorage.getItem('imgmojo:site-theme') || localStorage.getItem('promptseen:site-theme');
+          if (t && ['premium-purple', 'dark-neon', 'ocean-cyan', 'sunset-gradient'].indexOf(t) !== -1) {
+            document.documentElement.dataset.theme = t;
+            document.documentElement.dataset.scheme = (t === 'dark-neon') ? 'dark' : 'light';
+          }
+        } catch (e) {}
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f5f3fb" />
     <title>ImgMojo — Create Magic. Edit Anything.</title>

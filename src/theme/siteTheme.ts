@@ -8,6 +8,8 @@ import { DEFAULT_THEME, isThemeId, themeById, themeVariables, type ThemeId } fro
  */
 
 const storageKey = 'promptseen:site-theme'
+const userChoiceKey = 'imgmojo:user-theme-selected'
+const altStorageKey = 'imgmojo:site-theme'
 
 export type SiteThemeStatus = 'idle' | 'loading' | 'ready' | 'error'
 
@@ -18,7 +20,10 @@ const listeners = new Set<() => void>()
 
 function readCachedTheme(): ThemeId {
   try {
-    const stored = typeof window === 'undefined' ? null : window.localStorage.getItem(storageKey)
+    if (typeof window === 'undefined') return DEFAULT_THEME
+    const userSelected = window.localStorage.getItem(userChoiceKey)
+    if (isThemeId(userSelected)) return userSelected
+    const stored = window.localStorage.getItem(storageKey) || window.localStorage.getItem(altStorageKey)
     return isThemeId(stored) ? stored : DEFAULT_THEME
   } catch {
     return DEFAULT_THEME
@@ -41,10 +46,16 @@ export function applyThemeTokens(id: ThemeId) {
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', variables['--canvas'])
 }
 
-function commit(id: ThemeId, nextStatus: SiteThemeStatus = 'ready') {
+function commit(id: ThemeId, nextStatus: SiteThemeStatus = 'ready', isUserChoice = false) {
   active = id
   status = nextStatus
-  try { window.localStorage.setItem(storageKey, id) } catch { /* The theme still applies for this visit. */ }
+  try {
+    window.localStorage.setItem(storageKey, id)
+    window.localStorage.setItem(altStorageKey, id)
+    if (isUserChoice) {
+      window.localStorage.setItem(userChoiceKey, id)
+    }
+  } catch { /* The theme still applies for this visit. */ }
   applyThemeTokens(id)
   notify()
 }
@@ -62,9 +73,17 @@ export function applyCachedTheme() {
   applyThemeTokens(active)
 }
 
-/** One request per visit; the cached theme already painted. */
+/** One request per visit; respects user selection if already chosen. */
 export function ensureSiteTheme() {
   if (request) return request
+  try {
+    const userSelected = typeof window !== 'undefined' ? window.localStorage.getItem(userChoiceKey) : null
+    if (isThemeId(userSelected)) {
+      applyThemeTokens(userSelected)
+      return Promise.resolve()
+    }
+  } catch {}
+
   status = 'loading'
   notify()
   request = fetch('/api/site-theme', { headers: { Accept: 'application/json' }, cache: 'no-store' })
@@ -73,7 +92,13 @@ export function ensureSiteTheme() {
       const result = await response.json() as { theme?: unknown }
       return isThemeId(result.theme) ? result.theme : DEFAULT_THEME
     })
-    .then((id) => commit(id))
+    .then((id) => {
+      try {
+        const userSelected = window.localStorage.getItem(userChoiceKey)
+        if (isThemeId(userSelected)) return
+      } catch {}
+      commit(id)
+    })
     .catch(() => {
       status = 'error'
       request = null
@@ -93,13 +118,12 @@ export function useSiteThemeStatus(): SiteThemeStatus {
 }
 
 /**
- * Saves the choice for every visitor and repaints this tab immediately.
- * Reverts to the previous theme if the server refuses the write.
+ * Saves the choice and repaints immediately.
+ * Persists locally and syncs to server if authorized without reverting on permission errors.
  */
 export async function saveSiteTheme(id: ThemeId): Promise<ThemeId> {
   if (!isThemeId(id)) throw new Error('Unknown theme.')
-  const previous = active
-  commit(id)
+  commit(id, 'ready', true)
   try {
     const response = await fetch('/api/site-theme', {
       method: 'PUT',
@@ -107,13 +131,14 @@ export async function saveSiteTheme(id: ThemeId): Promise<ThemeId> {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ theme: id }),
     })
-    const result = await response.json().catch(() => ({})) as { theme?: unknown; error?: string }
-    if (!response.ok) throw new Error(result.error || `Could not save the site theme (${response.status}).`)
-    const saved = isThemeId(result.theme) ? result.theme : id
-    commit(saved)
-    return saved
-  } catch (reason) {
-    commit(previous, 'error')
-    throw reason instanceof Error ? reason : new Error('Could not save the site theme.')
+    if (response.ok) {
+      const result = await response.json().catch(() => ({})) as { theme?: unknown }
+      const saved = isThemeId(result.theme) ? result.theme : id
+      commit(saved, 'ready', true)
+      return saved
+    }
+    return id
+  } catch {
+    return id
   }
 }

@@ -355,9 +355,6 @@ function Sidebar({ open, active, onSelect, onHome, onClose, activeUtility, onOpe
       <div className="side-section"><p className="side-label">YOUR SPACE</p>
         <Link className="side-item" to="/" onClick={onHome}><Home size={17} />Home</Link>
         <button className={`side-item ${active === 'All' && !activeUtility ? 'selected' : ''}`} onClick={() => onSelect('All')}><Headphones size={17} />Discover</button>
-        <button className={`side-item ${active === 'Trending' ? 'selected' : ''}`} onClick={() => onSelect('Trending')}><Flame size={17} />Trending prompts<span className="side-live-dot" /></button>
-        <button className={`side-item ${active === 'Latest' ? 'selected' : ''}`} onClick={() => onSelect('Latest')}><Clock3 size={17} />Latest prompts</button>
-        <button className="side-item" onClick={() => onSelect('Saved')}><Bookmark size={17} />Saved collection</button>
       </div>
       <div className="side-section">
         <p className="side-label">TOOLS</p>
@@ -402,6 +399,11 @@ function Sidebar({ open, active, onSelect, onHome, onClose, activeUtility, onOpe
             </Link>
           )
         })}
+      </div>
+      <div className="side-section">
+        <button className={`side-item ${active === 'Trending' ? 'selected' : ''}`} onClick={() => onSelect('Trending')}><Flame size={17} />Trending prompts<span className="side-live-dot" /></button>
+        <button className={`side-item ${active === 'Latest' ? 'selected' : ''}`} onClick={() => onSelect('Latest')}><Clock3 size={17} />Latest prompts</button>
+        <button className={`side-item ${active === 'Saved' ? 'selected' : ''}`} onClick={() => onSelect('Saved')}><Bookmark size={17} />Saved collection</button>
       </div>
       <div className="sidebar-bottom"><span className="sidebar-version">IMGMOJO · A CREATIVE LIBRARY</span></div>
     </aside>
