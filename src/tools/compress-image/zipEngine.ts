@@ -40,7 +40,7 @@ export async function createAndDownloadZip(
       compression: 'DEFLATE',
       compressionOptions: { level: 6 },
     },
-    (metadata: { percent: number }) => {
+    (metadata: { percent: number; currentFile: string | null }) => {
       if (onProgress) {
         onProgress(Math.round(metadata.percent))
       }
