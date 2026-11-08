@@ -14,7 +14,7 @@ const communitySettings: { whatsappPhone: string; instagramUsername: string; fac
 
 /** Central, typed configuration shared by app features and adapters. Never put secrets here. */
 export const appConfig = Object.freeze({
-  appName: env.VITE_SITE_NAME?.trim() || 'ImgMojo',
+  appName: 'ImgMojo',
   adminDisplayName: env.VITE_ADMIN_DISPLAY_NAME?.trim() || 'Creator',
   siteUrl: normalizeBaseUrl(env.VITE_SITE_URL),
   contentProvider: env.VITE_CONTENT_PROVIDER === 'blogger' ? 'blogger' : env.VITE_CONTENT_PROVIDER === 'wordpress' ? 'wordpress' : 'demo',
@@ -53,8 +53,8 @@ export const appConfig = Object.freeze({
     ]),
   }),
   storage: Object.freeze({
-    localPromptsKey: env.VITE_LOCAL_PROMPTS_STORAGE_KEY?.trim() || 'promptseen:local-prompts',
-    sideMenusKey: env.VITE_SIDE_MENUS_STORAGE_KEY?.trim() || 'promptseen:side-menus',
+    localPromptsKey: env.VITE_LOCAL_PROMPTS_STORAGE_KEY?.trim() || 'imgmojo:local-prompts',
+    sideMenusKey: env.VITE_SIDE_MENUS_STORAGE_KEY?.trim() || 'imgmojo:side-menus',
   }),
   pagination: Object.freeze({ pageSize: 12 }),
 })
