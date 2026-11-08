@@ -13,20 +13,14 @@ import {
   ShieldCheck,
   HardDriveDownload,
   X,
-  FileArchive,
   ArrowRight,
   Loader2,
 } from 'lucide-react'
-import type { CompressionPreset, CompressionSettings, ImageItem, OutputFormat } from './types'
+import type { CompressionSettings, ImageItem, OutputFormat } from './types'
 import { compressSingleImage, formatBytes, getFileExtension } from './compressEngine'
 import { createAndDownloadZip, downloadSingleFile } from './zipEngine'
 import './CompressImage.css'
 
-const PRESET_QUALITIES: Record<Exclude<CompressionPreset, 'custom'>, number> = {
-  recommended: 75,
-  extreme: 50,
-  low: 90,
-}
 
 export default function CompressImage() {
   const [items, setItems] = useState<ImageItem[]>([])
@@ -124,19 +118,6 @@ export default function CompressImage() {
       if (item.compressedUrl) URL.revokeObjectURL(item.compressedUrl)
     })
     setItems([])
-    setHasCompressed(false)
-  }
-
-  const handlePresetChange = (preset: CompressionPreset) => {
-    if (preset === 'custom') {
-      setSettings((prev) => ({ ...prev, preset }))
-    } else {
-      setSettings((prev) => ({
-        ...prev,
-        preset,
-        quality: PRESET_QUALITIES[preset],
-      }))
-    }
     setHasCompressed(false)
   }
 
