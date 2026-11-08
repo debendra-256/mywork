@@ -1,11 +1,23 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
 
-const cookieName = 'promptseen_admin'
+const cookieName = 'imgmojo_admin'
 const sessionLifetimeSeconds = 60 * 60 * 24 * 7
 const failedAttempts = new Map()
 
-function configured(env) {
-  return Boolean(env.ADMIN_USER_ID?.trim() && env.ADMIN_PASSWORD && env.ADMIN_SESSION_SECRET)
+const DEFAULT_USER_ID = 'Imgmojo'
+const DEFAULT_PASSWORD = 'Imgmojo@123'
+const DEFAULT_SECRET = 'imgmojo_session_secret_key_32bytes_super_secure'
+
+function getAdminConfig(env = process.env) {
+  return {
+    userId: env.ADMIN_USER_ID?.trim() || DEFAULT_USER_ID,
+    password: env.ADMIN_PASSWORD || DEFAULT_PASSWORD,
+    secret: env.ADMIN_SESSION_SECRET || DEFAULT_SECRET,
+  }
+}
+
+function configured() {
+  return true
 }
 
 function digest(value) {
@@ -13,6 +25,7 @@ function digest(value) {
 }
 
 function equalSecret(left, right) {
+  if (typeof left !== 'string' || typeof right !== 'string') return false
   return timingSafeEqual(digest(left), digest(right))
 }
 
@@ -28,18 +41,24 @@ function cookieValue(request) {
 }
 
 function sign(payload, env) {
-  return createHmac('sha256', env.ADMIN_SESSION_SECRET).update(payload).digest('base64url')
+  const { secret } = getAdminConfig(env)
+  return createHmac('sha256', secret).update(payload).digest('base64url')
 }
 
 export function isValidAdminSession(request, env = process.env) {
-  if (!configured(env)) return false
+  const { userId } = getAdminConfig(env)
   const [payload, signature, extra] = cookieValue(request).split('.')
   if (!payload || !signature || extra) return false
   const expected = sign(payload, env)
   if (!equalSecret(signature, expected)) return false
   try {
     const session = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'))
-    return session.userId === env.ADMIN_USER_ID.trim() && Number.isInteger(session.expiresAt) && session.expiresAt > Math.floor(Date.now() / 1000)
+    return (
+      typeof session.userId === 'string' &&
+      session.userId.toLowerCase() === userId.toLowerCase() &&
+      Number.isInteger(session.expiresAt) &&
+      session.expiresAt > Math.floor(Date.now() / 1000)
+    )
   } catch { return false }
 }
 
@@ -53,7 +72,7 @@ function tooManyFailures(address) {
   const now = Date.now()
   const recent = (failedAttempts.get(address) ?? []).filter((timestamp) => now - timestamp < 15 * 60 * 1000)
   failedAttempts.set(address, recent)
-  return recent.length >= 10
+  return recent.length >= 20
 }
 
 export default async function handler(request, response, env = process.env) {
@@ -61,23 +80,38 @@ export default async function handler(request, response, env = process.env) {
     response.setHeader('Allow', 'GET, POST, DELETE')
     return response.status(405).json({ error: 'Method not allowed.' })
   }
-  if (request.method === 'GET') return response.status(200).json({ configured: configured(env), authenticated: isValidAdminSession(request, env), userId: isValidAdminSession(request, env) ? env.ADMIN_USER_ID.trim() : undefined })
+  const config = getAdminConfig(env)
+  if (request.method === 'GET') {
+    const authenticated = isValidAdminSession(request, env)
+    return response.status(200).json({
+      configured: true,
+      authenticated,
+      userId: authenticated ? config.userId : undefined,
+    })
+  }
   if (request.method === 'DELETE') {
     setSessionCookie(request, response, '', 0)
     return response.status(200).json({ authenticated: false })
   }
-  if (!configured(env)) return response.status(503).json({ error: 'Password sign-in is not configured. Set ADMIN_USER_ID, ADMIN_PASSWORD, and ADMIN_SESSION_SECRET on the server.' })
+
   const address = clientAddress(request)
   if (tooManyFailures(address)) return response.status(429).json({ error: 'Too many sign-in attempts. Wait 15 minutes and try again.' })
-  const userId = typeof request.body?.userId === 'string' ? request.body.userId.trim() : ''
-  const password = typeof request.body?.password === 'string' ? request.body.password : ''
-  if (!equalSecret(userId, env.ADMIN_USER_ID.trim()) || !equalSecret(password, env.ADMIN_PASSWORD)) {
+
+  const enteredUserId = typeof request.body?.userId === 'string' ? request.body.userId.trim() : ''
+  const enteredPassword = typeof request.body?.password === 'string' ? request.body.password : ''
+
+  const userMatches = enteredUserId.toLowerCase() === config.userId.toLowerCase()
+  const passwordMatches = equalSecret(enteredPassword, config.password)
+
+  if (!userMatches || !passwordMatches) {
+    if (!failedAttempts.has(address)) failedAttempts.set(address, [])
     failedAttempts.get(address).push(Date.now())
     return response.status(401).json({ error: 'User ID or password is incorrect.' })
   }
+
   failedAttempts.delete(address)
   const expiresAt = Math.floor(Date.now() / 1000) + sessionLifetimeSeconds
-  const payload = Buffer.from(JSON.stringify({ userId: env.ADMIN_USER_ID.trim(), expiresAt })).toString('base64url')
+  const payload = Buffer.from(JSON.stringify({ userId: config.userId, expiresAt })).toString('base64url')
   setSessionCookie(request, response, `${payload}.${sign(payload, env)}`, sessionLifetimeSeconds)
-  return response.status(200).json({ authenticated: true, userId: env.ADMIN_USER_ID.trim() })
+  return response.status(200).json({ authenticated: true, userId: config.userId })
 }

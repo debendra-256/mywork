@@ -183,7 +183,7 @@ function Header({ onMenu, onJump, onFilter, adminLoggedIn = false }: { onMenu: (
         <button type="button" className="top-search-toggle" aria-label={searchOpen ? 'Close search' : 'Search the site'} aria-expanded={searchOpen} onClick={() => setSearchOpen((open) => !open)}><Search size={18} /></button>
         {searchOpen && <input autoFocus value={search} onChange={(event) => setSearch(event.target.value)} onBlur={() => { if (!search) setSearchOpen(false) }} onKeyDown={(event) => { if (event.key === 'Escape') { setSearch(''); setSearchOpen(false) } }} placeholder="Search tools, prompts, ideas" aria-label="Search prompts" />}
       </form>
-      {signedIn && <ThemeMenu />}
+      <ThemeMenu />
       <Link className="creator-link" to={signedIn ? '/admin' : '/login'}><LayoutDashboard size={15} />{signedIn ? 'Dashboard' : 'Log in'}</Link>
     </div>
   </header>
@@ -771,33 +771,79 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
       })}</div></div><div className="share-group"><strong>Open with prompt copied</strong><div className="share-target-list">{appConfig.promptSharing.aiTools.map((target) => <a key={target.id} className="share-target" href={target.url} target="_blank" rel="noreferrer" onClick={() => copyForAiTool(target.label)}>{target.label}<ArrowUpRight size={13} /></a>)}</div><p className="share-helper">The prompt is copied to your clipboard. Paste it into the tool after it opens.</p></div></div>}</section>{shareMessage && <p className="share-status" role="status">{shareMessage}</p>}</div></div></main></div>
 }
 
-function LoginPage({ onConnected, onAdminLogin }: { onConnected: () => void; onAdminLogin: () => void }) {
+function LoginPage({ onAdminLogin }: { onAdminLogin: () => void }) {
   const navigate = useNavigate()
-  const [connecting, setConnecting] = useState(false)
   const [userId, setUserId] = useState('')
   const [password, setPassword] = useState('')
   const [passwordLoginBusy, setPasswordLoginBusy] = useState(false)
   const [error, setError] = useState('')
-  const handleConnect = async () => {
-    setConnecting(true); setError('')
-    try { await connectBlogger(); onConnected(); navigate('/admin') }
-    catch (reason) { setError(reason instanceof Error ? reason.message : 'Google authorization failed.') }
-    finally { setConnecting(false) }
-  }
+
   const handlePasswordLogin = async (event: FormEvent) => {
-    event.preventDefault(); setPasswordLoginBusy(true); setError('')
+    event.preventDefault()
+    setPasswordLoginBusy(true)
+    setError('')
     try {
-      const response = await fetch('/api/admin-auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, password }) })
+      const response = await fetch('/api/admin-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, password }),
+      })
       const result = await response.json().catch(() => ({})) as { error?: string; authenticated?: boolean }
-      if (!response.ok || !result.authenticated) throw new Error(result.error || 'Password sign-in failed.')
-      onAdminLogin(); navigate('/admin')
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Password sign-in failed.') }
-    finally { setPasswordLoginBusy(false) }
+      if (!response.ok || !result.authenticated) throw new Error(result.error || 'User ID or password is incorrect.')
+      onAdminLogin()
+      navigate('/admin')
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Password sign-in failed.')
+    } finally {
+      setPasswordLoginBusy(false)
+    }
   }
-  return <main className="auth-page"><Link to="/" className="auth-back"><ArrowLeft size={15} /> Back to {appConfig.appName}</Link><div className="auth-card"><section className="auth-art"><Link to="/" className="brand auth-brand"><img className="brand-symbol brand-logo" src="/images/imgmojo-mark.png" alt="" /><span>{appConfig.appName}<i>.</i></span></Link><div className="auth-art-copy"><span className="auth-eyebrow"><Sparkles size={13} /> CREATOR STUDIO</span><h1>Your blog,<br />one <em>workspace.</em></h1><p>Sign in with your user ID and password, or connect the Blogger account used to publish posts.</p><div className="auth-art-preview"><div className="mini-cover mini-cover-one" /><div className="mini-cover mini-cover-two" /><div className="mini-cover mini-cover-three" /><span>YOUR CREATIVE LIBRARY</span></div></div><span className="auth-art-footer">A LITTLE MORE IMAGINATION · IMGMOJO</span></section><section className="auth-form-panel"><div className="auth-form-wrap"><span className="auth-form-icon"><ShieldCheck size={19} /></span><span className="auth-status">ADMIN SIGN IN</span><h2>Welcome back</h2><p className="auth-subtitle">Choose either sign-in option to open Creator Studio.</p><form className="admin-password-login" onSubmit={handlePasswordLogin}><label>User ID<input value={userId} onChange={(event) => setUserId(event.target.value)} autoComplete="username" required /></label><label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required /></label><button className="auth-submit" type="submit" disabled={passwordLoginBusy}>{passwordLoginBusy ? 'Signing in…' : 'Sign in with password'} <ArrowRight size={16} /></button></form><div className="login-divider"><span />or<span /></div><button className="auth-submit blogger-login-button" type="button" onClick={() => void handleConnect()} disabled={connecting}>{connecting ? 'Connecting…' : 'Continue with Blogger'} <ArrowRight size={16} /></button>{error && <p className="editor-error" role="alert">{error}{error.toLowerCase().includes('invalid_client') && ' Check that the OAuth client ID and JavaScript origin are correct in Google Cloud Console.'}</p>}<div className="preview-disclaimer"><span>About Blogger access</span><p>Password sign-in opens Creator Studio. Connect Blogger when you need to create or publish a Blogger post or upload a PDF to Drive.</p></div></div><span className="auth-legal">© {new Date().getFullYear()} {appConfig.appName} · Secure sign-in</span></section></div></main>
+
+  return (
+    <main className="auth-page simple-login-page">
+      <Link to="/" className="auth-back">
+        <ArrowLeft size={15} /> Back to {appConfig.appName}
+      </Link>
+      <div className="simple-login-card">
+        <div className="simple-login-brand">
+          <img className="brand-symbol brand-logo" src="/images/imgmojo-mark.png" alt="" width={48} height={48} />
+          <h1>{appConfig.appName}</h1>
+          <p>Creator Studio Admin Sign In</p>
+        </div>
+        <form className="admin-password-login" onSubmit={handlePasswordLogin}>
+          <label>
+            User ID
+            <input
+              value={userId}
+              onChange={(event) => setUserId(event.target.value)}
+              placeholder="Imgmojo"
+              autoComplete="username"
+              autoFocus
+              required
+            />
+          </label>
+          <label>
+            Password
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="••••••••"
+              autoComplete="current-password"
+              required
+            />
+          </label>
+          <button className="auth-submit" type="submit" disabled={passwordLoginBusy}>
+            {passwordLoginBusy ? 'Signing in…' : 'Sign in'} <ArrowRight size={16} />
+          </button>
+        </form>
+        {error && <p className="editor-error" role="alert" style={{ marginTop: '12px' }}>{error}</p>}
+      </div>
+    </main>
+  )
 }
 
-function AdminShell({ onLogout, bloggerConnected, children }: { onLogout: () => void; bloggerConnected: boolean; children: ReactNode }) {
+function AdminShell({ onLogout, bloggerConnected, onConnectBlogger, onDisconnectBlogger, bloggerConnecting, bloggerError, children }: { onLogout: () => void; bloggerConnected: boolean; onConnectBlogger: () => Promise<void>; onDisconnectBlogger: () => void; bloggerConnecting: boolean; bloggerError: string; children: ReactNode }) {
   const location = useLocation()
   const isCreate = location.pathname.endsWith('/new')
   const isMenus = location.pathname.endsWith('/menus')
@@ -808,7 +854,7 @@ function AdminShell({ onLogout, bloggerConnected, children }: { onLogout: () => 
   const { admin: adminTools } = useTools()
   const pathname = location.pathname.replace(/\/$/, '')
   const onAdminToolPage = adminTools.some((tool) => tool.path === pathname)
-  return <div className="admin-shell"><header className="admin-topbar"><Link to="/" className="brand"><img className="brand-symbol brand-logo" src="/images/imgmojo-mark.png" alt="" /><span>{appConfig.appName}<i>.</i></span></Link><div className="admin-topbar-right">{!bloggerConnected && <Link className="admin-connect-blogger" to="/login">Connect Blogger</Link>}<Link className="admin-view-site" to="/">View site <ArrowUpRight size={14} /></Link><button className="admin-header-logout" onClick={onLogout}><LogOut size={15} />Logout</button><button className="admin-avatar" aria-label={`${appConfig.adminDisplayName} profile`}>{appConfig.adminDisplayName.slice(0, 1).toUpperCase()}</button></div></header><div className="admin-body"><aside className="admin-nav"><span className="admin-nav-title">WORKSPACE</span><Link to="/admin" className={!isCreate && !isMenus && !isPdfUpload && !isAiModels && !isProducts && !isTools && !onAdminToolPage ? 'admin-nav-link active' : 'admin-nav-link'}><LayoutDashboard size={17} />Overview</Link><Link to="/admin/new" onClick={openNewBloggerPost} className={isCreate ? 'admin-nav-link active' : 'admin-nav-link'}><Plus size={18} />Create prompt</Link><Link to="/admin/ai-models" className={isAiModels ? 'admin-nav-link active' : 'admin-nav-link'}><Sparkles size={17} />AI models</Link><Link to="/admin/products" className={isProducts ? 'admin-nav-link active' : 'admin-nav-link'}><Store size={17} />Digital store</Link>{adminTools.map((tool) => <Link key={tool.id} to={tool.href ?? tool.path ?? '/admin'} className={tool.path === pathname ? 'admin-nav-link active' : 'admin-nav-link'}><ToolGlyph icon={tool.icon} />{tool.title}</Link>)}<Link to="/admin/upload-pdf" className={isPdfUpload ? 'admin-nav-link active' : 'admin-nav-link'}><Copy size={17} />Upload PDF product</Link><Link to="/admin/tools" className={isTools ? 'admin-nav-link active' : 'admin-nav-link'}><Layers size={17} />Tools</Link><Link to="/admin/menus" className={isMenus ? 'admin-nav-link active' : 'admin-nav-link'}><SlidersHorizontal size={17} />Manage menus</Link><a className="admin-nav-link" href="/#categories"><SlidersHorizontal size={17} />Categories</a><div className="admin-nav-bottom"><div className="admin-preview-note"><ShieldCheck size={17} /><strong>Blogger publishing</strong><p>Your connection stays active in this tab until the access token expires.</p></div><button className="admin-nav-link logout-link" onClick={onLogout}><LogOut size={17} />Sign out</button></div></aside><main className="admin-main"><div className="admin-main-inner">{children}</div></main></div></div>
+  return <div className="admin-shell"><header className="admin-topbar"><Link to="/" className="brand"><img className="brand-symbol brand-logo" src="/images/imgmojo-mark.png" alt="" /><span>{appConfig.appName}<i>.</i></span></Link><div className="admin-topbar-right">{bloggerConnected ? <div className="admin-blogger-badge" title="Blogger connected"><Check size={14} /><span>Blogger Connected</span><button type="button" className="admin-blogger-disconnect" onClick={onDisconnectBlogger} title="Disconnect Blogger"><LogOut size={13} /></button></div> : <button type="button" className="admin-connect-blogger-btn" onClick={() => void onConnectBlogger()} disabled={bloggerConnecting}><Sparkles size={14} />{bloggerConnecting ? 'Connecting…' : 'Connect Blogger'}</button>}<Link className="admin-view-site" to="/">View site <ArrowUpRight size={14} /></Link><button className="admin-header-logout" onClick={onLogout}><LogOut size={15} />Logout</button><button className="admin-avatar" aria-label={`${appConfig.adminDisplayName} profile`}>{appConfig.adminDisplayName.slice(0, 1).toUpperCase()}</button></div></header><div className="admin-body"><aside className="admin-nav"><span className="admin-nav-title">WORKSPACE</span><Link to="/admin" className={!isCreate && !isMenus && !isPdfUpload && !isAiModels && !isProducts && !isTools && !onAdminToolPage ? 'admin-nav-link active' : 'admin-nav-link'}><LayoutDashboard size={17} />Overview</Link><Link to="/admin/new" onClick={openNewBloggerPost} className={isCreate ? 'admin-nav-link active' : 'admin-nav-link'}><Plus size={18} />Create prompt</Link><Link to="/admin/ai-models" className={isAiModels ? 'admin-nav-link active' : 'admin-nav-link'}><Sparkles size={17} />AI models</Link><Link to="/admin/products" className={isProducts ? 'admin-nav-link active' : 'admin-nav-link'}><Store size={17} />Digital store</Link>{adminTools.map((tool) => <Link key={tool.id} to={tool.href ?? tool.path ?? '/admin'} className={tool.path === pathname ? 'admin-nav-link active' : 'admin-nav-link'}><ToolGlyph icon={tool.icon} />{tool.title}</Link>)}<Link to="/admin/upload-pdf" className={isPdfUpload ? 'admin-nav-link active' : 'admin-nav-link'}><Copy size={17} />Upload PDF product</Link><Link to="/admin/tools" className={isTools ? 'admin-nav-link active' : 'admin-nav-link'}><Layers size={17} />Tools</Link><Link to="/admin/menus" className={isMenus ? 'admin-nav-link active' : 'admin-nav-link'}><SlidersHorizontal size={17} />Manage menus</Link><a className="admin-nav-link" href="/#categories"><SlidersHorizontal size={17} />Categories</a><div className="admin-nav-bottom"><div className="admin-preview-note admin-blogger-card"><div className="admin-blogger-header"><ShieldCheck size={16} /><strong>Blogger Access</strong><span className={`blogger-status-dot ${bloggerConnected ? 'is-connected' : 'is-disconnected'}`} /></div><p>{bloggerConnected ? 'Blogger account is connected and ready to publish.' : 'Connect Blogger to publish new prompts directly.'}</p>{bloggerConnected ? <button type="button" className="admin-blogger-action-btn disconnect" onClick={onDisconnectBlogger}>Disconnect Blogger</button> : <button type="button" className="admin-blogger-action-btn connect" onClick={() => void onConnectBlogger()} disabled={bloggerConnecting}>{bloggerConnecting ? 'Connecting…' : 'Connect Blogger'}</button>}{bloggerError && <p className="blogger-card-error" role="alert">{bloggerError}</p>}</div><button className="admin-nav-link logout-link" onClick={onLogout}><LogOut size={17} />Sign out</button></div></aside><main className="admin-main"><div className="admin-main-inner">{children}</div></main></div></div>
 }
 
 interface ProductDraft { id: string; title: string; type: 'software' | 'pdf'; description: string; price: string; currency: string; watermarkText: string; premium: boolean; sortOrder: number }
@@ -914,12 +960,12 @@ function ProductManager() {
     </>}</>
 }
 
-function AdminOverview({ prompts, blogStatus }: { prompts: Prompt[]; blogStatus: 'idle' | 'loading' | 'connected' | 'error' }) {
+function AdminOverview({ prompts, blogStatus, bloggerConnected, onConnectBlogger, bloggerConnecting }: { prompts: Prompt[]; blogStatus: 'idle' | 'loading' | 'connected' | 'error'; bloggerConnected: boolean; onConnectBlogger: () => Promise<void>; bloggerConnecting: boolean }) {
   const location = useLocation()
   const publishNotice = location.state as { publishedUrl?: string } | null
   const created = prompts.filter((item) => item.id.startsWith('local-') || item.id.startsWith('social-'))
   const recent = [...prompts].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 6)
-  return <><div className="admin-page-heading"><div><span className="admin-kicker">{appConfig.appName.toUpperCase()} / CREATOR STUDIO</span><h1>Welcome, {appConfig.adminDisplayName} <span>✳</span></h1><p>Here’s what’s happening in your prompt library.</p></div><Link to="/admin/new" onClick={openNewBloggerPost} className="admin-primary"><Plus size={16} /> Create prompt</Link></div>{publishNotice?.publishedUrl && <div className="publish-success-banner"><Check size={17} /><span>Published to Blogger successfully.</span><a href={publishNotice.publishedUrl} target="_blank" rel="noreferrer">View post <ArrowUpRight size={13} /></a></div>}<div className="admin-local-banner"><ShieldCheck size={17} /><span><strong>{blogStatus === 'connected' ? 'Blogger connected' : 'Preview workspace'}</strong> — {blogStatus === 'connected' ? 'New prompts publish directly to Blogger; the public library reads published posts.' : 'Connect your Blogger account before publishing.'}</span></div><section className="admin-stat-grid"><article className="admin-stat-card"><span>LIBRARY PROMPTS</span><strong>{prompts.length}</strong><small><i>↗</i> {blogStatus === 'connected' ? 'Includes Blogger posts' : 'Including sample content'}</small><div className="stat-icon violet"><Sparkles size={18} /></div></article><article className="admin-stat-card"><span>YOUR PROMPTS</span><strong>{created.length}</strong><small><i>↗</i> Created in this browser</small><div className="stat-icon green"><Plus size={19} /></div></article><article className="admin-stat-card"><span>CATEGORIES</span><strong>{promptCategories.length}</strong><small>Ready to organize prompts</small><div className="stat-icon yellow"><SlidersHorizontal size={18} /></div></article><article className="admin-stat-card"><span>BLOGGER CONNECTION</span><strong className="status-waiting">{blogStatus === 'connected' ? 'Connected' : blogStatus === 'loading' ? 'Checking…' : blogStatus === 'error' ? 'Offline' : 'Pending'}</strong><small>{blogStatus === 'connected' ? 'Published posts are live' : 'Blogger account not connected'}</small><div className="stat-icon blue"><ShieldCheck size={18} /></div></article></section><section className="admin-table-card"><div className="admin-table-head"><div><span className="admin-kicker">YOUR CONTENT</span><h2>Recently added</h2></div><Link to="/admin/new" onClick={openNewBloggerPost} className="admin-text-link">Add a prompt <ArrowRight size={14} /></Link></div><div className="admin-table-scroll"><table className="prompts-table"><thead><tr><th>PROMPT</th><th>CATEGORY</th><th>TOOL</th><th>DATE</th><th /></tr></thead><tbody>{recent.map((prompt) => <tr key={prompt.id}><td><div className="table-prompt">{prompt.image && <img src={prompt.image} alt="" />}<span><strong>{prompt.title}</strong><small>/{prompt.slug}</small></span></div></td><td><span className="table-category">{prompt.category}</span></td><td>{prompt.tool}</td><td>{new Date(`${prompt.createdAt}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</td><td><Link to={`/prompt/${prompt.slug}`} className="table-open" aria-label={`Open ${prompt.title}`}><ArrowUpRight size={15} /></Link></td></tr>)}</tbody></table></div></section><div className="admin-bottom-line"><span>{appConfig.appName} Admin <b>·</b> UI preview</span><Link to="/">Return to public site <ArrowUpRight size={13} /></Link></div></>
+  return <><div className="admin-page-heading"><div><span className="admin-kicker">{appConfig.appName.toUpperCase()} / CREATOR STUDIO</span><h1>Welcome, {appConfig.adminDisplayName} <span>✳</span></h1><p>Here’s what’s happening in your prompt library.</p></div><Link to="/admin/new" onClick={openNewBloggerPost} className="admin-primary"><Plus size={16} /> Create prompt</Link></div>{publishNotice?.publishedUrl && <div className="publish-success-banner"><Check size={17} /><span>Published to Blogger successfully.</span><a href={publishNotice.publishedUrl} target="_blank" rel="noreferrer">View post <ArrowUpRight size={13} /></a></div>}<div className="admin-local-banner"><ShieldCheck size={17} /><span><strong>{bloggerConnected ? 'Blogger connected' : 'Blogger access'}</strong> — {bloggerConnected ? 'New prompts publish directly to Blogger; the public library reads published posts.' : 'Connect your Blogger account to publish posts and upload files to Google Drive.'}</span>{!bloggerConnected && <button type="button" className="admin-banner-connect-btn" onClick={() => void onConnectBlogger()} disabled={bloggerConnecting}><Sparkles size={13} /> {bloggerConnecting ? 'Connecting…' : 'Connect Blogger'}</button>}</div><section className="admin-stat-grid"><article className="admin-stat-card"><span>LIBRARY PROMPTS</span><strong>{prompts.length}</strong><small><i>↗</i> {bloggerConnected ? 'Includes Blogger posts' : 'Including sample content'}</small><div className="stat-icon violet"><Sparkles size={18} /></div></article><article className="admin-stat-card"><span>YOUR PROMPTS</span><strong>{created.length}</strong><small><i>↗</i> Created in this browser</small><div className="stat-icon green"><Plus size={19} /></div></article><article className="admin-stat-card"><span>CATEGORIES</span><strong>{promptCategories.length}</strong><small>Ready to organize prompts</small><div className="stat-icon yellow"><SlidersHorizontal size={18} /></div></article><article className="admin-stat-card"><span>BLOGGER CONNECTION</span><strong className={bloggerConnected ? 'status-connected' : 'status-waiting'}>{bloggerConnected ? 'Connected' : blogStatus === 'loading' ? 'Checking…' : 'Not connected'}</strong><small>{bloggerConnected ? 'Published posts are live' : 'Connect above to publish'}</small><div className="stat-icon blue"><ShieldCheck size={18} /></div></article></section><section className="admin-table-card"><div className="admin-table-head"><div><span className="admin-kicker">YOUR CONTENT</span><h2>Recently added</h2></div><Link to="/admin/new" onClick={openNewBloggerPost} className="admin-text-link">Add a prompt <ArrowRight size={14} /></Link></div><div className="admin-table-scroll"><table className="prompts-table"><thead><tr><th>PROMPT</th><th>CATEGORY</th><th>TOOL</th><th>DATE</th><th /></tr></thead><tbody>{recent.map((prompt) => <tr key={prompt.id}><td><div className="table-prompt">{prompt.image && <img src={prompt.image} alt="" />}<span><strong>{prompt.title}</strong><small>/{prompt.slug}</small></span></div></td><td><span className="table-category">{prompt.category}</span></td><td>{prompt.tool}</td><td>{new Date(`${prompt.createdAt}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</td><td><Link to={`/prompt/${prompt.slug}`} className="table-open" aria-label={`Open ${prompt.title}`}><ArrowUpRight size={15} /></Link></td></tr>)}</tbody></table></div></section><div className="admin-bottom-line"><span>{appConfig.appName} Admin <b>·</b> UI preview</span><Link to="/">Return to public site <ArrowUpRight size={13} /></Link></div></>
 }
 
 function parseHashtags(input: string): string[] {
@@ -1240,7 +1286,7 @@ function ToolsManager() {
   </>
 }
 
-function AdminGate({ allowed, authReady, bloggerConnected, prompts, blogStatus, onPublish, onLogout, menuSections, onChangeMenus }: { allowed: boolean; authReady: boolean; bloggerConnected: boolean; prompts: Prompt[]; blogStatus: 'idle' | 'loading' | 'connected' | 'error'; onPublish: (prompt: Prompt, target: { blogId: string; postId: string }) => Promise<{ id: string; url: string; published: string; imageUrl: string }>; onLogout: () => void; menuSections: SideMenuSection[]; onChangeMenus: (sections: SideMenuSection[]) => void }) {
+function AdminGate({ allowed, authReady, bloggerConnected, onConnectBlogger, onDisconnectBlogger, bloggerConnecting, bloggerError, prompts, blogStatus, onPublish, onLogout, menuSections, onChangeMenus }: { allowed: boolean; authReady: boolean; bloggerConnected: boolean; onConnectBlogger: () => Promise<void>; onDisconnectBlogger: () => void; bloggerConnecting: boolean; bloggerError: string; prompts: Prompt[]; blogStatus: 'idle' | 'loading' | 'connected' | 'error'; onPublish: (prompt: Prompt, target: { blogId: string; postId: string }) => Promise<{ id: string; url: string; published: string; imageUrl: string }>; onLogout: () => void; menuSections: SideMenuSection[]; onChangeMenus: (sections: SideMenuSection[]) => void }) {
   const pathname = useLocation().pathname
   const { admin: adminTools } = useTools()
   const createPage = pathname.endsWith('/new')
@@ -1253,7 +1299,7 @@ function AdminGate({ allowed, authReady, bloggerConnected, prompts, blogStatus, 
   if (!authReady) return <main className="auth-page"><p className="auth-subtitle">Checking sign-in…</p></main>
   if (!allowed) return <Navigate to="/login" replace />
   const customCategories = menuSections.flatMap((section) => section.items.map((item) => item.name))
-  return <AdminShell bloggerConnected={bloggerConnected} onLogout={onLogout}>{pdfUploadPage ? <PdfProductUploader /> : productsPage ? <ProductManager /> : adminTool ? <ToolSurface tool={adminTool} /> : aiModelsPage ? <AiModelSettingsPage /> : toolsPage ? <ToolsManager /> : menusPage ? <MenuManager menuSections={menuSections} onChange={onChangeMenus} /> : createPage ? <PromptEditor onPublish={onPublish} customCategories={customCategories} /> : <AdminOverview prompts={prompts} blogStatus={blogStatus} />}</AdminShell>
+  return <AdminShell bloggerConnected={bloggerConnected} onConnectBlogger={onConnectBlogger} onDisconnectBlogger={onDisconnectBlogger} bloggerConnecting={bloggerConnecting} bloggerError={bloggerError} onLogout={onLogout}>{pdfUploadPage ? <PdfProductUploader /> : productsPage ? <ProductManager /> : adminTool ? <ToolSurface tool={adminTool} /> : aiModelsPage ? <AiModelSettingsPage /> : toolsPage ? <ToolsManager /> : menusPage ? <MenuManager menuSections={menuSections} onChange={onChangeMenus} /> : createPage ? <PromptEditor onPublish={onPublish} customCategories={customCategories} /> : <AdminOverview prompts={prompts} blogStatus={blogStatus} bloggerConnected={bloggerConnected} onConnectBlogger={onConnectBlogger} bloggerConnecting={bloggerConnecting} />}</AdminShell>
 }
 
 function loadSideMenus(): SideMenuSection[] {
@@ -1268,6 +1314,8 @@ function loadSideMenus(): SideMenuSection[] {
 
 export default function App() {
   const [bloggerConnected, setBloggerConnected] = useState(() => hasBloggerSession())
+  const [bloggerConnecting, setBloggerConnecting] = useState(false)
+  const [bloggerError, setBloggerError] = useState('')
   const [adminAuthenticated, setAdminAuthenticated] = useState(false)
   const [adminAuthReady, setAdminAuthReady] = useState(false)
   const [blogPrompts, setBlogPrompts] = useState<Prompt[] | null>(null)
@@ -1279,6 +1327,27 @@ export default function App() {
   })
   const prompts = useMemo(() => [...localPrompts, ...(blogPrompts ?? promptCatalog)], [localPrompts, blogPrompts])
   const { pages } = useTools()
+
+  const handleConnectBlogger = async () => {
+    setBloggerConnecting(true)
+    setBloggerError('')
+    try {
+      await connectBlogger()
+      setBloggerConnected(true)
+      setBlogStatus('connected')
+    } catch (reason) {
+      setBloggerError(reason instanceof Error ? reason.message : 'Google Blogger connection failed.')
+    } finally {
+      setBloggerConnecting(false)
+    }
+  }
+
+  const handleDisconnectBlogger = () => {
+    clearBloggerSession()
+    setBloggerConnected(false)
+    setBlogStatus('idle')
+  }
+
   useEffect(() => {
     let cancelled = false
     // Sign-in state is only needed by the header and Creator Studio; let the page paint first.
@@ -1359,7 +1428,7 @@ export default function App() {
     if (window.location.pathname === '/') return whenIdle(() => { void loadCustomerSession() })
     void loadCustomerSession()
   }, [])
-  const adminAllowed = bloggerConnected || adminAuthenticated
-  return <Routes><Route path="/" element={<HomePage prompts={prompts} blogStatus={blogStatus} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /><Route path="/store" element={<StorePage />} />{pages.map((tool) => <Route key={tool.id} path={tool.path} element={<ToolPage tool={tool} />} />)}<Route path="/checkout/:productId" element={<CheckoutPage />} /><Route path="/prompt/:slug" element={<PromptPage prompts={prompts} />} /><Route path="/account" element={<AccountPage />} /><Route path="/login" element={<LoginPage onConnected={() => setBloggerConnected(true)} onAdminLogin={() => { setAdminAuthenticated(true); setAdminAuthReady(true) }} />} /><Route path="/admin/upload-pdf" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="/admin/*" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="*" element={<HomePage prompts={prompts} blogStatus={blogStatus} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /></Routes>
+  const adminAllowed = adminAuthenticated
+  return <Routes><Route path="/" element={<HomePage prompts={prompts} blogStatus={blogStatus} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /><Route path="/store" element={<StorePage />} />{pages.map((tool) => <Route key={tool.id} path={tool.path} element={<ToolPage tool={tool} />} />)}<Route path="/checkout/:productId" element={<CheckoutPage />} /><Route path="/prompt/:slug" element={<PromptPage prompts={prompts} />} /><Route path="/account" element={<AccountPage />} /><Route path="/login" element={<LoginPage onAdminLogin={() => { setAdminAuthenticated(true); setAdminAuthReady(true) }} />} /><Route path="/admin/upload-pdf" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} onConnectBlogger={handleConnectBlogger} onDisconnectBlogger={handleDisconnectBlogger} bloggerConnecting={bloggerConnecting} bloggerError={bloggerError} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="/admin/*" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} onConnectBlogger={handleConnectBlogger} onDisconnectBlogger={handleDisconnectBlogger} bloggerConnecting={bloggerConnecting} bloggerError={bloggerError} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="*" element={<HomePage prompts={prompts} blogStatus={blogStatus} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /></Routes>
 }
 
