@@ -7,14 +7,14 @@ import {
   Trash2,
   Plus,
   RefreshCw,
-  CheckCircle2,
+  CircleCheck,
   Zap,
-  Sliders,
+  SlidersHorizontal,
   ShieldCheck,
   HardDriveDownload,
   X,
   ArrowRight,
-  Loader2,
+  LoaderCircle,
 } from 'lucide-react'
 import type { CompressionSettings, ImageItem, OutputFormat } from './types'
 import { compressSingleImage, formatBytes, getFileExtension } from './compressEngine'
@@ -318,7 +318,7 @@ export default function CompressImage() {
               <div className="summary-headline">
                 <div className="summary-title">
                   <div className="summary-badge-icon">
-                    <CheckCircle2 size={20} />
+                    <CircleCheck size={20} />
                   </div>
                   <div>
                     <h2>Images Compressed Successfully!</h2>
@@ -435,7 +435,7 @@ export default function CompressImage() {
                           )}
                           {item.status === 'compressing' && (
                             <span className="status-indicator compressing">
-                              <Loader2 size={13} className="spinning" /> Optimizing...
+                              <LoaderCircle size={13} className="spinning" /> Optimizing...
                             </span>
                           )}
                           {item.status === 'done' && (
@@ -477,7 +477,7 @@ export default function CompressImage() {
             <aside className="compress-sidebar">
               <div className="settings-card">
                 <h3>
-                  <Sliders size={16} /> Compression Options
+                  <SlidersHorizontal size={16} /> Compression Options
                 </h3>
 
                 {/* Quality Slider — always visible */}
@@ -580,7 +580,7 @@ export default function CompressImage() {
                   >
                     {isProcessing ? (
                       <>
-                        <Loader2 size={18} className="spinning" />
+                        <LoaderCircle size={18} className="spinning" />
                         Compressing {processingIndex} of {items.length}...
                       </>
                     ) : (
@@ -599,7 +599,7 @@ export default function CompressImage() {
                     >
                       {isZipping ? (
                         <>
-                          <Loader2 size={18} className="spinning" />
+                          <LoaderCircle size={18} className="spinning" />
                           Zipping... {zipProgress > 0 ? `${zipProgress}%` : ''}
                         </>
                       ) : (
