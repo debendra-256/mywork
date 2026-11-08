@@ -361,6 +361,150 @@
 .top-cat-item small{margin-left:auto;padding:2px 6px;border-radius:20px;background:#eaf6ee;color:#0a9f62;font-size:7px;font-weight:800;letter-spacing:.06em}
 @media(max-width:1080px){.top-cats{display:none}}
 
+/* Tools Mega Menu dropdown — multi-column cards like reference design */
+.top-cat-menu.tools-mega-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: -20px;
+  width: max-content;
+  max-width: min(990px, calc(100vw - 40px));
+  display: grid;
+  grid-template-columns: repeat(4, minmax(215px, 1fr));
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.14), 0 0 1px 1px rgba(15, 23, 42, 0.05);
+  z-index: 100;
+}
+
+.mega-menu-column {
+  display: flex;
+  flex-direction: column;
+  padding: 14px 12px;
+  background: #fbfbfc;
+  border: 1px solid #edf0f5;
+  border-radius: 12px;
+  transition: all .15s ease;
+}
+
+.mega-menu-column:hover {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+}
+
+.mega-menu-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1.5px solid #edf0f4;
+}
+
+.mega-menu-icon {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: #eef2ff;
+  color: #4f46e5;
+  flex-shrink: 0;
+}
+
+.mega-menu-title {
+  font-size: 12.5px;
+  font-weight: 750;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.mega-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+
+.mega-menu-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #334155;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+
+.mega-menu-link:hover {
+  background: #f1f5f9;
+  color: #4338ca;
+  padding-left: 11px;
+}
+
+.mega-menu-link-icon {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.mega-menu-link:hover .mega-menu-link-icon {
+  color: #4f46e5;
+}
+
+.mega-menu-link-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mega-menu-badge {
+  padding: 1px 6px;
+  border-radius: 12px;
+  background: #e0e7ff;
+  color: #4338ca;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .04em;
+}
+
+.mega-menu-view-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid #f1f4f8;
+  background: transparent;
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+  color: #dc2626;
+  font-size: 11px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: all .15s;
+}
+
+.mega-menu-view-all:hover {
+  color: #991b1b;
+  gap: 8px;
+}
+
 /* Simple Admin Login Screen */
 .auth-page.simple-login-page {
   min-height: 100vh;

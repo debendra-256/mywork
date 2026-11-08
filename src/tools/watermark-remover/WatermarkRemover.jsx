@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Download, Droplets, Eraser, ImagePlus, LoaderCircle, Paintbrush, RotateCcw, ShieldCheck, Trash2, Undo2, Upload, Wand2, X } from 'lucide-react'
+import { Download, Droplets, Eraser, Film, ImagePlus, LoaderCircle, Paintbrush, RotateCcw, ShieldCheck, Trash2, Undo2, Upload, Wand2, X } from 'lucide-react'
 import { ENGINE_DEFAULTS } from './engine'
+import VideoWatermarkRemover from './VideoWatermarkRemover'
 import './WatermarkRemover.css'
 
 const MAX_EDGE = 1400
@@ -38,6 +39,8 @@ function downloadName(name) {
 }
 
 export default function WatermarkRemover() {
+  const [mediaType, setMediaType] = useState('photo')
+  const [pendingVideo, setPendingVideo] = useState(null)
   const [image, setImage] = useState(null)
   const [mode, setMode] = useState('empty')
   const [busy, setBusy] = useState(false)
@@ -437,7 +440,14 @@ export default function WatermarkRemover() {
     setDragging(false)
     if (busy) return
     const file = event.dataTransfer?.files?.[0]
-    if (file) void loadFile(file)
+    if (file) {
+      if (file.type?.startsWith('video/') || /\.(mp4|webm|mov|mkv)$/i.test(file.name)) {
+        setPendingVideo(file)
+        setMediaType('video')
+      } else {
+        void loadFile(file)
+      }
+    }
   }
 
   const onDragOver = (event) => {
@@ -452,25 +462,54 @@ export default function WatermarkRemover() {
   const processing = busy ? 'processing' : mode
   const scaledDown = image ? Math.max(image.originalWidth, image.originalHeight) > MAX_EDGE : false
 
-  return <section className="wm-tool" aria-label="Remove watermark from an image">
+  return <section className="wm-tool" aria-label="Remove watermark from an image or video">
     <header className="wm-topbar">
       <div className="wm-brand">
-        <span className="wm-brand-mark"><Droplets size={17} /></span>
+        <span className="wm-brand-mark">{mediaType === 'video' ? <Film size={17} /> : <Droplets size={17} />}</span>
         <div>
-          <h1>Watermark Remover</h1>
-          <p>Paint over the watermark. The area is rebuilt from the surrounding photo.</p>
+          <h1>{mediaType === 'video' ? 'Video Watermark Remover' : 'Watermark Remover'}</h1>
+          <p>{mediaType === 'video' ? 'Select and defuse watermarks, logos, or captions from video clips.' : 'Paint over the watermark. The area is rebuilt from the surrounding photo.'}</p>
         </div>
       </div>
+      <div className="wm-media-tabs" role="tablist" aria-label="Media Mode">
+        <button
+          type="button"
+          className={`wm-media-tab ${mediaType === 'photo' ? 'is-active' : ''}`}
+          onClick={() => setMediaType('photo')}
+        >
+          <ImagePlus size={13} /> Photo
+        </button>
+        <button
+          type="button"
+          className={`wm-media-tab ${mediaType === 'video' ? 'is-active' : ''}`}
+          onClick={() => setMediaType('video')}
+        >
+          <Film size={13} /> Video
+        </button>
+      </div>
       <div className="wm-top-actions">
-        {image && <button className="wm-ghost" type="button" onClick={newPhoto} disabled={busy}><ImagePlus size={14} /> New photo</button>}
-        {busy
-          ? <button className="wm-ghost" type="button" onClick={cancelRemoval}><X size={14} /> Cancel</button>
-          : mode === 'result'
-            ? <button className="wm-primary" type="button" onClick={downloadPng}><Download size={15} /> Download PNG</button>
-            : <button className="wm-primary" type="button" onClick={removeWatermark} disabled={!hasMask || !image}><Wand2 size={15} /> Remove watermark</button>}
+        {mediaType === 'photo' && (
+          <>
+            {image && <button className="wm-ghost" type="button" onClick={newPhoto} disabled={busy}><ImagePlus size={14} /> New photo</button>}
+            {busy
+              ? <button className="wm-ghost" type="button" onClick={cancelRemoval}><X size={14} /> Cancel</button>
+              : mode === 'result'
+                ? <button className="wm-primary" type="button" onClick={downloadPng}><Download size={15} /> Download PNG</button>
+                : <button className="wm-primary" type="button" onClick={removeWatermark} disabled={!hasMask || !image}><Wand2 size={15} /> Remove watermark</button>}
+          </>
+        )}
       </div>
     </header>
 
+    {mediaType === 'video' ? (
+      <VideoWatermarkRemover
+        initialFile={pendingVideo}
+        onSwitchToPhoto={(file) => {
+          setMediaType('photo')
+          if (file) void loadFile(file)
+        }}
+      />
+    ) : (
     <div className="wm-body">
       <div className={`wm-workspace ${dragging ? 'is-dragging' : ''}`} onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}>
         {!image
@@ -596,5 +635,6 @@ export default function WatermarkRemover() {
         <p className="wm-privacy"><ShieldCheck size={14} /> Your photo never leaves this browser tab.</p>
       </aside>
     </div>
+    )}
   </section>
 }

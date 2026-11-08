@@ -99,6 +99,55 @@ const NAV_SECTIONS: { id: string; label: string; href?: string; items?: NavItem[
   { id: 'pricing', label: 'Pricing', href: '/store' },
 ]
 
+const TOOL_MEGA_GROUPS = [
+  {
+    id: 'image',
+    title: 'Image Tools',
+    icon: ImagePlus,
+    viewAllHref: '/collage',
+    items: [
+      { toolId: 'collage', label: 'Photo & Video Editor' },
+      { toolId: 'poster', label: 'Create Poster' },
+      { toolId: 'remove-object', label: 'Remove Object' },
+      { toolId: 'watermark-remover', label: 'Watermark Remover' },
+      { toolId: 'passport-photo', label: 'Passport Photo Maker' },
+    ],
+  },
+  {
+    id: 'video',
+    title: 'Video Tools',
+    icon: Play,
+    viewAllHref: '/shorts',
+    items: [
+      { toolId: 'screen-recorder', label: 'Screen Recorder' },
+      { toolId: 'shorts', label: 'YouTube to Shorts' },
+      { toolId: 'video-downloader', label: 'Video Downloader' },
+    ],
+  },
+  {
+    id: 'ai',
+    title: 'AI & Utilities',
+    icon: Sparkles,
+    viewAllHref: '/prompt-generator',
+    items: [
+      { toolId: 'prompt-generator', label: 'Prompt Generator' },
+      { toolId: 'mindcloud', label: 'Mind Cloud Map' },
+      { toolId: 'qr-code', label: 'QR Code Generator' },
+      { label: 'Digital PDF Store', href: '/store?type=pdf', glyph: 'store' as const },
+    ],
+  },
+  {
+    id: 'writing',
+    title: 'Writing & Chat',
+    icon: MessageCircle,
+    viewAllHref: '/fakechat',
+    items: [
+      { toolId: 'fakechat', label: 'Fake Chat Mockup' },
+      { toolId: 'emoji-text', label: 'Emoji Text Generator' },
+    ],
+  },
+]
+
 /** Category dropdowns in the top bar, styled after classic AI tool menus. */
 function TopMenu({ onJump, onFilter, signedIn }: { onJump?: (id: string) => void; onFilter?: (filter: string) => void; signedIn: boolean }) {
   const [open, setOpen] = useState<string | null>(null)
@@ -152,15 +201,67 @@ function TopMenu({ onJump, onFilter, signedIn }: { onJump?: (id: string) => void
     if (!items.length) return null
     return <div className="top-cat" key={section.id}>
       <button type="button" className={`top-cat-btn ${open === section.id ? 'is-open' : ''}`} aria-expanded={open === section.id} onClick={() => setOpen(open === section.id ? null : section.id)}>{section.label}<ChevronDown size={14} /></button>
-      {open === section.id && <div className={`top-cat-menu ${section.items.some((item) => item.group) ? 'is-grouped' : ''}`} role="menu">{items.map(({ item, tool }) => {
-        const Glyph = item.glyph ? navGlyphs[item.glyph] : null
-        return <button type="button" role="menuitem" className="top-cat-item" key={`${item.group ?? ''}-${item.toolId ?? item.label}`} onClick={() => pick(item)}>
-          {item.group && <span className="top-cat-group">{item.group}</span>}
-          <span className="top-cat-item-icon">{tool ? <ToolGlyph icon={tool.icon} /> : Glyph ? <Glyph size={15} /> : null}</span>
-          <span className="top-cat-item-label">{tool?.title ?? item.label}</span>
-          {tool?.placement === 'feature' && <small>New</small>}
-        </button>
-      })}</div>}
+      {open === section.id && (section.id === 'tools' ? (
+        <div className="top-cat-menu tools-mega-menu" role="menu">
+          {TOOL_MEGA_GROUPS.map((group) => {
+            const GroupIcon = group.icon
+            const availableItems = group.items.filter((item) => {
+              const tool = item.toolId ? tools.get(item.toolId) : undefined
+              return !tool || tool.enabled !== false
+            })
+            if (!availableItems.length) return null
+            return (
+              <div className="mega-menu-column" key={group.id}>
+                <div className="mega-menu-heading">
+                  <span className="mega-menu-icon"><GroupIcon size={14} /></span>
+                  <span className="mega-menu-title">{group.title}</span>
+                </div>
+                <div className="mega-menu-list">
+                  {availableItems.map((item) => {
+                    const tool = item.toolId ? tools.get(item.toolId) : undefined
+                    const Glyph = item.glyph ? navGlyphs[item.glyph] : null
+                    return (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="mega-menu-link"
+                        key={item.toolId || item.label}
+                        onClick={() => pick(item)}
+                      >
+                        <span className="mega-menu-link-icon">
+                          {tool ? <ToolGlyph icon={tool.icon} /> : Glyph ? <Glyph size={14} /> : null}
+                        </span>
+                        <span className="mega-menu-link-text">{tool?.title || item.label}</span>
+                        {tool?.placement === 'feature' && <span className="mega-menu-badge">New</span>}
+                      </button>
+                    )
+                  })}
+                </div>
+                <button
+                  type="button"
+                  className="mega-menu-view-all"
+                  onClick={() => {
+                    setOpen(null)
+                    navigate(group.viewAllHref)
+                  }}
+                >
+                  View all <ArrowRight size={13} />
+                </button>
+              </div>
+            )
+          })}
+        </div>
+      ) : (
+        <div className={`top-cat-menu ${section.items.some((item) => item.group) ? 'is-grouped' : ''}`} role="menu">{items.map(({ item, tool }) => {
+          const Glyph = item.glyph ? navGlyphs[item.glyph] : null
+          return <button type="button" role="menuitem" className="top-cat-item" key={`${item.group ?? ''}-${item.toolId ?? item.label}`} onClick={() => pick(item)}>
+            {item.group && <span className="top-cat-group">{item.group}</span>}
+            <span className="top-cat-item-icon">{tool ? <ToolGlyph icon={tool.icon} /> : Glyph ? <Glyph size={15} /> : null}</span>
+            <span className="top-cat-item-label">{tool?.title ?? item.label}</span>
+            {tool?.placement === 'feature' && <small>New</small>}
+          </button>
+        })}</div>
+      ))}
     </div>
   })}</div>
 }
