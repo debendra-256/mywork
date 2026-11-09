@@ -744,3 +744,25 @@
   object-fit: contain;
   background: #000;
 }
+
+/* --- Custom UI tweaks --- */
+/* Prevent horizontal overflow of the top navigation bar */
+.top-cats {
+  overflow-x: hidden;
+}
+/* New colour for the top‑cat button (navigation tabs) */
+.top-cat-btn {
+  background-color: #ff6f61; /* vibrant coral */
+  color: #fff;
+}
+.top-cat-btn:hover {
+  background-color: #e05555;
+}
+/* Align feature button colour with the new theme */
+.feature-button {
+  background-color: #ff6f61;
+  color: #fff;
+}
+.feature-button:hover {
+  background-color: #e05555;
+}

@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react'
 
-export type ToolIcon = 'images' | 'youtube' | 'image-plus' | 'video' | 'qr-code' | 'download' | 'scan' | 'layers' | 'message' | 'network' | 'eraser' | 'droplets' | 'sparkles' | 'wand' | 'bot' | 'monitor-play' | 'zap' | 'instagram' | 'smile' | 'palette' | 'panel-left' | 'id-card'
+export type ToolIcon = 'images' | 'youtube' | 'image-plus' | 'video' | 'qr-code' | 'download' | 'scan' | 'layers' | 'message' | 'network' | 'eraser' | 'droplets' | 'sparkles' | 'wand' | 'bot' | 'monitor-play' | 'zap' | 'instagram' | 'smile' | 'palette' | 'panel-left' | 'id-card' | 'file-archive'
 
 /** Where a tool is surfaced: its own page, an inline/overlay panel on the home page, Creator Studio, or its own sidebar menu. */
 export type ToolPlacement = 'library' | 'utility' | 'admin' | 'feature'
@@ -40,6 +40,7 @@ export const toolsConfig: readonly ToolDefinition[] = [
   { id: 'screen-recorder', title: 'Screen Recorder', placement: 'utility', icon: 'monitor-play', overlay: true, enabled: true, load: () => import('../tools/screen-recorder/ScreenRecorder') },
   { id: 'qr-code', title: 'QR Code Generator', placement: 'utility', icon: 'qr-code', enabled: true, load: () => import('../tools/qr-code/QRCodeGenerator') },
   { id: 'collage', title: 'Photo and Video Editor', placement: 'library', path: '/collage', href: '/collage', icon: 'wand', editorFonts: true, enabled: true, load: () => import('../tools/collage/CollageStudio') },
+  { id: 'compress-image', title: 'Compress Image', placement: 'library', path: '/compress-image', href: '/compress-image', icon: 'file-archive', enabled: true, load: () => import('../tools/compress-image/CompressImage') },
   { id: 'shorts', title: 'YouTube to Shorts Maker', placement: 'library', path: '/shorts', href: '/shorts', icon: 'zap', enabled: true, load: () => import('../tools/shorts/ShortsCreator') },
   { id: 'poster', title: 'Create Poster', placement: 'library', path: '/poster/*', href: '/poster', icon: 'sparkles', editorFonts: true, enabled: true, load: () => import('../tools/poster/CreatePoster') },
   { id: 'fakechat', title: 'FakeChat', placement: 'library', path: '/fakechat', href: '/fakechat', icon: 'bot', enabled: true, load: () => import('../tools/fakechat/FakeChat') },

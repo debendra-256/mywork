@@ -60,6 +60,7 @@ const NAV_SECTIONS: { id: string; label: string; href?: string; items?: NavItem[
     items: [
       { group: 'Image', toolId: 'collage' },
       { toolId: 'poster' },
+      { toolId: 'compress-image' },
       { toolId: 'remove-object' },
       { toolId: 'watermark-remover' },
       { toolId: 'passport-photo' },
@@ -107,6 +108,7 @@ const TOOL_MEGA_GROUPS = [
     items: [
       { toolId: 'collage', label: 'Photo & Video Editor' },
       { toolId: 'poster', label: 'Create Poster' },
+      { toolId: 'compress-image', label: 'Compress Image' },
       { toolId: 'remove-object', label: 'Remove Object' },
       { toolId: 'watermark-remover', label: 'Watermark Remover' },
       { toolId: 'passport-photo', label: 'Passport Photo Maker' },
