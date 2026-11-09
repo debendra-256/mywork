@@ -747,12 +747,17 @@
 
 /* Footer layout & components */
 .page-footer {
-  width: 100%;
+  width: auto;
+  margin: 56px calc(-1 * clamp(20px, 3.5vw, 54px)) 0;
   border-top: 1px solid #eef2f6;
   background: #ffffff;
   padding: 56px 0 44px;
   color: #64748b;
-  margin-top: 56px;
+}
+
+.detail-shell .page-footer {
+  margin-left: 0;
+  margin-right: 0;
 }
 
 [data-scheme="dark"] .page-footer {

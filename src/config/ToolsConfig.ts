@@ -38,7 +38,7 @@ export interface ToolDefinition {
  */
 export const toolsConfig: readonly ToolDefinition[] = [
   { id: 'screen-recorder', title: 'Screen Recorder', placement: 'utility', icon: 'monitor-play', overlay: true, enabled: true, load: () => import('../tools/screen-recorder/ScreenRecorder') },
-  { id: 'qr-code', title: 'QR Code Generator', placement: 'utility', icon: 'qr-code', enabled: true, load: () => import('../tools/qr-code/QRCodeGenerator') },
+  { id: 'qr-code', title: 'QR Code Generator', placement: 'library', path: '/qr-code', href: '/qr-code', icon: 'qr-code', enabled: true, load: () => import('../tools/qr-code/QRCodeGenerator') },
   { id: 'collage', title: 'Photo and Video Editor', placement: 'library', path: '/collage', href: '/collage', icon: 'wand', editorFonts: true, enabled: true, load: () => import('../tools/collage/CollageStudio') },
   { id: 'compress-image', title: 'Compress Image', placement: 'library', path: '/compress-image', href: '/compress-image', icon: 'file-archive', enabled: true, load: () => import('../tools/compress-image/CompressImage') },
   { id: 'shorts', title: 'YouTube to Shorts Maker', placement: 'library', path: '/shorts', href: '/shorts', icon: 'zap', enabled: true, load: () => import('../tools/shorts/ShortsCreator') },

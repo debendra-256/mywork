@@ -179,9 +179,10 @@
 :root[data-theme] .share-target{border-color:var(--line);background:var(--paper);color:var(--ink-soft)}
 :root[data-theme] .share-target:hover{border-color:var(--brand-line);background:var(--brand-softer);color:var(--brand-dark)}
 :root[data-theme] .share-helper,:root[data-theme] .share-status{color:var(--muted)}
-:root[data-theme] .page-footer{border-top-color:var(--line);color:var(--faint)}
-:root[data-theme] .community-links,:root[data-theme] .community-links a{color:var(--muted)}
-:root[data-theme] .community-links>strong{color:var(--ink-soft)}
+:root[data-theme] .page-footer{border-top-color:var(--line)}
+:root[data-theme] .footer-col strong{color:var(--ink)}
+:root[data-theme] .footer-brand-desc,:root[data-theme] .footer-col a,:root[data-theme] .footer-social-link{color:var(--muted)}
+:root[data-theme] .footer-col a:hover,:root[data-theme] .footer-social-link:hover{color:var(--brand)}
 :root[data-theme] .not-found h1{color:var(--ink)}
 :root[data-theme] .not-found a{color:var(--brand-dark)}
 

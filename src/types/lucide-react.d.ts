@@ -43,11 +43,13 @@ declare module 'lucide-react' {
   export const Layers: LucideIcon
   export const LayoutDashboard: LucideIcon
   export const LayoutGrid: LucideIcon
+  export const Linkedin: LucideIcon
   export const Loader2: LucideIcon
   export const LoaderCircle: LucideIcon
   export const Lock: LucideIcon
   export const LockOpen: LucideIcon
   export const LogOut: LucideIcon
+  export const Mail: LucideIcon
   export const Maximize2: LucideIcon
   export const Menu: LucideIcon
   export const MessageCircle: LucideIcon
@@ -83,6 +85,7 @@ declare module 'lucide-react' {
   export const Store: LucideIcon
   export const Sun: LucideIcon
   export const Trash2: LucideIcon
+  export const Twitter: LucideIcon
   export const Undo2: LucideIcon
   export const Upload: LucideIcon
   export const Users: LucideIcon

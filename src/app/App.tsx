@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ChevronDown, Clock3, Copy, DatabaseBackup, Facebook, Video, Flame, Headphones, Heart, Home, ImagePlus, Images, KeyRound, Layers, LayoutDashboard, LayoutGrid, Lock, LockOpen, LogOut, Menu, MessageCircle, Play, Plus, Search, Send, Share2, ShieldCheck, SlidersHorizontal, Sparkles, Store, Sun, Trash2, X, Zap } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ChevronDown, Clock3, Copy, DatabaseBackup, Facebook, Video, Flame, Headphones, Heart, Home, ImagePlus, Images, Instagram, KeyRound, Layers, LayoutDashboard, LayoutGrid, Linkedin, Lock, LockOpen, LogOut, Mail, Menu, MessageCircle, Play, Plus, Search, Share2, ShieldCheck, SlidersHorizontal, Sparkles, Store, Sun, Trash2, Twitter, X, Zap } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { appConfig } from '../config/app.config'
 import { toolsConfig, type ToolDefinition, type ToolIcon } from '../config/ToolsConfig'
@@ -24,6 +24,7 @@ import { WATERMARK_BENEFIT, productPrice, type StoreFeature, type StoreProduct, 
 import { createMenuItemId, defaultSideMenus, type SideMenuSection } from '../data/side-menus'
 import { isPosterPrompt, promptHashtags, promptLabels, promptTags, type Prompt } from '../domain/prompt'
 import { useInView, whenIdle } from './useInView'
+import { InfoPage, type InfoKind } from './InfoPage'
 
 const promptRepository = createPromptRepository({
   contentProvider: appConfig.contentProvider,
@@ -97,6 +98,8 @@ const NAV_SECTIONS: { id: string; label: string; href?: string; items?: NavItem[
       { label: 'Creator dashboard', href: '/login', glyph: 'dashboard' },
     ],
   },
+  { id: 'about', label: 'About Us', href: '/about' },
+  { id: 'contact', label: 'Contact Us', href: '/contact' },
 ]
 
 const TOOL_MEGA_GROUPS = [
@@ -325,26 +328,6 @@ function ThemeMenu() {
       <p className={`theme-menu-note ${notice ? 'is-error' : ''}`}>{notice || 'Saves for every visitor. Full previews in Admin → Site Theme.'}</p>
     </div>}
   </div>
-}
-
-function InstagramIcon({ size = 15 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={{ verticalAlign: 'middle', flexShrink: 0 }}>
-      <defs>
-        <radialGradient id="ig-real-grad" cx="20%" cy="110%" r="130%">
-          <stop offset="0%" stopColor="#ffda77" />
-          <stop offset="10%" stopColor="#fca84e" />
-          <stop offset="50%" stopColor="#e95950" />
-          <stop offset="70%" stopColor="#d62976" />
-          <stop offset="90%" stopColor="#962fbf" />
-          <stop offset="100%" stopColor="#4f5bd5" />
-        </radialGradient>
-      </defs>
-      <rect x="2" y="2" width="20" height="20" rx="5.5" stroke="url(#ig-real-grad)" strokeWidth="2.2" />
-      <circle cx="12" cy="12" r="4.2" stroke="url(#ig-real-grad)" strokeWidth="2.2" />
-      <circle cx="17.6" cy="6.4" r="1.4" fill="url(#ig-real-grad)" />
-    </svg>
-  )
 }
 
 function Sidebar({ open, active, onSelect, onHome, onClose, activeUtility, onOpenUtility }: { open: boolean; active: string; onSelect: (category: string) => void; onHome: () => void; onClose: () => void; activeUtility: string | null; onOpenUtility: (id: string) => void }) {
@@ -768,8 +751,71 @@ function HomePage({ prompts, blogStatus, onAddTrend, adminLoggedIn = false }: { 
         <div className="results-heading"><div><span className="results-label">BROWSE THE LIBRARY</span><h3>{title}</h3></div><span className="results-number">{String(shown.length).padStart(2, '0')} <span>prompts</span></span></div>
         {shown.length ? <><div className="prompt-grid">{pageItems.map((prompt, index) => <PromptCard key={prompt.id} prompt={prompt} index={(currentPage - 1) * libraryPageSize + index} saved={savedIds.includes(prompt.id)} engagement={engagementFor(counts, prompt.id)} onToggleSave={() => toggleSave(prompt.id)} onCopy={() => record(prompt.id, 'copy')} onHashtag={showHashtag} />)}</div>{totalPages > 1 && <nav className="library-pagination" aria-label="Prompt pages"><button className="pagination-edge" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}><ArrowLeft size={15} /> Prev</button><div className="pagination-pages">{pageNumbers(currentPage, totalPages).map((entry, index) => entry === 'gap' ? <span className="pagination-gap" key={`gap-${index}`}>…</span> : <button key={entry} className={`pagination-page ${entry === currentPage ? 'is-current' : ''}`} onClick={() => goToPage(entry)} aria-current={entry === currentPage ? 'page' : undefined}>{entry}</button>)}</div><span className="pagination-range">{String((currentPage - 1) * libraryPageSize + 1).padStart(2, '0')}–{String((currentPage - 1) * libraryPageSize + pageItems.length).padStart(2, '0')} of {String(shown.length).padStart(2, '0')}</span><button className="pagination-edge" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}>Next <ArrowRight size={15} /></button></nav>}</> : <div className="no-results"><span>✳</span><h3>{blogStatus === 'connected' && prompts.length === 0 ? 'No published posts yet' : 'No prompts here yet'}</h3><p>{blogStatus === 'connected' && prompts.length === 0 ? 'Your Blogger connection is working. Publish a post on the blog and it will appear here.' : 'Try another category or search term.'}</p>{!(blogStatus === 'connected' && prompts.length === 0) && <button onClick={() => { setActive('All'); setQuery('') }}>Show all prompts <ArrowRight size={15} /></button>}</div>}
       </section>
-      <footer className="page-footer"><Link to="/" className="brand" aria-label="ImgMojo"><img className="brand-full-logo" src="/images/imgmojo-logo.png" alt="ImgMojo" /></Link><p>Good ideas like being shared.</p><div className="community-links"><strong>Join our community</strong><nav aria-label="Join our social communities"><a className="community-instagram" href="https://instagram.com/imgmojo" target="_blank" rel="noreferrer"><InstagramIcon size={16} /> @imgmojo</a>{appConfig.community.whatsappPhone && <a className="community-whatsapp" href={`https://wa.me/${appConfig.community.whatsappPhone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"><MessageCircle size={16} /> WhatsApp</a>}{appConfig.community.facebookPageId && <a className="community-facebook" href={`https://facebook.com/${encodeURIComponent(appConfig.community.facebookPageId)}`} target="_blank" rel="noreferrer"><Facebook size={16} /> Facebook</a>}{appConfig.community.telegramUsername && <a className="community-telegram" href={`https://t.me/${encodeURIComponent(appConfig.community.telegramUsername)}`} target="_blank" rel="noreferrer"><Send size={16} /> Telegram</a>}</nav></div><span>© {new Date().getFullYear()} {appConfig.appName}</span></footer>
+      <SiteFooter />
     </div></main></div></div>
+}
+
+function SiteFooter() {
+  return (
+    <footer className="page-footer" role="contentinfo">
+      <div className="footer-container">
+        <div className="footer-columns">
+          <div className="footer-brand-col">
+            <Link to="/" className="footer-brand" aria-label="ImgMojo">
+              <img className="brand-full-logo" src="/images/imgmojo-logo.png" alt="ImgMojo" />
+            </Link>
+            <p className="footer-brand-desc">
+              A comprehensive library of free tools designed to make your life easier. From text processing to image editing, we've got you covered.
+            </p>
+            <div className="footer-social-row" aria-label="Social media">
+              <a href="https://instagram.com/imgmojo" target="_blank" rel="noreferrer" className="footer-social-link" aria-label="Instagram">
+                <Instagram size={19} />
+              </a>
+              <a href="https://linkedin.com/company/imgmojo" target="_blank" rel="noreferrer" className="footer-social-link" aria-label="LinkedIn">
+                <Linkedin size={19} />
+              </a>
+              <a href="https://facebook.com/imgmojo" target="_blank" rel="noreferrer" className="footer-social-link" aria-label="Facebook">
+                <Facebook size={19} />
+              </a>
+              <a href="https://twitter.com/imgmojo" target="_blank" rel="noreferrer" className="footer-social-link" aria-label="Twitter">
+                <Twitter size={19} />
+              </a>
+              <a href={`mailto:${appConfig.supportEmail || 'support@imgmojo.com'}`} className="footer-social-link" aria-label="Email Support">
+                <Mail size={19} />
+              </a>
+            </div>
+          </div>
+
+          <nav className="footer-col" aria-label="Popular Tools">
+            <strong>Popular Tools</strong>
+            <Link to="/emoji-text">Text Tools</Link>
+            <Link to="/collage">Image Tools</Link>
+            <Link to="/qr-code">Code Tools</Link>
+            <Link to="/watermark-remover">Security Tools</Link>
+            <Link to="/prompt-generator">AI Tools</Link>
+          </nav>
+
+          <nav className="footer-col" aria-label="Company">
+            <strong>Company</strong>
+            <Link to="/about">About Us</Link>
+            <Link to="/privacy">Privacy Policy</Link>
+            <Link to="/terms">Terms of Service</Link>
+          </nav>
+
+          <nav className="footer-col" aria-label="Support">
+            <strong>Support</strong>
+            <Link to="/contact">Contact Us</Link>
+            <Link to="/report-bug">Report a Bug</Link>
+            <Link to="/feature-request">Feature Request</Link>
+          </nav>
+        </div>
+      </div>
+    </footer>
+  )
+}
+
+function InfoRoute({ kind }: { kind: InfoKind }) {
+  return <div className="detail-shell"><Header onMenu={() => {}} /><InfoPage kind={kind} /><SiteFooter /></div>
 }
 
 function StoreFeatureList({ features, benefits }: { features: StoreFeature[]; benefits: string[] }) {
@@ -801,7 +847,7 @@ function StorePage() {
   }, [])
   useEffect(() => { setCategory(new URLSearchParams(location.search).get('type') || 'all') }, [location.search])
   const visible = products.filter((product) => category === 'all' || product.type === category)
-  return <div className="detail-shell store-shell"><Header onMenu={() => {}} /><main className="store-page"><Link className="store-back-link" to="/"><ArrowLeft size={14} /> Prompt library</Link><section className="store-hero"><span className="feature-eyebrow"><Store size={14} /> DIGITAL GOODS</span><h1>Sell online</h1><p>Software and practical PDFs with every feature listed up front. Premium features unlock the moment your license code is redeemed.</p></section><nav className="store-filters" aria-label="Product categories"><Link className={category === 'all' ? 'active' : ''} to="/store">All products</Link><Link className={category === 'software' ? 'active' : ''} to="/store?type=software">Software</Link><Link className={category === 'pdf' ? 'active' : ''} to="/store?type=pdf">PDF</Link></nav>{loading && <div className="store-empty">Loading products…</div>}{error && <div className="store-empty store-error" role="alert">{error}</div>}{!loading && !error && visible.length === 0 && <div className="store-empty"><span><Copy size={23} /></span><h2>No products listed yet</h2><p>Products and their feature lists come from the store database. Add them in Creator Studio under Digital store.</p></div>}{visible.length > 0 && <div className="store-product-grid">{visible.map((product) => <article className={`store-product-card ${product.premium ? 'store-product-premium' : ''}`} key={product.id}><div className="store-product-image">{product.imageUrl ? <img src={product.imageUrl} alt="" loading="lazy" /> : product.type === 'pdf' ? <Copy size={31} /> : <Sparkles size={31} />}<span>{product.type === 'pdf' ? 'PDF' : 'SOFTWARE'}</span>{product.premium && <em className="store-premium-flag">PREMIUM</em>}</div><div className="store-product-copy"><h2>{product.title}</h2><p>{product.description}</p><StoreFeatureList features={product.features} benefits={customer.benefits} />{product.features.some((feature) => feature.tier === 'premium') && <p className="store-feature-hint">Premium features unlock after payment.</p>}<div className="store-product-buy"><strong>{productPrice(product)}</strong><Link to={`/checkout/${encodeURIComponent(product.id)}`}>Buy now <ArrowRight size={15} /></Link></div></div></article>)}</div>}<p className="store-security-note"><ShieldCheck size={14} /> Pay with the on-screen instructions, then redeem your license code in your account to unlock premium features.</p></main></div>
+  return <div className="detail-shell store-shell"><Header onMenu={() => {}} /><main className="store-page"><Link className="store-back-link" to="/"><ArrowLeft size={14} /> Prompt library</Link><section className="store-hero"><span className="feature-eyebrow"><Store size={14} /> DIGITAL GOODS</span><h1>Sell online</h1><p>Software and practical PDFs with every feature listed up front. Premium features unlock the moment your license code is redeemed.</p></section><nav className="store-filters" aria-label="Product categories"><Link className={category === 'all' ? 'active' : ''} to="/store">All products</Link><Link className={category === 'software' ? 'active' : ''} to="/store?type=software">Software</Link><Link className={category === 'pdf' ? 'active' : ''} to="/store?type=pdf">PDF</Link></nav>{loading && <div className="store-empty">Loading products…</div>}{error && <div className="store-empty store-error" role="alert">{error}</div>}{!loading && !error && visible.length === 0 && <div className="store-empty"><span><Copy size={23} /></span><h2>No products listed yet</h2><p>Products and their feature lists come from the store database. Add them in Creator Studio under Digital store.</p></div>}{visible.length > 0 && <div className="store-product-grid">{visible.map((product) => <article className={`store-product-card ${product.premium ? 'store-product-premium' : ''}`} key={product.id}><div className="store-product-image">{product.imageUrl ? <img src={product.imageUrl} alt="" loading="lazy" /> : product.type === 'pdf' ? <Copy size={31} /> : <Sparkles size={31} />}<span>{product.type === 'pdf' ? 'PDF' : 'SOFTWARE'}</span>{product.premium && <em className="store-premium-flag">PREMIUM</em>}</div><div className="store-product-copy"><h2>{product.title}</h2><p>{product.description}</p><StoreFeatureList features={product.features} benefits={customer.benefits} />{product.features.some((feature) => feature.tier === 'premium') && <p className="store-feature-hint">Premium features unlock after payment.</p>}<div className="store-product-buy"><strong>{productPrice(product)}</strong><Link to={`/checkout/${encodeURIComponent(product.id)}`}>Buy now <ArrowRight size={15} /></Link></div></div></article>)}</div>}<p className="store-security-note"><ShieldCheck size={14} /> Pay with the on-screen instructions, then redeem your license code in your account to unlock premium features.</p></main><SiteFooter /></div>
 }
 
 function CheckoutPage() {
@@ -1626,6 +1672,6 @@ export default function App() {
     void loadCustomerSession()
   }, [])
   const adminAllowed = adminAuthenticated
-  return <Routes><Route path="/" element={<HomePage prompts={prompts} blogStatus={blogStatus} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /><Route path="/store" element={<StorePage />} />{pages.map((tool) => <Route key={tool.id} path={tool.path} element={<ToolPage tool={tool} />} />)}<Route path="/checkout/:productId" element={<CheckoutPage />} /><Route path="/prompt/:slug" element={<PromptPage prompts={prompts} />} /><Route path="/account" element={<AccountPage />} /><Route path="/login" element={<LoginPage onAdminLogin={() => { setAdminAuthenticated(true); setAdminAuthReady(true) }} />} /><Route path="/admin/upload-pdf" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} onConnectBlogger={handleConnectBlogger} onDisconnectBlogger={handleDisconnectBlogger} bloggerConnecting={bloggerConnecting} bloggerError={bloggerError} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="/admin/*" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} onConnectBlogger={handleConnectBlogger} onDisconnectBlogger={handleDisconnectBlogger} bloggerConnecting={bloggerConnecting} bloggerError={bloggerError} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="*" element={<HomePage prompts={prompts} blogStatus={blogStatus} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /></Routes>
+  return <Routes><Route path="/" element={<HomePage prompts={prompts} blogStatus={blogStatus} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /><Route path="/store" element={<StorePage />} />{pages.map((tool) => <Route key={tool.id} path={tool.path} element={<ToolPage tool={tool} />} />)}<Route path="/checkout/:productId" element={<CheckoutPage />} /><Route path="/prompt/:slug" element={<PromptPage prompts={prompts} />} /><Route path="/account" element={<AccountPage />} /><Route path="/login" element={<LoginPage onAdminLogin={() => { setAdminAuthenticated(true); setAdminAuthReady(true) }} />} /><Route path="/admin/upload-pdf" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} onConnectBlogger={handleConnectBlogger} onDisconnectBlogger={handleDisconnectBlogger} bloggerConnecting={bloggerConnecting} bloggerError={bloggerError} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="/admin/*" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} onConnectBlogger={handleConnectBlogger} onDisconnectBlogger={handleDisconnectBlogger} bloggerConnecting={bloggerConnecting} bloggerError={bloggerError} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="/about" element={<InfoRoute kind="about" />} /><Route path="/privacy" element={<InfoRoute kind="privacy" />} /><Route path="/terms" element={<InfoRoute kind="terms" />} /><Route path="/contact" element={<InfoRoute kind="contact" />} /><Route path="/report-bug" element={<InfoRoute kind="report-bug" />} /><Route path="/feature-request" element={<InfoRoute kind="feature-request" />} /><Route path="*" element={<HomePage prompts={prompts} blogStatus={blogStatus} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /></Routes>
 }
 
