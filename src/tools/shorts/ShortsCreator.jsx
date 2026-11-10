@@ -478,24 +478,6 @@ export default function ShortsCreator({ className = '', style }) {
   const [cover, setCover] = useState(false);
   const [subRemoveMode, setSubRemoveMode] = useState('off');
   const [subRemoveHeight, setSubRemoveHeight] = useState(22);
-  const [canDirectStream, setCanDirectStream] = useState(false);
-
-  useEffect(() => {
-    if (srcMode !== 'youtube' || !videoId) {
-      setCanDirectStream(false);
-      return;
-    }
-    let dead = false;
-    fetch(`/api/youtube-stream?id=${encodeURIComponent(videoId)}&kind=info`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!dead) setCanDirectStream(Boolean(data?.ok && data?.video));
-      })
-      .catch(() => {
-        if (!dead) setCanDirectStream(false);
-      });
-    return () => { dead = true; };
-  }, [srcMode, videoId]);
   const [clipThumbs, setClipThumbs] = useState({});
   const [tlHover, setTlHover] = useState(null);
   const [full, setFull] = useState(false);
@@ -569,13 +551,8 @@ export default function ShortsCreator({ className = '', style }) {
     sawPlayingRef.current = false;
     userPausedRef.current = false;
     try {
-      if (srcMode === 'youtube') {
-        try {
-          playerRef.current?.unMute?.();
-          playerRef.current?.setVolume?.(100);
-        } catch { /* ignore */ }
-        playerRef.current?.playVideo?.();
-      } else {
+      if (srcMode === 'youtube') playerRef.current?.playVideo?.();
+      else {
         await waitReady(videoRef.current);
         await videoRef.current.play();
         if (bgRef.current) { bgRef.current.currentTime = videoRef.current.currentTime; void bgRef.current.play().catch(() => undefined); }
@@ -611,10 +588,7 @@ export default function ShortsCreator({ className = '', style }) {
   };
   const cancelJob = (id) => {
     canceled.current.add(id);
-    try { jobHandles.current.get(id)?.(); } catch { /* ignore */ }
-    jobHandles.current.delete(id);
-    patchJob(id, { status: 'canceled' });
-    setCapturing(false);
+    jobHandles.current.get(id)?.();
   };
   const downloadText = (text, name, type) => {
     const href = URL.createObjectURL(new Blob([text], { type }));
@@ -842,27 +816,6 @@ export default function ShortsCreator({ className = '', style }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [full]);
 
-  // Lock scrolling & prevent leaving the page while downloading
-  useEffect(() => {
-    const isBusy = capturing || jobs.some((j) => j.status === 'running');
-    if (!isBusy) return undefined;
-
-    const handleBeforeUnload = (e) => {
-      e.preventDefault();
-      e.returnValue = 'Your short is currently downloading. Leaving now will cancel the process.';
-      return e.returnValue;
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [capturing, jobs]);
-
   const onFile = (file) => {
     if (!file) return;
     pause();
@@ -1055,16 +1008,14 @@ export default function ShortsCreator({ className = '', style }) {
         try { offVideo.load(); } catch { /* ignore */ }
       }
       if (offAudio) {
-        try { offAudio.remove(); } catch { /* ignore */ }
         offAudio.removeAttribute('src');
         try { offAudio.load(); } catch { /* ignore */ }
       }
       try { audioCtx?.close?.(); } catch { /* ignore */ }
     };
 
-    // Pre-create first job immediately so the progress bar shows right away
+    // Pre-create first job immediately so the progress bar shows right away at 2%
     const first = list[0];
-    let activeRec = null;
     const firstJobId = makeJob({
       kind: 'webm',
       label: list.length > 1 ? `Short 1 of ${list.length} · ${sz.w}×${sz.h}` : `Creating Reel · ${sz.w}×${sz.h}`,
@@ -1072,16 +1023,7 @@ export default function ShortsCreator({ className = '', style }) {
       w: sz.w,
       h: sz.h,
       dur: first.len,
-      progress: 0.04,
-      statusText: 'Connecting to video stream…',
-    });
-
-    jobHandles.current.set(firstJobId, () => {
-      abort = true;
-      clearInterval(timer);
-      try { if (activeRec && activeRec.state !== 'inactive') activeRec.stop(); } catch { /* ignore */ }
-      cleanup();
-      patchJob(firstJobId, { status: 'canceled' });
+      progress: 0.02,
     });
 
     try {
@@ -1111,28 +1053,20 @@ export default function ShortsCreator({ className = '', style }) {
       offAudio = document.createElement('audio');
       offAudio.crossOrigin = 'anonymous';
       offAudio.preload = 'auto';
-      offAudio.style.display = 'none';
       offAudio.src = `/api/youtube-stream?id=${encodeURIComponent(videoId)}&kind=audio`;
-      document.body.appendChild(offAudio);
       offAudio.load();
 
       if (audioCtx && audioDest) {
         try {
           const sourceNode = audioCtx.createMediaElementSource(offAudio);
-          const gainNode = audioCtx.createGain();
-          gainNode.gain.value = 0; // silent to speakers, keeps Chromium audio graph clocked
           sourceNode.connect(audioDest);
-          sourceNode.connect(gainNode);
-          gainNode.connect(audioCtx.destination);
         } catch {
           // ignore audio routing error
         }
       }
 
-      patchJob(firstJobId, { progress: 0.08, statusText: 'Buffering stream & audio…' });
-
       await new Promise((resolve, reject) => {
-        const guard = setTimeout(() => reject(new Error('Stream buffer timeout')), 5000);
+        const guard = setTimeout(() => reject(new Error('Stream timeout')), 15000);
         const onReady = () => {
           clearTimeout(guard);
           offVideo.removeEventListener('error', onErr);
@@ -1156,7 +1090,7 @@ export default function ShortsCreator({ className = '', style }) {
 
       if (!offVideo.videoWidth) throw new Error('Stream unavailable');
 
-      await waitReady(offAudio, 2500).catch(() => undefined);
+      await waitReady(offAudio, 3000).catch(() => undefined);
 
       const c = document.createElement('canvas');
       c.width = sz.w;
@@ -1177,8 +1111,7 @@ export default function ShortsCreator({ className = '', style }) {
               w: sz.w,
               h: sz.h,
               dur: len,
-              progress: 0.10,
-              statusText: 'Seeking frame…',
+              progress: 0.02,
             });
 
         pause();
@@ -1186,15 +1119,14 @@ export default function ShortsCreator({ className = '', style }) {
         setElapsed(0);
         seek(start);
 
-        patchJob(id, { progress: 0.12, statusText: 'Synchronizing timestamp…' });
         offVideo.currentTime = start;
         if (offAudio) {
           try { offAudio.currentTime = start; } catch { /* ignore */ }
         }
-        await waitReady(offVideo, 3000);
-        await waitSeek(offVideo, 1800);
+        await waitReady(offVideo, 5000);
+        await waitSeek(offVideo, 2500);
         if (offAudio) {
-          await waitSeek(offAudio, 1000).catch(() => undefined);
+          await waitSeek(offAudio, 1200).catch(() => undefined);
         }
 
         const stream = c.captureStream(30);
@@ -1206,7 +1138,6 @@ export default function ShortsCreator({ className = '', style }) {
           mimeType: mime,
           videoBitsPerSecond: Math.min(50e6, Math.max(6e6, Math.round(sz.w * sz.h * 30 * 0.12))),
         });
-        activeRec = rec;
 
         jobHandles.current.set(id, () => {
           abort = true;
@@ -1234,7 +1165,7 @@ export default function ShortsCreator({ className = '', style }) {
         if (audioCtx?.state === 'suspended') {
           await audioCtx.resume().catch(() => undefined);
         }
-        await Promise.race([offVideo.play(), delay(3000)]);
+        await offVideo.play();
         if (offAudio) {
           void offAudio.play().catch(() => undefined);
         }
@@ -1247,11 +1178,7 @@ export default function ShortsCreator({ className = '', style }) {
             const elapsedSec = clamp((Date.now() - t0) / 1000, 0, len);
             paintShort(x, sz.w, sz.h, { ...S.current, el: offVideo, t: elapsedSec, len });
             setElapsed(elapsedSec);
-            const pct = 0.15 + (elapsedSec / len) * 0.82;
-            patchJob(id, {
-              progress: Math.min(0.97, pct),
-              statusText: `Recording short… ${Math.round(elapsedSec)}s / ${Math.round(len)}s`,
-            });
+            patchJob(id, { progress: Math.min(0.99, (Date.now() - t0) / (len * 1000)) });
             if (rec.state === 'inactive') {
               clearInterval(timer);
               res();
@@ -1276,9 +1203,11 @@ export default function ShortsCreator({ className = '', style }) {
       }
     } catch (reason) {
       cleanup();
-      jobHandles.current.delete(firstJobId);
-      setJobs((prev) => prev.filter((j) => j.id !== firstJobId));
-      throw reason;
+      patchJob(firstJobId, {
+        status: 'error',
+        error: reason instanceof Error ? reason.message : 'Could not stream this YouTube video.',
+      });
+      setError('YouTube restricts automated downloads on cloud websites. Use 1-Click Download below to save the MP4, then upload it here for instant HD shorts generation!');
     }
   };
 
@@ -1312,9 +1241,8 @@ export default function ShortsCreator({ className = '', style }) {
 
     try {
       setCapturing(true);
-      setZoom(false);
-      stageRef.current?.scrollIntoView({ block: 'center', inline: 'nearest' });
-      await delay(250);
+      setZoom(true);
+      await delay(350);
 
       if (!stageRef.current) throw new Error('Stage frame is not ready — try again in a moment.');
 
@@ -1388,8 +1316,7 @@ export default function ShortsCreator({ className = '', style }) {
           w: sz.w,
           h: sz.h,
           dur: len,
-          progress: 0.05,
-          statusText: 'Preparing stage capture…',
+          progress: 0.02,
         });
 
         pause();
@@ -1397,23 +1324,12 @@ export default function ShortsCreator({ className = '', style }) {
         setElapsed(0);
         seek(start);
         await delay(600);
-        if (srcMode === 'youtube') {
-          try {
-            playerRef.current?.unMute?.();
-            playerRef.current?.setVolume?.(100);
-          } catch { /* ignore */ }
-        }
         await play();
-        await delay(350);
+        await delay(250);
 
         const mime = pickMime();
         const stream = c.captureStream(30);
-        const aTracks = screen.getAudioTracks();
-        if (aTracks.length) {
-          aTracks.forEach((t) => stream.addTrack(t));
-        } else {
-          setNotice('Tab audio was not shared. When prompted, ensure "Also allow tab audio" is turned on.');
-        }
+        screen.getAudioTracks().forEach((t) => stream.addTrack(t));
         const rec = new MediaRecorder(stream, {
           ...(mime ? { mimeType: mime } : {}),
           videoBitsPerSecond: Math.min(50e6, Math.max(6e6, Math.round(sz.w * sz.h * 30 * 0.12))),
@@ -1448,11 +1364,7 @@ export default function ShortsCreator({ className = '', style }) {
           const poll = setInterval(() => {
             const elapsedSec = clamp((Date.now() - t0) / 1000, 0, len);
             setElapsed(elapsedSec);
-            const pct = 0.05 + (elapsedSec / len) * 0.92;
-            patchJob(id, {
-              progress: Math.min(0.98, pct),
-              statusText: `Recording short… ${Math.round(elapsedSec)}s / ${Math.round(len)}s`,
-            });
+            patchJob(id, { progress: Math.min(0.99, (Date.now() - t0) / (len * 1000)) });
             if (rec.state === 'inactive') {
               clearInterval(poll);
               res();
@@ -1476,8 +1388,6 @@ export default function ShortsCreator({ className = '', style }) {
       const msg = reason instanceof Error ? reason.message : String(reason);
       if (/Permission denied|denied|cancel|abort/i.test(msg)) {
         setError('Confirmation was cancelled. Click Download to create your short.');
-      } else if (/Not supported|not supported/i.test(msg)) {
-        setError('This browser does not support live tab recording. Switch to "Upload Video" tab above to generate your HD short directly.');
       } else {
         setError(msg);
       }
@@ -1486,16 +1396,12 @@ export default function ShortsCreator({ className = '', style }) {
 
   const exportCaptureWebm = (win) => {
     const list = [win || { start: startAt, len: windowLen }];
-    if (srcMode === 'file') return renderPlanWebm(list);
-    if (canDirectStream) return renderDirectYouTubeWebm(list);
-    return captureSession(list);
+    return srcMode === 'file' ? renderPlanWebm(list) : captureSession(list);
   };
 
   const captureAll = () => {
     const list = clips.length ? clips.map(clipWindow) : [{ start: startAt, len: windowLen }];
-    if (srcMode === 'file') return renderPlanWebm(list);
-    if (canDirectStream) return renderDirectYouTubeWebm(list);
-    return captureSession(list);
+    return srcMode === 'file' ? renderPlanWebm(list) : captureSession(list);
   };
 
   const exportSrt = () => {
@@ -2754,35 +2660,6 @@ export default function ShortsCreator({ className = '', style }) {
           </div>
         </section>
       </div>
-
-      {/* Centered Progress Modal Popup while downloading */}
-      {recording && activeJob && activeJob.status === 'running' && (
-        <div className="sc-progress-modal" role="dialog" aria-modal="true" aria-label="Downloading Short in Progress">
-          <div className="sc-progress-modal-card">
-            <div className="sc-progress-spinner" aria-hidden="true" />
-            <h3>Creating Short in HD ({sz.w}×{sz.h})</h3>
-            <p className="sc-progress-status">
-              {activeJob.statusText || activeJob.label} · {Math.round((activeJob.progress || 0) * 100)}%
-            </p>
-            <div className="sc-progress-bar-wrap" aria-hidden="true">
-              <div
-                className="sc-progress-bar-fill"
-                style={{ width: `${Math.max(3, Math.round((activeJob.progress || 0) * 100))}%` }}
-              />
-            </div>
-            <p className="sc-progress-hint">
-              Rendering your vertical short in Full HD. The screen is kept locked — please stay on this page while downloading.
-            </p>
-            <button
-              type="button"
-              className="sc-progress-cancel"
-              onClick={() => cancelJob(activeJob.id)}
-            >
-              Cancel Download
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
