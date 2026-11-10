@@ -1,48 +1,18 @@
 import { Readable } from 'node:stream'
 
 const ID_RE = /^[A-Za-z0-9_-]{11}$/
+const IOS_UA = 'com.google.ios.youtube/20.03.02 (iPhone16,2; U; CPU iOS 18_2_1 like Mac OS X;)'
 const VISIONOS_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15'
 const VR_UA = 'com.google.android.apps.youtube.vr.oculus/1.60.19 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip'
-const IOS_UA = 'com.google.ios.youtube/20.03.02 (iPhone16,2; U; CPU iOS 18_2_1 like Mac OS X;)'
 
 const urlCache = new Map()
-const CACHE_TTL_MS = 10 * 60 * 1000
-
-let cachedVisitorData = ''
-let visitorDataTs = 0
-
-async function getVisitorData(videoId) {
-  if (cachedVisitorData && Date.now() - visitorDataTs < CACHE_TTL_MS) {
-    return cachedVisitorData
-  }
-  try {
-    const res = await fetch(`https://www.youtube.com/embed/${videoId}`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-      },
-      signal: AbortSignal.timeout(8000),
-    })
-    const html = await res.text()
-    const match = html.match(/"VISITOR_DATA":"([^"]+)"/)
-    if (match?.[1]) {
-      cachedVisitorData = match[1]
-      visitorDataTs = Date.now()
-      return cachedVisitorData
-    }
-  } catch {
-    // ignore
-  }
-  return cachedVisitorData || ''
-}
+const CACHE_TTL_MS = 15 * 60 * 1000 // 15 mins
 
 function pickBestStreams(streamingData, ua) {
   const formats = Array.isArray(streamingData?.formats) ? streamingData.formats : []
   const adaptive = Array.isArray(streamingData?.adaptiveFormats) ? streamingData.adaptiveFormats : []
 
-  const muxed = formats
-    .filter((f) => f && f.url && /^video\/(mp4|webm)/i.test(String(f.mimeType || '')))
-    .sort((a, b) => (Number(b.height) || 0) - (Number(a.height) || 0))
-
+  // Prefer H.264/avc1 MP4 streams up to 1080p for broad canvas & hardware decoding support
   const adaptiveVideo = adaptive
     .filter((f) => f && f.url && /^video\/(mp4|webm)/i.test(String(f.mimeType || '')))
     .sort((a, b) => {
@@ -51,10 +21,14 @@ function pickBestStreams(streamingData, ua) {
       if (aAvc !== bAvc) return bAvc - aAvc
       const aH = Number(a.height) || 0
       const bH = Number(b.height) || 0
-      const aCap = aH <= 1080 ? aH + 1000 : aH
-      const bCap = bH <= 1080 ? bH + 1000 : bH
-      return bCap - aCap
+      const aScore = aH <= 1080 ? aH + 2000 : aH
+      const bScore = bH <= 1080 ? bH + 2000 : bH
+      return bScore - aScore
     })
+
+  const muxed = formats
+    .filter((f) => f && f.url && /^video\/(mp4|webm)/i.test(String(f.mimeType || '')))
+    .sort((a, b) => (Number(b.height) || 0) - (Number(a.height) || 0))
 
   const adaptiveAudio = adaptive
     .filter((f) => f && f.url && /^audio\/(mp4|webm)/i.test(String(f.mimeType || '')))
@@ -74,11 +48,14 @@ function pickBestStreams(streamingData, ua) {
     video: {
       url: chosenVideo.url,
       mimeType: String(chosenVideo.mimeType || 'video/mp4').split(';')[0],
+      contentLength: Number(chosenVideo.contentLength) || 0,
+      height: chosenVideo.height,
     },
     audio: chosenAudio
       ? {
           url: chosenAudio.url,
           mimeType: String(chosenAudio.mimeType || 'audio/mp4').split(';')[0],
+          contentLength: Number(chosenAudio.contentLength) || 0,
         }
       : null,
     ua,
@@ -92,55 +69,15 @@ async function resolveStreamInfo(videoId) {
     return cached
   }
 
-  const visitorData = await getVisitorData(videoId)
-
+  // IOS is prioritized first because it returns direct, unthrottled, unencrypted adaptive MP4 streams
+  // without needing visitor data pre-fetches or poToken
   const clients = [
     {
-      ua: VISIONOS_UA,
-      extraHeaders: {
-        Origin: 'https://www.youtube.com',
-        ...(visitorData ? { 'X-Goog-Visitor-Id': visitorData } : {}),
-      },
-      context: {
-        client: {
-          clientName: 'VISIONOS',
-          clientVersion: '0.1',
-          deviceMake: 'Apple',
-          deviceModel: 'RealityDevice14,1',
-          osName: 'visionOS',
-          osVersion: '1.0.21N307',
-          hl: 'en',
-          gl: 'US',
-          ...(visitorData ? { visitorData } : {}),
-        },
-      },
-    },
-    {
-      ua: VR_UA,
-      extraHeaders: {
-        ...(visitorData ? { 'X-Goog-Visitor-Id': visitorData } : {}),
-      },
-      context: {
-        client: {
-          clientName: 'ANDROID_VR',
-          clientVersion: '1.60.19',
-          deviceMake: 'Oculus',
-          deviceModel: 'Quest 3',
-          androidSdkVersion: 32,
-          osName: 'Android',
-          osVersion: '12L',
-          hl: 'en',
-          gl: 'US',
-          ...(visitorData ? { visitorData } : {}),
-        },
-      },
-    },
-    {
+      name: 'IOS',
       ua: IOS_UA,
       extraHeaders: {
         'X-YouTube-Client-Name': '5',
         'X-YouTube-Client-Version': '20.03.02',
-        ...(visitorData ? { 'X-Goog-Visitor-Id': visitorData } : {}),
       },
       context: {
         client: {
@@ -152,7 +89,43 @@ async function resolveStreamInfo(videoId) {
           osVersion: '18.2.1.22C161',
           hl: 'en',
           gl: 'US',
-          ...(visitorData ? { visitorData } : {}),
+        },
+      },
+    },
+    {
+      name: 'VISIONOS',
+      ua: VISIONOS_UA,
+      extraHeaders: {
+        Origin: 'https://www.youtube.com',
+      },
+      context: {
+        client: {
+          clientName: 'VISIONOS',
+          clientVersion: '0.1',
+          deviceMake: 'Apple',
+          deviceModel: 'RealityDevice14,1',
+          osName: 'visionOS',
+          osVersion: '1.0.21N307',
+          hl: 'en',
+          gl: 'US',
+        },
+      },
+    },
+    {
+      name: 'ANDROID_VR',
+      ua: VR_UA,
+      extraHeaders: {},
+      context: {
+        client: {
+          clientName: 'ANDROID_VR',
+          clientVersion: '1.60.19',
+          deviceMake: 'Oculus',
+          deviceModel: 'Quest 3',
+          androidSdkVersion: 32,
+          osName: 'Android',
+          osVersion: '12L',
+          hl: 'en',
+          gl: 'US',
         },
       },
     },
@@ -173,12 +146,15 @@ async function resolveStreamInfo(videoId) {
           racyCheckOk: true,
           context: c.context,
         }),
-        signal: AbortSignal.timeout(12000),
+        signal: AbortSignal.timeout(8000),
       })
       if (!res.ok) continue
       const data = await res.json()
+      if (data?.playabilityStatus?.status !== 'OK' && data?.playabilityStatus?.status !== 'LIVE_STREAM_OFFLINE') {
+        continue
+      }
       const info = pickBestStreams(data?.streamingData, c.ua)
-      if (info) {
+      if (info && info.video?.url) {
         urlCache.set(videoId, info)
         return info
       }
@@ -186,10 +162,21 @@ async function resolveStreamInfo(videoId) {
       // try next client
     }
   }
+
   return null
 }
 
 export async function handleYouTubeStream(request, response) {
+  response.setHeader('Access-Control-Allow-Origin', '*')
+  response.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS')
+  response.setHeader('Access-Control-Allow-Headers', 'Range, Content-Type, Accept')
+
+  if (request.method === 'OPTIONS') {
+    response.statusCode = 204
+    response.end()
+    return
+  }
+
   if (request.method && request.method !== 'GET' && request.method !== 'HEAD') {
     response.statusCode = 405
     response.end()
@@ -198,7 +185,7 @@ export async function handleYouTubeStream(request, response) {
 
   const parsed = new URL(request.url || '', 'http://127.0.0.1')
   const videoId = String(parsed.searchParams.get('id') || '').trim()
-  const kind = parsed.searchParams.get('kind') === 'audio' ? 'audio' : 'video'
+  const kind = parsed.searchParams.get('kind')
 
   if (!ID_RE.test(videoId)) {
     response.statusCode = 400
@@ -208,7 +195,7 @@ export async function handleYouTubeStream(request, response) {
   }
 
   const abortController = new AbortController()
-  const timeoutId = setTimeout(() => abortController.abort(), 120000)
+  const timeoutId = setTimeout(() => abortController.abort(), 60000)
   request.on?.('close', () => {
     clearTimeout(timeoutId)
     abortController.abort()
@@ -216,8 +203,7 @@ export async function handleYouTubeStream(request, response) {
 
   try {
     const info = await resolveStreamInfo(videoId)
-    const target = kind === 'audio' ? (info?.audio || info?.video) : info?.video
-    if (!info || !target || !target.url) {
+    if (!info || !info.video?.url) {
       clearTimeout(timeoutId)
       response.statusCode = 404
       response.setHeader('Content-Type', 'application/json; charset=utf-8')
@@ -225,35 +211,99 @@ export async function handleYouTubeStream(request, response) {
       return
     }
 
-    const headers = { 'User-Agent': info.ua }
-    const range = request.headers?.range || request.headers?.Range
-    if (range) headers.Range = range
+    // Diagnostic info query
+    if (kind === 'info') {
+      clearTimeout(timeoutId)
+      response.statusCode = 200
+      response.setHeader('Content-Type', 'application/json; charset=utf-8')
+      response.end(
+        JSON.stringify({
+          ok: true,
+          videoId,
+          video: {
+            mimeType: info.video.mimeType,
+            contentLength: info.video.contentLength,
+            height: info.video.height,
+          },
+          audio: info.audio
+            ? {
+                mimeType: info.audio.mimeType,
+                contentLength: info.audio.contentLength,
+              }
+            : null,
+        }),
+      )
+      return
+    }
 
+    const target = kind === 'audio' ? (info.audio || info.video) : info.video
+    if (!target || !target.url) {
+      clearTimeout(timeoutId)
+      response.statusCode = 404
+      response.setHeader('Content-Type', 'application/json; charset=utf-8')
+      response.end(JSON.stringify({ error: `Could not resolve ${kind || 'video'} stream.` }))
+      return
+    }
+
+    // Google Video CDN requires bounded range chunks (open-ended "bytes=0-" returns 403 Forbidden).
+    // Calculate a safe bounded range slice (4MB default chunk size).
+    const rawRange = request.headers?.range || request.headers?.Range || ''
+    const totalLength = Number(target.contentLength) || 0
+    const CHUNK_SIZE = 4 * 1024 * 1024
+
+    let start = 0
+    let end = totalLength > 0 ? Math.min(totalLength - 1, start + CHUNK_SIZE - 1) : CHUNK_SIZE - 1
+
+    if (rawRange) {
+      const match = String(rawRange).match(/bytes=(\d+)-(\d*)/)
+      if (match) {
+        start = Number(match[1]) || 0
+        if (match[2]) {
+          end = Number(match[2])
+        } else if (totalLength > 0) {
+          end = Math.min(totalLength - 1, start + CHUNK_SIZE - 1)
+        } else {
+          end = start + CHUNK_SIZE - 1
+        }
+      }
+    }
+
+    const boundedRange = `bytes=${start}-${end}`
     const upstream = await fetch(target.url, {
       method: request.method === 'HEAD' ? 'HEAD' : 'GET',
-      headers,
+      headers: {
+        'User-Agent': info.ua,
+        Range: boundedRange,
+      },
       redirect: 'follow',
       signal: abortController.signal,
     })
 
     if (!upstream.ok && upstream.status !== 206) {
       clearTimeout(timeoutId)
-      urlCache.delete(videoId)
       response.statusCode = 502
       response.setHeader('Content-Type', 'application/json; charset=utf-8')
-      response.end(JSON.stringify({ error: `Upstream returned ${upstream.status}.` }))
+      response.end(JSON.stringify({ error: `Upstream CDN returned ${upstream.status}.` }))
       return
     }
 
-    response.statusCode = upstream.status
+    response.statusCode = rawRange ? 206 : upstream.status
     response.setHeader('Content-Type', upstream.headers.get('content-type') || target.mimeType || 'video/mp4')
-    response.setHeader('Access-Control-Allow-Origin', '*')
-    response.setHeader('Accept-Ranges', upstream.headers.get('accept-ranges') || 'bytes')
+    response.setHeader('Accept-Ranges', 'bytes')
+
+    const upstreamRange = upstream.headers.get('content-range')
+    if (upstreamRange) {
+      response.setHeader('Content-Range', upstreamRange)
+    } else if (rawRange && totalLength > 0) {
+      response.setHeader('Content-Range', `bytes ${start}-${end}/${totalLength}`)
+    }
+
     const contentLength = upstream.headers.get('content-length')
-    if (contentLength) response.setHeader('Content-Length', contentLength)
-    const contentRange = upstream.headers.get('content-range')
-    if (contentRange) response.setHeader('Content-Range', contentRange)
-    response.setHeader('Cache-Control', 'private, max-age=600')
+    if (contentLength) {
+      response.setHeader('Content-Length', contentLength)
+    }
+
+    response.setHeader('Cache-Control', 'public, max-age=3600')
 
     if (request.method === 'HEAD' || !upstream.body) {
       clearTimeout(timeoutId)
