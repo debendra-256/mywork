@@ -220,13 +220,13 @@ async function resolveStreamInfo(videoId) {
         signal: AbortSignal.timeout(8000),
       })
       if (!res.ok) {
-        attempts.push({ client: c.name, httpStatus: res.status, error: 'HTTP not ok' })
+        attempts.push({ client: c.name, httpStatus: res.status, error: 'HTTP not ok', cookieLen: cookie.length })
         continue
       }
       const data = await res.json()
       const playability = data?.playabilityStatus?.status
       const hasStreaming = !!data?.streamingData
-      attempts.push({ client: c.name, httpStatus: res.status, playability, hasStreaming, reason: data?.playabilityStatus?.reason })
+      attempts.push({ client: c.name, httpStatus: res.status, playability, hasStreaming, reason: data?.playabilityStatus?.reason, cookieLen: cookie.length })
       if (playability !== 'OK' && playability !== 'LIVE_STREAM_OFFLINE') {
         continue
       }

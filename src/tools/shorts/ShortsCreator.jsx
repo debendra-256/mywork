@@ -1241,28 +1241,24 @@ export default function ShortsCreator({ className = '', style }) {
 
     try {
       setCapturing(true);
-      if (!quiet) setZoom(true);
-      else stageRef.current?.scrollIntoView({ block: 'center', inline: 'nearest' });
-
-      if (quiet) {
-        let last = -1;
-        for (let i = 0; i < 6; i += 1) {
-          await delay(80);
-          const y = Math.round(window.scrollY);
-          if (y === last) break;
-          last = y;
-        }
-      } else {
-        await delay(350);
-      }
+      setZoom(true);
+      await delay(350);
 
       if (!stageRef.current) throw new Error('Stage frame is not ready — try again in a moment.');
 
       screen = await navigator.mediaDevices.getDisplayMedia({
-        video: { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 }, cursor: 'never' },
+        video: {
+          displaySurface: 'browser',
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          frameRate: { ideal: 30 },
+          cursor: 'never',
+        },
         audio: true,
         preferCurrentTab: true,
         selfBrowserSurface: 'include',
+        surfaceSwitching: 'exclude',
+        monitorTypeSurfaces: 'exclude',
       });
 
       const track = screen.getVideoTracks()[0];
@@ -1271,23 +1267,36 @@ export default function ShortsCreator({ className = '', style }) {
 
       const cap = document.createElement('video');
       cap.muted = true;
+      cap.playsInline = true;
       cap.srcObject = screen;
       await cap.play().catch(() => undefined);
+
+      for (let i = 0; i < 10; i += 1) {
+        if (cap.videoWidth > 0 && cap.videoHeight > 0) break;
+        await delay(50);
+      }
 
       const c = document.createElement('canvas');
       c.width = sz.w;
       c.height = sz.h;
       const x = c.getContext('2d');
       x.imageSmoothingQuality = 'high';
-      const scale = (settings.width || window.innerWidth) / (document.documentElement.clientWidth || window.innerWidth);
 
       const paint = () => {
         if (!stageRef.current) return;
+        const capW = cap.videoWidth || settings.width || window.innerWidth;
+        const capH = cap.videoHeight || settings.height || window.innerHeight;
+        const viewW = window.innerWidth || document.documentElement.clientWidth || 1;
+        const viewH = window.innerHeight || document.documentElement.clientHeight || 1;
+        const scaleX = capW / viewW;
+        const scaleY = capH / viewH;
+
         const r = stageRef.current.getBoundingClientRect();
-        const sx = Math.max(0, Math.round((r.left + 1) * scale));
-        const sy = Math.max(0, Math.round((r.top + 1) * scale));
-        const sw = Math.max(8, Math.round((r.width - 2) * scale));
-        const sh = Math.max(8, Math.round((r.height - 2) * scale));
+        const sx = Math.max(0, Math.round(r.left * scaleX));
+        const sy = Math.max(0, Math.round(r.top * scaleY));
+        const sw = Math.max(8, Math.min(capW - sx, Math.round(r.width * scaleX)));
+        const sh = Math.max(8, Math.min(capH - sy, Math.round(r.height * scaleY)));
+
         x.fillStyle = '#000';
         x.fillRect(0, 0, sz.w, sz.h);
         x.drawImage(cap, sx, sy, sw, sh, 0, 0, sz.w, sz.h);
