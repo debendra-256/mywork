@@ -3,11 +3,11 @@ import type { ImageItem } from './types'
 
 export async function createAndDownloadZip(
   items: ImageItem[],
-  folderName = 'compressed-images',
+  folderName = 'ImageMojo-CompressedImage',
   onProgress?: (percent: number) => void
 ): Promise<{ zipBlob: Blob; zipFileName: string }> {
   const zip = new JSZip()
-  const cleanFolderName = folderName.trim().replace(/[\\/:*?"<>|]+/g, '-').replace(/^\.+/, '') || 'compressed-images'
+  const cleanFolderName = folderName.trim().replace(/[\\/:*?"<>|]+/g, '-').replace(/^\.+/, '') || 'ImageMojo-CompressedImage'
   
   // Create the subfolder inside the ZIP archive
   const targetFolder = zip.folder(cleanFolderName) || zip
