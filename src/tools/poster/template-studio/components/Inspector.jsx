@@ -138,6 +138,14 @@ const AlignIcon = ({ mode }) => (
   </svg>
 )
 
+export const openEmojiTextTool = (text = '') => {
+  const isProd = typeof window !== 'undefined' && window.location.origin.includes('imgmojo.com')
+  const base = isProd ? 'https://www.imgmojo.com/emoji-text' : '/emoji-text'
+  const targetText = typeof text === 'string' ? text.trim() : ''
+  const url = targetText ? `${base}?text=${encodeURIComponent(targetText)}` : base
+  window.open(url, '_blank', 'noopener,noreferrer')
+}
+
 const LayerIcon = ({ el }) => {
   if (el.type === 'text') return <Type size={13} />
   if (el.type === 'banner') return <span className="ts-banner-glyph" />
@@ -356,6 +364,14 @@ export default function Inspector({
                   onBlur={onEnd}
                   onChange={(e) => live({ text: e.target.value })}
                 />
+                <button
+                  type="button"
+                  className="ts-btn ts-btn-emoji"
+                  onClick={() => openEmojiTextTool(selected.text)}
+                  title="Generate stylish Emoji text in our tool"
+                >
+                  <span className="ts-btn-emoji-sparkle">✨</span> Generate Emoji Text
+                </button>
                 <div className="ts-field ts-field--inline">
                   <span className="ts-label">Font</span>
                   <select className="ts-select" value={selected.font} onChange={(e) => setEl({ font: e.target.value })}>
@@ -479,6 +495,14 @@ export default function Inspector({
                   onBlur={onEnd}
                   onChange={(e) => live({ text: e.target.value })}
                 />
+                <button
+                  type="button"
+                  className="ts-btn ts-btn-emoji"
+                  onClick={() => openEmojiTextTool(selected.text)}
+                  title="Generate stylish Emoji text in our tool"
+                >
+                  <span className="ts-btn-emoji-sparkle">✨</span> Generate Emoji Text
+                </button>
                 <div className="ts-field ts-field--inline">
                   <span className="ts-label">Font</span>
                   <select className="ts-select" value={selected.font} onChange={(e) => setEl({ font: e.target.value })}>
@@ -523,6 +547,19 @@ export default function Inspector({
                   >
                     AG
                   </button>
+                </div>
+                <div className="ts-field ts-field--inline">
+                  <span className="ts-label">Align</span>
+                  <Seg
+                    value={selected.align || 'center'}
+                    onChange={(v) => setEl({ align: v })}
+                    options={[
+                      { value: 'left', icon: <AlignIcon mode="left" />, title: 'Align left' },
+                      { value: 'center', icon: <AlignIcon mode="center" />, title: 'Align center' },
+                      { value: 'right', icon: <AlignIcon mode="right" />, title: 'Align right' },
+                    ]}
+                  />
+                  <span className="ts-spacer" />
                 </div>
                 <Range
                   label="Letter spacing"
@@ -666,6 +703,14 @@ export default function Inspector({
                   onBlur={onEnd}
                   onChange={(e) => live({ name: e.target.value })}
                 />
+                <button
+                  type="button"
+                  className="ts-btn ts-btn-emoji"
+                  onClick={() => openEmojiTextTool(selected.name || selected.title)}
+                  title="Generate stylish Emoji text in our tool"
+                >
+                  <span className="ts-btn-emoji-sparkle">✨</span> Generate Emoji Text
+                </button>
                 <textarea
                   className="ts-textarea"
                   value={selected.title || ''}
@@ -1342,6 +1387,14 @@ export default function Inspector({
                               aria-label={`${slot.label} text`}
                               onChange={(event) => patchSlot(slot.id, { text: filterTextToScript(event.target.value, slot.script) })}
                             />
+                            <button
+                              type="button"
+                              className="ts-btn ts-btn-emoji ts-btn-emoji--slot"
+                              onClick={() => openEmojiTextTool(slot.text)}
+                              title="Generate stylish Emoji text for this element"
+                            >
+                              <span className="ts-btn-emoji-sparkle">✨</span> Generate Emoji Text
+                            </button>
                             <div className="ts-slot-lock">
                               <span>{slotFontLabel(slot.font)}</span>
                               <span>{scriptLabel(slot.script)}</span>
@@ -1351,20 +1404,21 @@ export default function Inspector({
                                 <span>Aa</span>
                                 <input
                                   type="range"
-                                  min={3}
-                                  max={30}
+                                  min={2}
+                                  max={40}
                                   step={0.5}
                                   value={slot.size || 8}
                                   aria-label={`${slot.label} size`}
                                   onChange={(event) => patchSlot(slot.id, { size: parseFloat(event.target.value) })}
                                 />
+                                <span className="ts-slot-size-num">{(slot.size || 8).toFixed(1)}</span>
                               </label>
                               <Seg
                                 value={slot.align || 'center'}
                                 options={[
-                                  { value: 'left', label: 'L', title: 'Align left' },
-                                  { value: 'center', label: 'C', title: 'Centre' },
-                                  { value: 'right', label: 'R', title: 'Align right' },
+                                  { value: 'left', icon: <AlignIcon mode="left" />, title: 'Align left' },
+                                  { value: 'center', icon: <AlignIcon mode="center" />, title: 'Align centre' },
+                                  { value: 'right', icon: <AlignIcon mode="right" />, title: 'Align right' },
                                 ]}
                                 onChange={(value) => patchSlot(slot.id, { align: value })}
                               />

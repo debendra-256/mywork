@@ -26,7 +26,7 @@ import {
   smudgeLine,
 } from '../tools/raster.js'
 
-function TextBody({ el, editing, selected, style, boxStyle, onCommit, onPointerDown, onStartEdit, removeBtn }) {
+function TextBody({ el, editing, selected, handles, style, boxStyle, onCommit, onPointerDown, onResize, onStartEdit, removeBtn }) {
   const ref = useRef(null)
 
   useEffect(() => {
@@ -54,6 +54,10 @@ function TextBody({ el, editing, selected, style, boxStyle, onCommit, onPointerD
       spellCheck={false}
       onPointerDown={(e) => {
         if (editing) e.stopPropagation()
+        if (e.target.closest?.('.ts-resize') || e.target.closest?.('.ts-el-remove-btn')) {
+          e.stopPropagation()
+          return
+        }
         onPointerDown?.(e)
       }}
       onDoubleClick={(e) => {
@@ -74,6 +78,7 @@ function TextBody({ el, editing, selected, style, boxStyle, onCommit, onPointerD
     >
       {boxStyle && <span className="ts-text-bg" aria-hidden="true" style={boxStyle} />}
       {el.text}
+      {handles && <ResizeHandles onResize={onResize} />}
       {removeBtn}
     </div>
   )
@@ -2050,11 +2055,13 @@ export default function TemplateCanvas({
           el={el}
           editing={isEditing}
           selected={isSelected}
+          handles={handles}
           style={style}
           boxStyle={boxStyle}
           onCommit={onEndEdit}
           onStartEdit={onStartEdit}
           onPointerDown={wrapperProps.onPointerDown}
+          onResize={(e, dir) => beginResize(e, el, dir)}
           removeBtn={removeBtn}
         />
       )
@@ -2074,6 +2081,7 @@ export default function TemplateCanvas({
         borderRadius: `${el.radius ?? 1.4}cqw`,
         opacity: el.opacity ?? 1,
         transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
+        justifyContent: el.align === 'left' ? 'flex-start' : el.align === 'right' ? 'flex-end' : 'center',
       }
       const textStyle = {
         color: textColor,
@@ -2083,6 +2091,8 @@ export default function TemplateCanvas({
         fontStyle: el.italic ? 'italic' : 'normal',
         letterSpacing: `${el.tracking ?? 0}em`,
         textTransform: el.transform === 'uppercase' ? 'uppercase' : 'none',
+        textAlign: el.align || 'center',
+        width: el.align ? '100%' : undefined,
       }
       return (
         <BannerBody

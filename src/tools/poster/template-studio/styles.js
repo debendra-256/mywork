@@ -635,6 +635,47 @@ export const css = `
 .ts-btn-primary:hover:not(:disabled) { background: #363427; transform: translateY(-1px); }
 .ts-btn-dark { background: var(--ts-ink); color: #f9f4e8; }
 .ts-btn-dark:hover { background: #363427; }
+.ts-btn-emoji {
+  width: 100%;
+  margin: 6px 0 10px;
+  padding: 7px 12px;
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(99, 102, 241, 0.12) 100%);
+  border: 1px solid rgba(124, 58, 237, 0.28);
+  border-radius: 8px;
+  color: #6d28d9;
+  font-weight: 600;
+  font-size: 11.5px;
+  letter-spacing: 0.01em;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  user-select: none;
+}
+.ts-btn-emoji:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.16) 0%, rgba(99, 102, 241, 0.22) 100%);
+  border-color: rgba(124, 58, 237, 0.45);
+  color: #5b21b6;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px -2px rgba(124, 58, 237, 0.18);
+}
+.ts-btn-emoji:active {
+  transform: translateY(0);
+}
+.ts-btn-emoji-sparkle {
+  display: inline-block;
+  font-size: 13px;
+  animation: ts-emoji-pulse 2.2s infinite ease-in-out;
+}
+.ts-btn-emoji--slot {
+  margin: 3px 0 6px;
+  padding: 5px 9px;
+  font-size: 10px;
+  border-radius: 6px;
+}
+@keyframes ts-emoji-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.18) rotate(6deg); }
+}
 
 .ts-empty { text-align: center; padding: 52px 20px; max-width: 440px; margin: 16px auto; }
 .ts-empty-mark {
@@ -1098,6 +1139,7 @@ export const css = `
 .ts-slot-row { display: flex; align-items: center; gap: 6px; }
 .ts-slot-size { display: flex; align-items: center; gap: 5px; flex: 1; color: #8a949d; font-size: 9px; font-weight: 700; }
 .ts-slot-size input { flex: 1; accent-color: var(--ts-accent); }
+.ts-slot-size-num { font-variant-numeric: tabular-nums; min-width: 20px; font-size: 8.5px; color: var(--ts-soft); text-align: right; }
 .ts-slot-row .ts-seg { flex: none; }
 .ts-slot-row .ts-seg button { min-width: 22px; padding: 4px 0; }
 .ts-slot-lock { display: flex; flex-wrap: wrap; gap: 5px; margin: 1px 0 2px; }

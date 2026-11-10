@@ -134,7 +134,14 @@ const faqs = [
 ]
 
 export default function EmojiTextGenerator() {
-  const [text, setText] = useState('hello')
+  const [text, setText] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const q = params.get('text')
+      if (q != null && q.trim()) return q.trim().slice(0, maxLength)
+    } catch {}
+    return 'hello'
+  })
   const [view, setView] = useState('all')
   const [query, setQuery] = useState('')
   const [favorites, setFavorites] = useState(favoriteIds)
@@ -145,6 +152,14 @@ export default function EmojiTextGenerator() {
 
   // Injected SEO Metadata and JSON-LD schemas
   useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const q = params.get('text')
+      if (q != null && q.trim()) {
+        setText(q.trim().slice(0, maxLength))
+      }
+    } catch {}
+
     const originalTitle = document.title
     document.title = 'Emoji Text Generator (100+ Fonts) – Fancy & Stylish Font Maker | ImgMojo'
 
