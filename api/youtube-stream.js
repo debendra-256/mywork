@@ -93,6 +93,74 @@ async function resolveStreamInfo(videoId) {
       },
     },
     {
+      name: 'ANDROID',
+      ua: 'com.google.android.youtube/19.44.38 (Linux; U; Android 14; Pixel 8 Pro) gzip',
+      extraHeaders: {
+        'X-YouTube-Client-Name': '3',
+        'X-YouTube-Client-Version': '19.44.38',
+      },
+      context: {
+        client: {
+          clientName: 'ANDROID',
+          clientVersion: '19.44.38',
+          androidSdkVersion: 34,
+          osName: 'Android',
+          osVersion: '14',
+          hl: 'en',
+          gl: 'US',
+        },
+      },
+    },
+    {
+      name: 'ANDROID_MUSIC',
+      ua: 'com.google.android.apps.youtube.music/7.21.52 (Linux; U; Android 14; Pixel 8) gzip',
+      extraHeaders: {
+        'X-YouTube-Client-Name': '21',
+        'X-YouTube-Client-Version': '7.21.52',
+      },
+      context: {
+        client: {
+          clientName: 'ANDROID_MUSIC',
+          clientVersion: '7.21.52',
+          androidSdkVersion: 34,
+          osName: 'Android',
+          osVersion: '14',
+          hl: 'en',
+          gl: 'US',
+        },
+      },
+    },
+    {
+      name: 'MWEB',
+      ua: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
+      extraHeaders: {
+        Origin: 'https://m.youtube.com',
+      },
+      context: {
+        client: {
+          clientName: 'MWEB',
+          clientVersion: '2.20240916.01.00',
+          hl: 'en',
+          gl: 'US',
+        },
+      },
+    },
+    {
+      name: 'WEB_CREATOR',
+      ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+      extraHeaders: {
+        Origin: 'https://studio.youtube.com',
+      },
+      context: {
+        client: {
+          clientName: 'WEB_CREATOR',
+          clientVersion: '1.20240916.01.00',
+          hl: 'en',
+          gl: 'US',
+        },
+      },
+    },
+    {
       name: 'VISIONOS',
       ua: VISIONOS_UA,
       extraHeaders: {
@@ -134,11 +202,13 @@ async function resolveStreamInfo(videoId) {
   const attempts = []
   for (const c of clients) {
     try {
+      const cookie = process.env.YOUTUBE_COOKIE || ''
       const res = await fetch('https://www.youtube.com/youtubei/v1/player?prettyPrint=false', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'User-Agent': c.ua,
+          ...(cookie ? { Cookie: cookie } : {}),
           ...c.extraHeaders,
         },
         body: JSON.stringify({
