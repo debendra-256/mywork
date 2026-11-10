@@ -1211,8 +1211,189 @@ export default function ShortsCreator({ className = '', style }) {
     }
   };
 
-  const exportCaptureWebm = (win) => renderDirectYouTubeWebm([win || { start: startAt, len: windowLen }]);
-  const captureAll = () => renderDirectYouTubeWebm(clips.length ? clips.map(clipWindow) : [{ start: startAt, len: windowLen }]);
+  // Old technique: record the exact 9:16 stage frame directly from the playing YouTube video
+  const captureSession = async (wins) => {
+    setError('');
+    setNotice('');
+    if (!navigator.mediaDevices?.getDisplayMedia || !window.MediaRecorder) {
+      setError('This browser does not support frame capture. Switch to "Upload Video" to create your shorts.');
+      return;
+    }
+    const list = wins.filter((w) => w && w.len > 0);
+    if (!list.length) {
+      setError('Nothing to create yet — load a video and click Generate Shorts.');
+      return;
+    }
+
+    void play();
+    let screen = null;
+    let timer = 0;
+    let pickerDone = false;
+    let abort = false;
+    const teardown = () => {
+      clearInterval(timer);
+      setCapturing(false);
+      setZoom(false);
+      try {
+        screen?.getTracks().forEach((t) => t.stop());
+      } catch { /* ignore */ }
+    };
+
+    try {
+      setCapturing(true);
+      if (!quiet) setZoom(true);
+      else stageRef.current?.scrollIntoView({ block: 'center', inline: 'nearest' });
+
+      if (quiet) {
+        let last = -1;
+        for (let i = 0; i < 6; i += 1) {
+          await delay(80);
+          const y = Math.round(window.scrollY);
+          if (y === last) break;
+          last = y;
+        }
+      } else {
+        await delay(350);
+      }
+
+      if (!stageRef.current) throw new Error('Stage frame is not ready — try again in a moment.');
+
+      screen = await navigator.mediaDevices.getDisplayMedia({
+        video: { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 }, cursor: 'never' },
+        audio: true,
+        preferCurrentTab: true,
+        selfBrowserSurface: 'include',
+      });
+
+      const track = screen.getVideoTracks()[0];
+      const settings = track?.getSettings?.() || {};
+      pickerDone = true;
+
+      const cap = document.createElement('video');
+      cap.muted = true;
+      cap.srcObject = screen;
+      await cap.play().catch(() => undefined);
+
+      const c = document.createElement('canvas');
+      c.width = sz.w;
+      c.height = sz.h;
+      const x = c.getContext('2d');
+      x.imageSmoothingQuality = 'high';
+      const scale = (settings.width || window.innerWidth) / (document.documentElement.clientWidth || window.innerWidth);
+
+      const paint = () => {
+        if (!stageRef.current) return;
+        const r = stageRef.current.getBoundingClientRect();
+        const sx = Math.max(0, Math.round((r.left + 1) * scale));
+        const sy = Math.max(0, Math.round((r.top + 1) * scale));
+        const sw = Math.max(8, Math.round((r.width - 2) * scale));
+        const sh = Math.max(8, Math.round((r.height - 2) * scale));
+        x.fillStyle = '#000';
+        x.fillRect(0, 0, sz.w, sz.h);
+        x.drawImage(cap, sx, sy, sw, sh, 0, 0, sz.w, sz.h);
+      };
+      timer = setInterval(() => {
+        try { paint(); } catch { /* ignore dropped frame */ }
+      }, 1000 / 30);
+
+      for (let i = 0; i < list.length; i += 1) {
+        if (abort) break;
+        const { start, len } = list[i];
+        const name = exportName(start, len);
+        const id = makeJob({
+          kind: 'webm',
+          label: list.length > 1 ? `Short ${i + 1} of ${list.length} · ${sz.w}×${sz.h}` : `Creating Short · ${sz.w}×${sz.h}`,
+          name,
+          w: sz.w,
+          h: sz.h,
+          dur: len,
+          progress: 0.02,
+        });
+
+        pause();
+        setStartAt(start);
+        setElapsed(0);
+        seek(start);
+        await delay(600);
+        await play();
+        await delay(250);
+
+        const mime = pickMime();
+        const stream = c.captureStream(30);
+        screen.getAudioTracks().forEach((t) => stream.addTrack(t));
+        const rec = new MediaRecorder(stream, {
+          ...(mime ? { mimeType: mime } : {}),
+          videoBitsPerSecond: Math.min(50e6, Math.max(6e6, Math.round(sz.w * sz.h * 30 * 0.12))),
+        });
+
+        jobHandles.current.set(id, () => {
+          abort = true;
+          if (rec.state !== 'inactive') rec.stop();
+        });
+
+        const chunks = [];
+        let natural = false;
+        rec.ondataavailable = (e) => {
+          if (e.data && e.data.size) chunks.push(e.data);
+        };
+        rec.onstop = () => {
+          jobHandles.current.delete(id);
+          if (abort) {
+            patchJob(id, { status: 'canceled' });
+            return;
+          }
+          if (!natural) {
+            patchJob(id, { status: 'error', error: 'Creation was stopped early.' });
+            return;
+          }
+          finishJob(id, new Blob(chunks, { type: 'video/webm' }), name);
+        };
+
+        rec.start(250);
+        const t0 = Date.now();
+        await new Promise((res) => {
+          const poll = setInterval(() => {
+            const elapsedSec = clamp((Date.now() - t0) / 1000, 0, len);
+            setElapsed(elapsedSec);
+            patchJob(id, { progress: Math.min(0.99, (Date.now() - t0) / (len * 1000)) });
+            if (rec.state === 'inactive') {
+              clearInterval(poll);
+              res();
+            } else if (Date.now() - t0 >= len * 1000) {
+              clearInterval(poll);
+              natural = true;
+              if (rec.state !== 'inactive') rec.stop();
+              res();
+            }
+          }, 100);
+        });
+        await delay(250);
+      }
+
+      teardown();
+      pause();
+      setNotice(list.length > 1 ? `${list.length} shorts created and downloaded!` : 'Short created and downloaded!');
+    } catch (reason) {
+      teardown();
+      if (!pickerDone) pause();
+      const msg = reason instanceof Error ? reason.message : String(reason);
+      if (/Permission denied|denied|cancel|abort/i.test(msg)) {
+        setError('Confirmation was cancelled. Click Download to create your short.');
+      } else {
+        setError(msg);
+      }
+    }
+  };
+
+  const exportCaptureWebm = (win) => {
+    const list = [win || { start: startAt, len: windowLen }];
+    return srcMode === 'file' ? renderPlanWebm(list) : captureSession(list);
+  };
+
+  const captureAll = () => {
+    const list = clips.length ? clips.map(clipWindow) : [{ start: startAt, len: windowLen }];
+    return srcMode === 'file' ? renderPlanWebm(list) : captureSession(list);
+  };
 
   const exportSrt = () => {
     setError('');
@@ -2316,69 +2497,7 @@ export default function ShortsCreator({ className = '', style }) {
                 )}
               </div>
 
-              {error && (
-                <div className="sc-err" role="alert" style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '12px 14px', borderRadius: 10, border: '1px solid rgba(239, 68, 68, 0.3)', background: 'rgba(254, 242, 242, 0.95)' }}>
-                  <div style={{ fontWeight: 600, color: '#991b1b', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10" />
-                      <line x1="12" y1="8" x2="12" y2="12" />
-                      <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    <span>{error}</span>
-                  </div>
-                  {srcMode === 'youtube' && videoId && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
-                      <a
-                        href={`https://cobalt.tools/`}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                        className="sc-btn"
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 6,
-                          padding: '6px 12px',
-                          fontSize: 12,
-                          background: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
-                          color: '#fff',
-                          fontWeight: 600,
-                          borderRadius: 6,
-                          textDecoration: 'none',
-                        }}
-                      >
-                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                          <polyline points="7 10 12 15 17 10" />
-                          <line x1="12" y1="15" x2="12" y2="3" />
-                        </svg>
-                        1-Click Download MP4
-                      </a>
-                      <button
-                        type="button"
-                        className="sc-btn"
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 6,
-                          padding: '6px 12px',
-                          fontSize: 12,
-                          background: '#fff',
-                          border: '1px solid #d1d5db',
-                          color: '#374151',
-                          fontWeight: 600,
-                          borderRadius: 6,
-                        }}
-                        onClick={() => {
-                          setSrcMode('file');
-                          setError('');
-                        }}
-                      >
-                        📁 Switch to Upload Video
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
+              {error && <p className="sc-err" role="alert">{error}</p>}
               {notice && <p className="sc-ok" role="status">{notice}</p>}
 
               {jobs.length > 0 && (
