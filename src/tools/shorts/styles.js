@@ -2269,6 +2269,113 @@ html[data-scheme='dark'] .sc-ok {
     grid-template-columns: 1fr;
   }
 }
+
+/* Centered Progress Modal Popup */
+.sc-progress-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10005;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(11, 15, 20, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 20px;
+  animation: scFadeIn 0.2s ease-out;
+}
+
+@keyframes scFadeIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.sc-progress-modal-card {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  background: var(--sc-paper, #ffffff);
+  border-radius: 20px;
+  padding: 34px 28px 26px;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.12);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.sc-progress-spinner {
+  width: 52px;
+  height: 52px;
+  border: 4px solid rgba(124, 58, 237, 0.15);
+  border-top-color: var(--sc-brand, #7c3aed);
+  border-radius: 50%;
+  animation: scSpin 0.9s cubic-bezier(0.55, 0.15, 0.45, 0.85) infinite;
+  margin-bottom: 4px;
+}
+
+@keyframes scSpin {
+  to { transform: rotate(360deg); }
+}
+
+.sc-progress-modal-card h3 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--sc-ink, #0f172a);
+  letter-spacing: -0.01em;
+}
+
+.sc-progress-status {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--sc-brand, #7c3aed);
+}
+
+.sc-progress-bar-wrap {
+  width: 100%;
+  height: 12px;
+  background: rgba(124, 58, 237, 0.1);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+  margin: 8px 0;
+}
+
+.sc-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7c3aed, #a855f7, #6366f1);
+  border-radius: 999px;
+  transition: width 0.18s ease-out;
+  box-shadow: 0 0 12px rgba(124, 58, 237, 0.4);
+}
+
+.sc-progress-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--sc-muted, #64748b);
+  line-height: 1.5;
+}
+
+.sc-progress-cancel {
+  margin-top: 8px;
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.22);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sc-progress-cancel:hover {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(239, 68, 68, 0.4);
+}
 `;
 
 export function injectShortsStyles() {
