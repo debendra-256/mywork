@@ -66,7 +66,7 @@ function pickBestStreams(streamingData, ua) {
 async function resolveStreamInfo(videoId) {
   const cached = urlCache.get(videoId)
   if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
-    return cached
+    return { info: cached, attempts: [{ cached: true }] }
   }
 
   // IOS is prioritized first because it returns direct, unthrottled, unencrypted adaptive MP4 streams
@@ -131,6 +131,7 @@ async function resolveStreamInfo(videoId) {
     },
   ]
 
+  const attempts = []
   for (const c of clients) {
     try {
       const res = await fetch('https://www.youtube.com/youtubei/v1/player?prettyPrint=false', {
@@ -148,22 +149,28 @@ async function resolveStreamInfo(videoId) {
         }),
         signal: AbortSignal.timeout(8000),
       })
-      if (!res.ok) continue
+      if (!res.ok) {
+        attempts.push({ client: c.name, httpStatus: res.status, error: 'HTTP not ok' })
+        continue
+      }
       const data = await res.json()
-      if (data?.playabilityStatus?.status !== 'OK' && data?.playabilityStatus?.status !== 'LIVE_STREAM_OFFLINE') {
+      const playability = data?.playabilityStatus?.status
+      const hasStreaming = !!data?.streamingData
+      attempts.push({ client: c.name, httpStatus: res.status, playability, hasStreaming, reason: data?.playabilityStatus?.reason })
+      if (playability !== 'OK' && playability !== 'LIVE_STREAM_OFFLINE') {
         continue
       }
       const info = pickBestStreams(data?.streamingData, c.ua)
       if (info && info.video?.url) {
         urlCache.set(videoId, info)
-        return info
+        return { info, attempts }
       }
-    } catch {
-      // try next client
+    } catch (err) {
+      attempts.push({ client: c.name, error: err instanceof Error ? err.message : String(err) })
     }
   }
 
-  return null
+  return { info: null, attempts }
 }
 
 export async function handleYouTubeStream(request, response) {
@@ -202,12 +209,12 @@ export async function handleYouTubeStream(request, response) {
   })
 
   try {
-    const info = await resolveStreamInfo(videoId)
+    const { info, attempts } = await resolveStreamInfo(videoId)
     if (!info || !info.video?.url) {
       clearTimeout(timeoutId)
       response.statusCode = 404
       response.setHeader('Content-Type', 'application/json; charset=utf-8')
-      response.end(JSON.stringify({ error: 'Could not resolve direct video stream for this YouTube ID.' }))
+      response.end(JSON.stringify({ error: 'Could not resolve direct video stream for this YouTube ID.', attempts }))
       return
     }
 
