@@ -478,6 +478,24 @@ export default function ShortsCreator({ className = '', style }) {
   const [cover, setCover] = useState(false);
   const [subRemoveMode, setSubRemoveMode] = useState('off');
   const [subRemoveHeight, setSubRemoveHeight] = useState(22);
+  const [canDirectStream, setCanDirectStream] = useState(false);
+
+  useEffect(() => {
+    if (srcMode !== 'youtube' || !videoId) {
+      setCanDirectStream(false);
+      return;
+    }
+    let dead = false;
+    fetch(`/api/youtube-stream?id=${encodeURIComponent(videoId)}&kind=info`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!dead) setCanDirectStream(Boolean(data?.ok && data?.video));
+      })
+      .catch(() => {
+        if (!dead) setCanDirectStream(false);
+      });
+    return () => { dead = true; };
+  }, [srcMode, videoId]);
   const [clipThumbs, setClipThumbs] = useState({});
   const [tlHover, setTlHover] = useState(null);
   const [full, setFull] = useState(false);
@@ -1458,6 +1476,8 @@ export default function ShortsCreator({ className = '', style }) {
       const msg = reason instanceof Error ? reason.message : String(reason);
       if (/Permission denied|denied|cancel|abort/i.test(msg)) {
         setError('Confirmation was cancelled. Click Download to create your short.');
+      } else if (/Not supported|not supported/i.test(msg)) {
+        setError('This browser does not support live tab recording. Switch to "Upload Video" tab above to generate your HD short directly.');
       } else {
         setError(msg);
       }
@@ -1466,12 +1486,16 @@ export default function ShortsCreator({ className = '', style }) {
 
   const exportCaptureWebm = (win) => {
     const list = [win || { start: startAt, len: windowLen }];
-    return srcMode === 'file' ? renderPlanWebm(list) : renderDirectYouTubeWebm(list).catch(() => captureSession(list));
+    if (srcMode === 'file') return renderPlanWebm(list);
+    if (canDirectStream) return renderDirectYouTubeWebm(list);
+    return captureSession(list);
   };
 
   const captureAll = () => {
     const list = clips.length ? clips.map(clipWindow) : [{ start: startAt, len: windowLen }];
-    return srcMode === 'file' ? renderPlanWebm(list) : renderDirectYouTubeWebm(list).catch(() => captureSession(list));
+    if (srcMode === 'file') return renderPlanWebm(list);
+    if (canDirectStream) return renderDirectYouTubeWebm(list);
+    return captureSession(list);
   };
 
   const exportSrt = () => {
