@@ -8,6 +8,8 @@ declare module 'lucide-react' {
   export const Bookmark: LucideIcon
   export const BadgeCheck: LucideIcon
   export const Bot: LucideIcon
+  export const Briefcase: LucideIcon
+  export const Building: LucideIcon
   export const Camera: LucideIcon
   export const Check: LucideIcon
   export const CheckCircle2: LucideIcon
@@ -15,15 +17,20 @@ declare module 'lucide-react' {
   export const ChevronLeft: LucideIcon
   export const ChevronRight: LucideIcon
   export const CircleCheck: LucideIcon
+  export const Clock: LucideIcon
   export const Clock3: LucideIcon
+  export const Code2: LucideIcon
   export const Command: LucideIcon
   export const Copy: LucideIcon
+  export const Cpu: LucideIcon
   export const DatabaseBackup: LucideIcon
   export const Download: LucideIcon
   export const Droplets: LucideIcon
   export const Eraser: LucideIcon
+  export const ExternalLink: LucideIcon
   export const Facebook: LucideIcon
   export const FileArchive: LucideIcon
+  export const FileSpreadsheet: LucideIcon
   export const FileText: LucideIcon
   export const Flame: LucideIcon
   export const FolderArchive: LucideIcon
@@ -84,6 +91,7 @@ declare module 'lucide-react' {
   export const Star: LucideIcon
   export const Store: LucideIcon
   export const Sun: LucideIcon
+  export const Table: LucideIcon
   export const Trash2: LucideIcon
   export const Twitter: LucideIcon
   export const Undo2: LucideIcon

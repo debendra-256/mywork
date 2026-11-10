@@ -7,6 +7,7 @@ import aiModelSettingsHandler from './api/ai-model-settings.js'
 import adminAuthHandler from './api/admin-auth.js'
 import socialAuthHandler from './api/social-auth.js'
 import posterPhotoHandler from './api/poster-photo.js'
+import youtubeStreamHandler from './api/youtube-stream.js'
 import toolsConfigHandler from './api/tools-config.js'
 import siteThemeHandler from './api/site-theme.js'
 import sidebarSettingsHandler from './api/sidebar-settings.js'
@@ -46,6 +47,9 @@ function localSocialTrendsApi() {
       server.middlewares.use('/api/sidebar-settings', jsonApi(sidebarSettingsHandler))
       server.middlewares.use('/api/social-auth', jsonApi(socialAuthHandler))
       server.middlewares.use('/api/poster-photo', posterPhotoHandler)
+      server.middlewares.use('/api/youtube-stream', async (req, res) => {
+        await youtubeStreamHandler(req, res)
+      })
       server.middlewares.use('/api/admin-auth', async (request, response) => {
         let body = ''
         await new Promise<void>((resolve, reject) => {
