@@ -2455,11 +2455,19 @@ export default function TemplateCanvas({
           {Array.isArray(el.slots) && el.slots.map((slot) => {
             if (slot.kind === 'image') {
               if (!slot.src && !interactive) return null
+              const isCircle = slot.shape === 'circle'
+              const radius = isCircle ? '50%' : (slot.borderRadius || undefined)
               return (
                 <span
                   key={slot.id}
-                  className={`ts-sticker-slot ts-sticker-slot--image${slot.src ? ' has-image' : ''}`}
-                  style={{ left: `${slot.x}%`, top: `${slot.y}%`, width: `${slot.w}%`, height: `${slot.h}%` }}
+                  className={`ts-sticker-slot ts-sticker-slot--image${slot.src ? ' has-image' : ''}${isCircle ? ' is-circle' : ''}`}
+                  style={{
+                    left: `${slot.x}%`,
+                    top: `${slot.y}%`,
+                    width: `${slot.w}%`,
+                    height: `${slot.h}%`,
+                    borderRadius: radius,
+                  }}
                   onPointerDown={(e) => { if (!slot.src) e.stopPropagation() }}
                   onClick={(e) => {
                     e.stopPropagation()
@@ -2481,7 +2489,21 @@ export default function TemplateCanvas({
                   aria-label={slot.label || 'Replace image'}
                   title={interactive ? `${slot.src ? 'Double-click to replace' : 'Click to add'} — ${slot.label || 'image area'}` : undefined}
                 >
-                  {slot.src ? <img src={slot.src} alt="" draggable={false} style={{ objectFit: slot.fit === 'contain' ? 'contain' : 'cover' }} /> : <span className="ts-slot-empty">{slot.label || 'Image'}</span>}
+                  {slot.src ? (
+                    <img
+                      src={slot.src}
+                      alt=""
+                      draggable={false}
+                      style={{
+                        objectFit: slot.fit === 'contain' ? 'contain' : 'cover',
+                        borderRadius: radius,
+                      }}
+                    />
+                  ) : (
+                    <span className="ts-slot-empty" style={{ borderRadius: radius }}>
+                      {slot.label || 'Image'}
+                    </span>
+                  )}
                 </span>
               )
             }
@@ -2489,7 +2511,11 @@ export default function TemplateCanvas({
             return (
               <span
                 key={slot.id}
+                data-slot={slot.id}
                 className={`ts-sticker-slot ts-sticker-slot--text${slot.text ? '' : ' is-empty'}`}
+                contentEditable={interactive || undefined}
+                suppressContentEditableWarning
+                spellCheck={false}
                 style={{
                   left: `${slot.x}%`,
                   top: `${slot.y}%`,
@@ -2497,11 +2523,34 @@ export default function TemplateCanvas({
                   height: `${slot.h}%`,
                   fontSize: `${slot.size || 8}cqw`,
                   color: slot.color || '#1c2025',
+                  fontWeight: slot.weight || 700,
                   textAlign: slot.align || 'center',
                   justifyContent: slot.align === 'left' ? 'flex-start' : slot.align === 'right' ? 'flex-end' : 'center',
                   fontFamily: slot.font === 'serif' ? 'Georgia, "Times New Roman", serif' : slot.font === 'display' ? 'var(--ts-font-display)' : 'var(--ts-font-ui)',
                 }}
-                onClick={(e) => { e.stopPropagation(); onSelect?.(el.id) }}
+                onPointerDown={(e) => {
+                  e.stopPropagation()
+                  onSelect?.(el.id)
+                }}
+                onDoubleClick={(e) => {
+                  e.stopPropagation()
+                }}
+                onBlur={(e) => {
+                  const text = e.currentTarget.innerText
+                  onPatchElement?.(
+                    el.id,
+                    {
+                      slots: (el.slots || []).map((s) => (s.id === slot.id ? { ...s, text } : s)),
+                    },
+                    { history: true }
+                  )
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    e.currentTarget.blur()
+                  }
+                }}
               >
                 {slot.text || (interactive ? slot.label || 'Text' : '')}
               </span>

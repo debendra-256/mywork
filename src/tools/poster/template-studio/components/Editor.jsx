@@ -8,7 +8,7 @@ import {
 } from '../model.js'
 import { SHAPE_DEFAULTS } from '../data/shapes.js'
 import { POSTER_LOGOS, POSTER_TEMPLATES } from '../data/poster-templates.js'
-import { loadElements } from '../../elements.js'
+import { BUILTIN_SCANNED_ELEMENTS, loadElements } from '../../elements.js'
 import { downloadPng, downloadSlices } from '../export.js'
 import { preparePhotoFile, removePhotoBackground } from '../photo.js'
 import {
@@ -214,6 +214,7 @@ export default function Editor({
   const addBanner = (at) => addElement(placedAt(makeBanner(), at))
   const addNameCard = (at) => addElement(placedAt(makeNameCard(), at))
   const addContactCard = (at) => addElement(placedAt(makeContactCard(), at))
+  const addTricolourCard = (at) => addSticker(BUILTIN_SCANNED_ELEMENTS[0], at)
   const addShape = (shape, at) => {
     if (shape === 'arch') {
       addElement(placedAt(makeShape('arch', { x: 32, y: 38, w: 36, h: 46, fill: 'none', stroke: 'accent', strokeWidth: 0.3 }), at))
@@ -302,6 +303,7 @@ export default function Editor({
       case 'banner': addBanner(at); return
       case 'namecard': addNameCard(at); return
       case 'contactcard': addContactCard(at); return
+      case 'tricolour_card': addTricolourCard(at); return
       case 'photo': addPhoto(at); return
       case 'shape': addShape(payload.id, at); return
       case 'social': addSocial(payload.id, at); return
@@ -1247,6 +1249,7 @@ export default function Editor({
             onAddBanner={addBanner}
             onAddNameCard={addNameCard}
             onAddContactCard={addContactCard}
+            onAddTricolourCard={addTricolourCard}
             onAddShape={addShape}
             onAddOrnament={addOrnament}
             onAddPhoto={addPhoto}

@@ -75,6 +75,7 @@ export function normalizeSlot(slot = {}) {
     id: String(slot.id || `sl_${Math.random().toString(36).slice(2, 8)}`),
     kind,
     label: String(slot.label || (kind === 'text' ? 'Text' : 'Image')).slice(0, 40),
+    shape: slot.shape === 'circle' ? 'circle' : undefined,
     x: clamp(slot.x, 0, 100 - w),
     y: clamp(slot.y, 0, 100 - h),
     w,
@@ -101,29 +102,90 @@ export function normalizeSlots(slots) {
   })
 }
 
+export const BUILTIN_SCANNED_ELEMENTS = [
+  {
+    id: 'el_tricolour_nameplate',
+    name: 'Tricolour Name Plate',
+    src: '/templates/tricolour-card.png',
+    aspect: 3.003,
+    width: 1024,
+    height: 341,
+    w: 84,
+    slots: [
+      {
+        id: 'slot_photo',
+        kind: 'image',
+        label: 'Photo',
+        shape: 'circle',
+        x: 3.7,
+        y: 17.3,
+        w: 21.1,
+        h: 63.9,
+        fit: 'cover',
+      },
+      {
+        id: 'slot_name',
+        kind: 'text',
+        label: 'Name',
+        text: 'आपका नाम',
+        x: 32.5,
+        y: 28.5,
+        w: 48.0,
+        h: 24.0,
+        color: '#051d49',
+        font: 'sans',
+        align: 'left',
+        size: 8.5,
+        script: 'any',
+      },
+      {
+        id: 'slot_title',
+        kind: 'text',
+        label: 'Designation / Post',
+        text: 'पद / पदनाम (उदा. विधायक, सांसद, अध्यक्ष)',
+        x: 29.5,
+        y: 54.8,
+        w: 58.4,
+        h: 24.1,
+        color: '#5c1d0b',
+        font: 'sans',
+        align: 'center',
+        size: 4.2,
+        script: 'any',
+      },
+    ],
+    createdAt: 1700000000000,
+  },
+]
+
 export function loadElements() {
-  if (!storageAvailable()) return []
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return []
-    return parsed
-      .filter((item) => item && typeof item.src === 'string' && item.src.startsWith('data:'))
-      .map((item) => ({
-        id: String(item.id || ''),
-        name: String(item.name || 'Element').slice(0, 40),
-        src: item.src,
-        aspect: Number(item.aspect) > 0 ? Number(item.aspect) : 1,
-        width: Number(item.width) > 0 ? Number(item.width) : 1,
-        height: Number(item.height) > 0 ? Number(item.height) : 1,
-        slots: normalizeSlots(item.slots),
-        createdAt: Number(item.createdAt) || Date.now(),
-      }))
-      .sort((a, b) => b.createdAt - a.createdAt)
-  } catch {
-    return []
+  let custom = []
+  if (storageAvailable()) {
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY)
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed)) {
+          custom = parsed
+            .filter((item) => item && typeof item.src === 'string' && (item.src.startsWith('data:') || item.src.startsWith('/')))
+            .map((item) => ({
+              id: String(item.id || ''),
+              name: String(item.name || 'Element').slice(0, 40),
+              src: item.src,
+              aspect: Number(item.aspect) > 0 ? Number(item.aspect) : 1,
+              width: Number(item.width) > 0 ? Number(item.width) : 1,
+              height: Number(item.height) > 0 ? Number(item.height) : 1,
+              w: Number(item.w) > 0 ? Number(item.w) : undefined,
+              slots: normalizeSlots(item.slots),
+              createdAt: Number(item.createdAt) || Date.now(),
+            }))
+        }
+      }
+    } catch {}
   }
+  const seenIds = new Set(custom.map((item) => item.id))
+  const builtins = BUILTIN_SCANNED_ELEMENTS.filter((item) => !seenIds.has(item.id))
+  return [...custom, ...builtins].sort((a, b) => b.createdAt - a.createdAt)
 }
 
 function persist(elements) {

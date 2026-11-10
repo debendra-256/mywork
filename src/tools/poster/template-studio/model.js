@@ -279,24 +279,29 @@ export function makeSocial(platform = 'facebook', overrides = {}) {
   }
 }
 
-export function makeSticker({ src, name = 'Element', aspect = 1, slots = [] } = {}, overrides = {}) {
+export function makeSticker({ src, name = 'Element', aspect = 1, slots = [], w: initialW } = {}, overrides = {}) {
   const ratio = Number(aspect) > 0 ? Number(aspect) : 1
-  const w = Math.round(Math.min(30, Math.max(8, 40 * ratio)) * 10) / 10
+  const defaultW = ratio >= 2.2 ? 84 : Math.round(Math.min(30, Math.max(8, 40 * ratio)) * 10) / 10
+  const w = overrides.w ?? initialW ?? defaultW
+  const h = overrides.h ?? Math.round((w / ratio) * 10) / 10
+  const x = overrides.x ?? Math.round(((100 - w) / 2) * 10) / 10
+  const y = overrides.y ?? (ratio >= 2.2 ? 70 : 40)
   return {
     id: uid('st'),
     type: 'sticker',
     src,
     name,
     aspect: ratio,
-    x: Math.round(((100 - w) / 2) * 10) / 10,
-    y: 40,
+    x,
+    y,
     w,
+    h,
     opacity: 1,
     rotation: 0,
     blend: 'normal',
     slots: (Array.isArray(slots) ? slots : []).map((slot) => ({
       ...slot,
-      src: '',
+      src: slot.src || '',
       text: slot.kind === 'text' ? String(slot.text ?? '') : '',
     })),
     ...overrides,

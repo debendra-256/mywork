@@ -177,6 +177,7 @@ export default function Inspector({
   onAddBanner,
   onAddNameCard,
   onAddContactCard,
+  onAddTricolourCard,
   onAddShape,
   onAddOrnament,
   onAddPhoto,
@@ -1602,6 +1603,7 @@ export default function Inspector({
               if (kind === 'banner') return onAddBanner()
               if (kind === 'namecard') return onAddNameCard()
               if (kind === 'contactcard') return onAddContactCard()
+              if (kind === 'tricolour_card') return onAddTricolourCard?.()
               if (kind === 'photo') return onAddPhoto()
               if (kind === 'shape') return onAddShape(id)
               if (kind === 'social') return onAddSocial(id)

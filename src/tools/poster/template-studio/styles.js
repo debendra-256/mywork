@@ -1065,7 +1065,8 @@ export const css = `
 .ts-sticker { container-type: inline-size; }
 .ts-sticker img { display: block; width: 100%; height: auto; pointer-events: none; user-select: none; -webkit-user-drag: none; }
 .ts-sticker-slot { position: absolute; display: flex; align-items: center; overflow: hidden; }
-.ts-sticker-slot--text { font-weight: 600; line-height: 1.15; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
+.ts-sticker-slot--text { font-weight: 600; line-height: 1.15; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; cursor: text; outline: none; }
+.ts-sticker-slot--text:focus { outline: 1.5px dashed rgba(37, 99, 235, 0.75); background: rgba(255, 255, 255, 0.4); border-radius: 2px; }
 .ts-sticker-slot--text.is-empty {
   padding: 0.4cqw;
   border: 1px dashed rgba(110, 120, 112, 0.5);
@@ -1075,6 +1076,9 @@ export const css = `
   text-align: center;
 }
 .ts-sticker-slot--image img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.ts-sticker-slot--image.is-circle { border-radius: 50% !important; }
+.ts-sticker-slot--image.is-circle img { border-radius: 50% !important; }
+.ts-sticker-slot--image.is-circle .ts-slot-empty { border-radius: 50% !important; }
 .ts-sticker-slot--image:not(.has-image) {
   border: 1px dashed rgba(37, 99, 235, 0.55);
   border-radius: 3px;
@@ -1446,6 +1450,12 @@ export const css = `
   background:
     linear-gradient(currentColor, currentColor) 50% 30% / 44% 1.4px no-repeat,
     linear-gradient(currentColor, currentColor) 50% calc(100% - 2px) / 100% 2px no-repeat;
+}
+.ts-card-glyph--tricolour {
+  border-color: #ff9933;
+  background:
+    radial-gradient(circle at 4px 50%, #ff9933 1.5px, transparent 2px),
+    linear-gradient(#138808, #138808) 75% 50% / 55% 1.8px no-repeat;
 }
 .ts-layer-icon .ts-card-glyph { width: 14px; height: 9px; border-width: 1.2px; border-radius: 2px; }
 .ts-photo { overflow: hidden; }.ts-photo img { width: 100%; height: 100%; display: block; object-fit: cover; transform-origin: center center; pointer-events: none; user-select: none; -webkit-user-drag: none; }
