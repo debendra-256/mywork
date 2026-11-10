@@ -931,14 +931,87 @@ export const css = `
 .ts-stage-shell {
   position: relative;
   flex: 0 0 auto;
+  margin: 16px 24px 52px 24px;
   width: min(
     calc(100% * var(--ts-zoom, 1)),
     calc((100dvh - 140px) * var(--ts-ar, 0.714) * var(--ts-zoom, 1))
   );
   width: min(
     calc((100cqw - 24px) * var(--ts-zoom, 1)),
-    calc((100cqh - 24px) * var(--ts-ar, 0.714) * var(--ts-zoom, 1))
+    calc((100cqh - 48px) * var(--ts-ar, 0.714) * var(--ts-zoom, 1))
   );
+}
+.ts-stage-resize-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ns-resize;
+  z-index: 40;
+  touch-action: none;
+}
+.ts-stage-resize-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1.5px solid rgba(14, 91, 94, 0.35);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  color: #1f2937;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  user-select: none;
+  transition: all 0.15s ease;
+  pointer-events: auto;
+}
+.ts-stage-resize-bar:hover .ts-stage-resize-pill,
+.ts-stage-resize-bar.is-dragging .ts-stage-resize-pill {
+  background: #0e5b5e;
+  color: #ffffff;
+  border-color: #0e5b5e;
+  box-shadow: 0 4px 16px rgba(14, 91, 94, 0.35);
+  transform: translateY(2px) scale(1.03);
+}
+.ts-stage-resize-grip {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 14px;
+  height: 6px;
+}
+.ts-stage-resize-grip::before,
+.ts-stage-resize-grip::after {
+  content: '';
+  display: block;
+  height: 1.8px;
+  background: currentColor;
+  border-radius: 1px;
+}
+.ts-stage-resize-corner {
+  position: absolute;
+  right: -9px;
+  bottom: -9px;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  background: var(--ts-accent, #0e5b5e);
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  cursor: nwse-resize;
+  z-index: 41;
+  touch-action: none;
+  transition: transform 0.12s ease;
+}
+.ts-stage-resize-corner:hover {
+  transform: scale(1.25);
+  background: #0b4547;
 }
 .ts-stage-shell > .ts-stage { width: 100%; height: 100%; }
 .ts-stage {
@@ -1071,17 +1144,122 @@ export const css = `
 }
 .ts-resize {
   position: absolute;
-  right: 2px;
-  bottom: 2px;
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  background: var(--ts-accent);
-  border: 2px solid #fff;
+  box-sizing: border-box;
+  background: var(--ts-accent, #0e5b5e);
+  border: 1.5px solid #fff;
+  border-radius: 3px;
   box-shadow: 0 1px 4px rgba(40, 30, 10, 0.35);
-  cursor: nwse-resize;
-  z-index: 6;
+  z-index: 10;
   touch-action: none;
+  transition: transform 0.1s ease, background 0.1s ease;
+}
+.ts-resize:hover {
+  background: #0b4547;
+  box-shadow: 0 0 0 3px rgba(14, 91, 94, 0.3), 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+.ts-resize--se {
+  right: -5px;
+  bottom: -5px;
+  width: 12px;
+  height: 12px;
+  cursor: nwse-resize;
+}
+.ts-resize--sw {
+  left: -5px;
+  bottom: -5px;
+  width: 12px;
+  height: 12px;
+  cursor: nesw-resize;
+}
+.ts-resize--ne {
+  right: -5px;
+  top: -5px;
+  width: 12px;
+  height: 12px;
+  cursor: nesw-resize;
+}
+.ts-resize--nw {
+  left: -5px;
+  top: -5px;
+  width: 12px;
+  height: 12px;
+  cursor: nwse-resize;
+}
+.ts-resize--s {
+  left: 50%;
+  bottom: -5px;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 8px;
+  border-radius: 4px;
+  cursor: ns-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ts-resize--s:hover {
+  transform: translateX(-50%) scale(1.15);
+}
+.ts-resize--n {
+  left: 50%;
+  top: -5px;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 8px;
+  border-radius: 4px;
+  cursor: ns-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ts-resize--n:hover {
+  transform: translateX(-50%) scale(1.15);
+}
+.ts-resize--e {
+  top: 50%;
+  right: -5px;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 24px;
+  border-radius: 4px;
+  cursor: ew-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ts-resize--e:hover {
+  transform: translateY(-50%) scale(1.15);
+}
+.ts-resize--w {
+  top: 50%;
+  left: -5px;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 24px;
+  border-radius: 4px;
+  cursor: ew-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ts-resize--w:hover {
+  transform: translateY(-50%) scale(1.15);
+}
+.ts-resize-bar {
+  display: block;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 1px;
+  pointer-events: none;
+}
+.ts-resize--s .ts-resize-bar,
+.ts-resize--n .ts-resize-bar {
+  width: 10px;
+  height: 1.5px;
+}
+.ts-resize--e .ts-resize-bar,
+.ts-resize--w .ts-resize-bar {
+  width: 1.5px;
+  height: 10px;
 }
 .ts-banner {
   display: flex;
@@ -1316,7 +1494,14 @@ export const css = `
   outline-offset: 4px;
   box-shadow: 0 0 0 8px rgba(111, 125, 92, 0.18), 0 16px 32px -18px rgba(20, 30, 20, 0.6);
 }
-.ts-stage.is-interactive .ts-el.is-selected > .ts-resize { width: 18px; height: 18px; box-shadow: 0 0 0 3px rgba(111, 125, 92, 0.25), 0 2px 6px rgba(40, 30, 10, 0.45); }
+.ts-stage.is-interactive .ts-el.is-selected > .ts-resize--se,
+.ts-stage.is-interactive .ts-el.is-selected > .ts-resize--sw,
+.ts-stage.is-interactive .ts-el.is-selected > .ts-resize--ne,
+.ts-stage.is-interactive .ts-el.is-selected > .ts-resize--nw {
+  width: 12px;
+  height: 12px;
+  box-shadow: 0 0 0 2px rgba(111, 125, 92, 0.25), 0 2px 4px rgba(40, 30, 10, 0.35);
+}
 .ts-el-remove-btn {
   position: absolute;
   top: -11px;

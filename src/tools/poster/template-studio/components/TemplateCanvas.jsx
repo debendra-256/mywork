@@ -79,6 +79,101 @@ function TextBody({ el, editing, selected, style, boxStyle, onCommit, onPointerD
   )
 }
 
+function ResizeHandles({ onResize, showSides = true }) {
+  return (
+    <>
+      <span
+        className="ts-resize ts-resize--se"
+        title="Drag corner to resize"
+        onPointerDown={(e) => {
+          e.stopPropagation()
+          onResize?.(e, 'se')
+        }}
+      />
+      <span
+        className="ts-resize ts-resize--sw"
+        title="Drag corner to resize"
+        onPointerDown={(e) => {
+          e.stopPropagation()
+          onResize?.(e, 'sw')
+        }}
+      />
+      <span
+        className="ts-resize ts-resize--ne"
+        title="Drag corner to resize"
+        onPointerDown={(e) => {
+          e.stopPropagation()
+          onResize?.(e, 'ne')
+        }}
+      />
+      <span
+        className="ts-resize ts-resize--nw"
+        title="Drag corner to resize"
+        onPointerDown={(e) => {
+          e.stopPropagation()
+          onResize?.(e, 'nw')
+        }}
+      />
+      {showSides && (
+        <>
+          <span
+            className="ts-resize ts-resize--s"
+            title="Drag to increase or decrease length (height)"
+            onPointerDown={(e) => {
+              e.stopPropagation()
+              onResize?.(e, 's')
+            }}
+          >
+            <span className="ts-resize-bar" />
+          </span>
+          <span
+            className="ts-resize ts-resize--n"
+            title="Drag to adjust length from top"
+            onPointerDown={(e) => {
+              e.stopPropagation()
+              onResize?.(e, 'n')
+            }}
+          >
+            <span className="ts-resize-bar" />
+          </span>
+          <span
+            className="ts-resize ts-resize--e"
+            title="Drag to adjust width"
+            onPointerDown={(e) => {
+              e.stopPropagation()
+              onResize?.(e, 'e')
+            }}
+          >
+            <span className="ts-resize-bar" />
+          </span>
+          <span
+            className="ts-resize ts-resize--w"
+            title="Drag to adjust width from left"
+            onPointerDown={(e) => {
+              e.stopPropagation()
+              onResize?.(e, 'w')
+            }}
+          >
+            <span className="ts-resize-bar" />
+          </span>
+        </>
+      )}
+    </>
+  )
+}
+
+function defaultHeightOf(el) {
+  if (el.h != null && Number.isFinite(Number(el.h))) return Number(el.h)
+  if (el.type === 'namecard') return 24
+  if (el.type === 'contactcard') return 30
+  if (el.type === 'banner') return 13
+  if (el.type === 'footer') return 7.2
+  if (el.type === 'sticker') return el.aspect > 0 ? el.w / el.aspect : el.w
+  if (el.type === 'shape' || el.type === 'photo') return el.w
+  if (el.type === 'text') return (el.size ?? 4.6) * 2
+  return 10
+}
+
 function BannerBody({
   el, editing, selected, handles, removeBtn,
   plateStyle, textStyle, ornamentColor, innerColor,
@@ -156,16 +251,7 @@ function BannerBody({
       >
         {el.text}
       </span>
-      {handles && (
-        <span
-          className="ts-resize"
-          title="Drag to resize"
-          onPointerDown={(e) => {
-            e.stopPropagation()
-            onResize?.(e)
-          }}
-        />
-      )}
+      {handles && <ResizeHandles onResize={onResize} />}
       {removeBtn}
     </div>
   )
@@ -317,16 +403,7 @@ function NameCardBody({
           </div>
         )}
       </div>
-      {handles && (
-        <span
-          className="ts-resize"
-          title="Drag to resize"
-          onPointerDown={(e) => {
-            e.stopPropagation()
-            onResize?.(e)
-          }}
-        />
-      )}
+      {handles && <ResizeHandles onResize={onResize} />}
     </div>
   )
 }
@@ -1752,17 +1829,20 @@ export default function TemplateCanvas({
     window.addEventListener('pointercancel', up)
   }
 
-  const beginResize = (e, el) => {
+  const beginResize = (e, el, dir = 'se') => {
     if (!interactive) return
     e.preventDefault()
     e.stopPropagation()
     const rect = stageRef.current.getBoundingClientRect()
     const pageHeight = 100 / (aspectOf(docRef.current) || 1)
+    const currentH = defaultHeightOf(el)
     const start = {
       x: e.clientX,
       y: e.clientY,
+      elX: el.x,
+      elY: el.y,
       w: el.w,
-      h: el.type === 'sticker' ? el.w / (el.aspect > 0 ? el.aspect : 1) : (el.h ?? 7.2),
+      h: currentH,
       rect,
       moved: false,
     }
@@ -1774,19 +1854,55 @@ export default function TemplateCanvas({
         start.moved = true
         onGestureStart?.()
       }
-      if (el.type === 'sticker') {
-        const w = Math.min(100 - el.x, Math.max(6, start.w + dw))
-        const h = Math.min(pageHeight, Math.max(3, start.h + dh))
-        onPatchElement?.(
-          el.id,
-          { w: Math.round(w * 10) / 10, aspect: Math.round((w / h) * 1000) / 1000 },
-          { history: false }
-        )
-        return
+
+      let patch = {}
+      if (dir === 's') {
+        const h = Math.max(3, start.h + dh)
+        patch = { h: Math.round(h * 10) / 10 }
+      } else if (dir === 'n') {
+        const h = Math.max(3, start.h - dh)
+        const y = start.elY + (start.h - h) * (aspectOf(docRef.current) || 1)
+        patch = { y: Math.max(0, Math.round(y * 10) / 10), h: Math.round(h * 10) / 10 }
+      } else if (dir === 'e') {
+        const w = Math.min(100 - start.elX, Math.max(6, start.w + dw))
+        patch = { w: Math.round(w * 10) / 10 }
+      } else if (dir === 'w') {
+        const maxW = start.elX + start.w
+        const w = Math.min(maxW, Math.max(6, start.w - dw))
+        const x = maxW - w
+        patch = { x: Math.round(x * 10) / 10, w: Math.round(w * 10) / 10 }
+      } else if (dir === 'sw') {
+        const maxW = start.elX + start.w
+        const w = Math.min(maxW, Math.max(6, start.w - dw))
+        const x = maxW - w
+        const h = Math.max(3, start.h + dh)
+        patch = { x: Math.round(x * 10) / 10, w: Math.round(w * 10) / 10, h: Math.round(h * 10) / 10 }
+      } else if (dir === 'ne') {
+        const w = Math.min(100 - start.elX, Math.max(6, start.w + dw))
+        const h = Math.max(3, start.h - dh)
+        const y = start.elY + (start.h - h) * (aspectOf(docRef.current) || 1)
+        patch = { y: Math.max(0, Math.round(y * 10) / 10), w: Math.round(w * 10) / 10, h: Math.round(h * 10) / 10 }
+      } else if (dir === 'nw') {
+        const maxW = start.elX + start.w
+        const w = Math.min(maxW, Math.max(6, start.w - dw))
+        const x = maxW - w
+        const h = Math.max(3, start.h - dh)
+        const y = start.elY + (start.h - h) * (aspectOf(docRef.current) || 1)
+        patch = { x: Math.round(x * 10) / 10, y: Math.max(0, Math.round(y * 10) / 10), w: Math.round(w * 10) / 10, h: Math.round(h * 10) / 10 }
+      } else {
+        // 'se'
+        if (el.type === 'sticker') {
+          const w = Math.min(100 - start.elX, Math.max(6, start.w + dw))
+          const h = Math.min(pageHeight, Math.max(3, start.h + dh))
+          patch = { w: Math.round(w * 10) / 10, aspect: Math.round((w / h) * 1000) / 1000 }
+        } else {
+          const w = Math.min(100 - start.elX, Math.max(6, start.w + dw))
+          const h = Math.min(pageHeight, Math.max(3, start.h + dh))
+          patch = { w: Math.round(w * 10) / 10, h: Math.round(h * 10) / 10 }
+        }
       }
-      const w = Math.min(100 - el.x, Math.max(10, start.w + dw))
-      const h = Math.min(pageHeight, Math.max(3, start.h + dh))
-      onPatchElement?.(el.id, { w: Math.round(w * 10) / 10, h: Math.round(h * 10) / 10 }, { history: false })
+
+      onPatchElement?.(el.id, patch, { history: false })
     }
     const stop = () => {
       window.removeEventListener('pointermove', move)
@@ -1959,7 +2075,7 @@ export default function TemplateCanvas({
           ornamentColor={strokeColor || textColor}
           innerColor={strokeColor || textColor}
           onPointerDown={wrapperProps.onPointerDown}
-          onResize={(e) => beginResize(e, el)}
+          onResize={(e, dir) => beginResize(e, el, dir)}
           onCommit={onEndEdit}
           onStartEdit={onStartEdit}
         />
@@ -2029,7 +2145,7 @@ export default function TemplateCanvas({
           barStyle={barStyle}
           contactIconStyle={{ color: resolve(doc, el.contactColor) }}
           onPointerDown={wrapperProps.onPointerDown}
-          onResize={(e) => beginResize(e, el)}
+          onResize={(e, dir) => beginResize(e, el, dir)}
           onRequestLogo={() => onRequestPhoto?.({ kind: 'namecardLogo', cardId: el.id })}
           onCommitField={onCommitField}
           onEndEdit={onEndEdit}
@@ -2112,16 +2228,7 @@ export default function TemplateCanvas({
             <span className="ts-photo-tint" style={{ background: tint, opacity: el.tintStrength }} />
           )}
           {dropId === el.id && <span className="ts-photo-drop">Drop to replace</span>}
-          {handles && (
-            <span
-              className="ts-resize"
-              title="Drag to resize"
-              onPointerDown={(e) => {
-                e.stopPropagation()
-                beginResize(e, el)
-              }}
-            />
-          )}
+          {handles && <ResizeHandles onResize={(e, dir) => beginResize(e, el, dir)} />}
           {removeBtn}
         </div>
       )
@@ -2180,13 +2287,7 @@ export default function TemplateCanvas({
               <span className="ts-footer-text">{item.text}</span>
             </span>
           ))}
-          {handles && (
-            <span
-              className="ts-resize"
-              title="Drag to resize"
-              onPointerDown={(e) => beginResize(e, el)}
-            />
-          )}
+          {handles && <ResizeHandles onResize={(e, dir) => beginResize(e, el, dir)} />}
         </div>
       )
     }
@@ -2217,16 +2318,7 @@ export default function TemplateCanvas({
               strokeLinejoin="round"
             />
           </svg>
-          {handles && (
-            <span
-              className="ts-resize"
-              title="Drag to resize"
-              onPointerDown={(e) => {
-                e.stopPropagation()
-                beginResize(e, el)
-              }}
-            />
-          )}
+          {handles && <ResizeHandles onResize={(e, dir) => beginResize(e, el, dir)} />}
         </div>
       )
     }
@@ -2263,16 +2355,7 @@ export default function TemplateCanvas({
                 strokeLinejoin="round"
               />
             </svg>
-            {handles && (
-              <span
-                className="ts-resize"
-                title="Drag to resize"
-                onPointerDown={(e) => {
-                  e.stopPropagation()
-                  beginResize(e, el)
-                }}
-              />
-            )}
+            {handles && <ResizeHandles onResize={(e, dir) => beginResize(e, el, dir)} />}
             {removeBtn}
           </div>
         )
@@ -2308,16 +2391,7 @@ export default function TemplateCanvas({
       }
       return (
         <div key={el.id} {...wrapperProps} className={`ts-el ts-shape${isSelected ? ' is-selected' : ''}`} style={style}>
-          {handles && (
-            <span
-              className="ts-resize"
-              title="Drag to resize"
-              onPointerDown={(e) => {
-                e.stopPropagation()
-                beginResize(e, el)
-              }}
-            />
-          )}
+          {handles && <ResizeHandles onResize={(e, dir) => beginResize(e, el, dir)} />}
           {removeBtn}
         </div>
       )
@@ -2406,16 +2480,7 @@ export default function TemplateCanvas({
               </span>
             )
           })}
-          {handles && (
-            <span
-              className="ts-resize"
-              title="Drag to resize"
-              onPointerDown={(e) => {
-                e.stopPropagation()
-                beginResize(e, el)
-              }}
-            />
-          )}
+          {handles && <ResizeHandles onResize={(e, dir) => beginResize(e, el, dir)} />}
         </div>
       )
     }

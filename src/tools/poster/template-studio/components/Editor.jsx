@@ -868,6 +868,121 @@ export default function Editor({
 
   const selected = doc.elements.find((el) => el.id === selectedId) || null
   const ratio = aspectOf(doc)
+  const [canvasResizeState, setCanvasResizeState] = useState(null)
+
+  const beginCanvasLengthResize = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const stageShell = e.currentTarget.closest('.ts-stage-shell')
+    if (!stageShell) return
+    const rect = stageShell.getBoundingClientRect()
+    const startY = e.clientY
+    const startHeight = rect.height
+    const startWidth = rect.width
+    let moved = false
+    let currentRatio = ratio
+
+    const onPointerMove = (ev) => {
+      const dy = ev.clientY - startY
+      if (!moved) {
+        if (Math.abs(dy) < 3) return
+        moved = true
+        beginGesture()
+      }
+      const newHeight = Math.max(100, startHeight + dy)
+      // ratio = width / height
+      const newRatio = Math.max(0.2, Math.min(4.0, startWidth / newHeight))
+      const roundedRatio = Math.round(newRatio * 1000) / 1000
+      currentRatio = roundedRatio
+      setCanvasResizeState({
+        w: Math.round(startWidth),
+        h: Math.round(newHeight),
+        ratio: roundedRatio,
+      })
+      mutate((d) => ({
+        ...d,
+        aspect: roundedRatio,
+        bg: d.bg?.type === 'image' && d.bg.src ? { ...d.bg, fit: 'cover' } : d.bg,
+      }), { history: false })
+    }
+
+    const onPointerUp = () => {
+      window.removeEventListener('pointermove', onPointerMove)
+      window.removeEventListener('pointerup', onPointerUp)
+      window.removeEventListener('pointercancel', onPointerUp)
+      setCanvasResizeState(null)
+      if (moved) {
+        endGesture()
+        patchDoc({
+          aspect: currentRatio,
+          bg: docRef.current.bg?.type === 'image' && docRef.current.bg.src ? { ...docRef.current.bg, fit: 'cover' } : docRef.current.bg,
+        }, { history: true })
+        onToast?.(`Poster length updated (${currentRatio}:1)`)
+      }
+    }
+
+    window.addEventListener('pointermove', onPointerMove)
+    window.addEventListener('pointerup', onPointerUp)
+    window.addEventListener('pointercancel', onPointerUp)
+  }
+
+  const beginCanvasCornerResize = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const stageShell = e.currentTarget.closest('.ts-stage-shell')
+    if (!stageShell) return
+    const rect = stageShell.getBoundingClientRect()
+    const startX = e.clientX
+    const startY = e.clientY
+    const startWidth = rect.width
+    const startHeight = rect.height
+    let moved = false
+    let currentRatio = ratio
+
+    const onPointerMove = (ev) => {
+      const dx = ev.clientX - startX
+      const dy = ev.clientY - startY
+      if (!moved) {
+        if (Math.abs(dx) + Math.abs(dy) < 3) return
+        moved = true
+        beginGesture()
+      }
+      const newWidth = Math.max(100, startWidth + dx)
+      const newHeight = Math.max(100, startHeight + dy)
+      const newRatio = Math.max(0.2, Math.min(4.0, newWidth / newHeight))
+      const roundedRatio = Math.round(newRatio * 1000) / 1000
+      currentRatio = roundedRatio
+      setCanvasResizeState({
+        w: Math.round(newWidth),
+        h: Math.round(newHeight),
+        ratio: roundedRatio,
+      })
+      mutate((d) => ({
+        ...d,
+        aspect: roundedRatio,
+        bg: d.bg?.type === 'image' && d.bg.src ? { ...d.bg, fit: 'cover' } : d.bg,
+      }), { history: false })
+    }
+
+    const onPointerUp = () => {
+      window.removeEventListener('pointermove', onPointerMove)
+      window.removeEventListener('pointerup', onPointerUp)
+      window.removeEventListener('pointercancel', onPointerUp)
+      setCanvasResizeState(null)
+      if (moved) {
+        endGesture()
+        patchDoc({
+          aspect: currentRatio,
+          bg: docRef.current.bg?.type === 'image' && docRef.current.bg.src ? { ...docRef.current.bg, fit: 'cover' } : docRef.current.bg,
+        }, { history: true })
+        onToast?.(`Poster size updated (${currentRatio}:1)`)
+      }
+    }
+
+    window.addEventListener('pointermove', onPointerMove)
+    window.addEventListener('pointerup', onPointerUp)
+    window.addEventListener('pointercancel', onPointerUp)
+  }
 
   const replacePhoto = () => {
     if (selected?.type === 'photo' || selected?.type === 'sticker') {
@@ -1077,6 +1192,25 @@ export default function Editor({
                   onZoomAt={zoomAt}
                   onNotice={onToast}
                   onDirectPoints={updateDirectPoints}
+                />
+                <div
+                  className={`ts-stage-resize-bar${canvasResizeState ? ' is-dragging' : ''}`}
+                  title="Drag up or down to adjust poster length (height)"
+                  onPointerDown={beginCanvasLengthResize}
+                >
+                  <div className="ts-stage-resize-pill">
+                    <span className="ts-stage-resize-grip" />
+                    <span>
+                      {canvasResizeState
+                        ? `Poster Length: ${canvasResizeState.h}px (${canvasResizeState.ratio}:1)`
+                        : 'Drag to adjust poster length ↕'}
+                    </span>
+                  </div>
+                </div>
+                <div
+                  className="ts-stage-resize-corner"
+                  title="Drag corner to adjust poster dimensions"
+                  onPointerDown={beginCanvasCornerResize}
                 />
               </div>
             </div>

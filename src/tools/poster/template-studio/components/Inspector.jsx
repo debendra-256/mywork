@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { FONTS, PALETTES, ASPECTS, resolveColor } from '../data/presets.js'
 import { ORNAMENTS, ornamentMarkup } from '../data/ornaments.js'
 import { SOCIALS, socialMarkup } from '../data/socials.js'
@@ -1586,6 +1586,11 @@ export default function Inspector({
               {Object.entries(ASPECTS).map(([id, aspect]) => (
                 <option key={id} value={id}>{aspect.label}</option>
               ))}
+              {!ASPECTS[doc.aspect] && String(doc.aspect) !== String(bgRatio) && (
+                <option value={String(doc.aspect)}>
+                  Custom ({Math.round((aspectOf(doc) || 1) * 100) / 100}:1)
+                </option>
+              )}
             </select>
           </div>
         </Section>
