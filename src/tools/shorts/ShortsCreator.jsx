@@ -593,7 +593,10 @@ export default function ShortsCreator({ className = '', style }) {
   };
   const cancelJob = (id) => {
     canceled.current.add(id);
-    jobHandles.current.get(id)?.();
+    try { jobHandles.current.get(id)?.(); } catch { /* ignore */ }
+    jobHandles.current.delete(id);
+    patchJob(id, { status: 'canceled' });
+    setCapturing(false);
   };
   const downloadText = (text, name, type) => {
     const href = URL.createObjectURL(new Blob([text], { type }));
@@ -1041,8 +1044,9 @@ export default function ShortsCreator({ className = '', style }) {
       try { audioCtx?.close?.(); } catch { /* ignore */ }
     };
 
-    // Pre-create first job immediately so the progress bar shows right away at 2%
+    // Pre-create first job immediately so the progress bar shows right away
     const first = list[0];
+    let activeRec = null;
     const firstJobId = makeJob({
       kind: 'webm',
       label: list.length > 1 ? `Short 1 of ${list.length} · ${sz.w}×${sz.h}` : `Creating Reel · ${sz.w}×${sz.h}`,
@@ -1050,7 +1054,16 @@ export default function ShortsCreator({ className = '', style }) {
       w: sz.w,
       h: sz.h,
       dur: first.len,
-      progress: 0.02,
+      progress: 0.04,
+      statusText: 'Connecting to video stream…',
+    });
+
+    jobHandles.current.set(firstJobId, () => {
+      abort = true;
+      clearInterval(timer);
+      try { if (activeRec && activeRec.state !== 'inactive') activeRec.stop(); } catch { /* ignore */ }
+      cleanup();
+      patchJob(firstJobId, { status: 'canceled' });
     });
 
     try {
@@ -1098,8 +1111,10 @@ export default function ShortsCreator({ className = '', style }) {
         }
       }
 
+      patchJob(firstJobId, { progress: 0.08, statusText: 'Buffering stream & audio…' });
+
       await new Promise((resolve, reject) => {
-        const guard = setTimeout(() => reject(new Error('Stream timeout')), 15000);
+        const guard = setTimeout(() => reject(new Error('Stream buffer timeout')), 5000);
         const onReady = () => {
           clearTimeout(guard);
           offVideo.removeEventListener('error', onErr);
@@ -1123,7 +1138,7 @@ export default function ShortsCreator({ className = '', style }) {
 
       if (!offVideo.videoWidth) throw new Error('Stream unavailable');
 
-      await waitReady(offAudio, 3000).catch(() => undefined);
+      await waitReady(offAudio, 2500).catch(() => undefined);
 
       const c = document.createElement('canvas');
       c.width = sz.w;
@@ -1144,7 +1159,8 @@ export default function ShortsCreator({ className = '', style }) {
               w: sz.w,
               h: sz.h,
               dur: len,
-              progress: 0.02,
+              progress: 0.10,
+              statusText: 'Seeking frame…',
             });
 
         pause();
@@ -1152,14 +1168,15 @@ export default function ShortsCreator({ className = '', style }) {
         setElapsed(0);
         seek(start);
 
+        patchJob(id, { progress: 0.12, statusText: 'Synchronizing timestamp…' });
         offVideo.currentTime = start;
         if (offAudio) {
           try { offAudio.currentTime = start; } catch { /* ignore */ }
         }
-        await waitReady(offVideo, 5000);
-        await waitSeek(offVideo, 2500);
+        await waitReady(offVideo, 3000);
+        await waitSeek(offVideo, 1800);
         if (offAudio) {
-          await waitSeek(offAudio, 1200).catch(() => undefined);
+          await waitSeek(offAudio, 1000).catch(() => undefined);
         }
 
         const stream = c.captureStream(30);
@@ -1171,6 +1188,7 @@ export default function ShortsCreator({ className = '', style }) {
           mimeType: mime,
           videoBitsPerSecond: Math.min(50e6, Math.max(6e6, Math.round(sz.w * sz.h * 30 * 0.12))),
         });
+        activeRec = rec;
 
         jobHandles.current.set(id, () => {
           abort = true;
@@ -1198,7 +1216,7 @@ export default function ShortsCreator({ className = '', style }) {
         if (audioCtx?.state === 'suspended') {
           await audioCtx.resume().catch(() => undefined);
         }
-        await offVideo.play();
+        await Promise.race([offVideo.play(), delay(3000)]);
         if (offAudio) {
           void offAudio.play().catch(() => undefined);
         }
@@ -1211,7 +1229,11 @@ export default function ShortsCreator({ className = '', style }) {
             const elapsedSec = clamp((Date.now() - t0) / 1000, 0, len);
             paintShort(x, sz.w, sz.h, { ...S.current, el: offVideo, t: elapsedSec, len });
             setElapsed(elapsedSec);
-            patchJob(id, { progress: Math.min(0.99, (Date.now() - t0) / (len * 1000)) });
+            const pct = 0.15 + (elapsedSec / len) * 0.82;
+            patchJob(id, {
+              progress: Math.min(0.97, pct),
+              statusText: `Recording short… ${Math.round(elapsedSec)}s / ${Math.round(len)}s`,
+            });
             if (rec.state === 'inactive') {
               clearInterval(timer);
               res();
@@ -1236,11 +1258,9 @@ export default function ShortsCreator({ className = '', style }) {
       }
     } catch (reason) {
       cleanup();
-      patchJob(firstJobId, {
-        status: 'error',
-        error: reason instanceof Error ? reason.message : 'Could not stream this YouTube video.',
-      });
-      setError('YouTube restricts automated downloads on cloud websites. Use 1-Click Download below to save the MP4, then upload it here for instant HD shorts generation!');
+      jobHandles.current.delete(firstJobId);
+      setJobs((prev) => prev.filter((j) => j.id !== firstJobId));
+      throw reason;
     }
   };
 
@@ -1350,7 +1370,8 @@ export default function ShortsCreator({ className = '', style }) {
           w: sz.w,
           h: sz.h,
           dur: len,
-          progress: 0.02,
+          progress: 0.05,
+          statusText: 'Preparing stage capture…',
         });
 
         pause();
@@ -1409,7 +1430,11 @@ export default function ShortsCreator({ className = '', style }) {
           const poll = setInterval(() => {
             const elapsedSec = clamp((Date.now() - t0) / 1000, 0, len);
             setElapsed(elapsedSec);
-            patchJob(id, { progress: Math.min(0.99, (Date.now() - t0) / (len * 1000)) });
+            const pct = 0.05 + (elapsedSec / len) * 0.92;
+            patchJob(id, {
+              progress: Math.min(0.98, pct),
+              statusText: `Recording short… ${Math.round(elapsedSec)}s / ${Math.round(len)}s`,
+            });
             if (rec.state === 'inactive') {
               clearInterval(poll);
               res();
@@ -2713,7 +2738,7 @@ export default function ShortsCreator({ className = '', style }) {
             <div className="sc-progress-spinner" aria-hidden="true" />
             <h3>Creating Short in HD ({sz.w}×{sz.h})</h3>
             <p className="sc-progress-status">
-              {activeJob.label} · {Math.round((activeJob.progress || 0) * 100)}%
+              {activeJob.statusText || activeJob.label} · {Math.round((activeJob.progress || 0) * 100)}%
             </p>
             <div className="sc-progress-bar-wrap" aria-hidden="true">
               <div
