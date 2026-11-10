@@ -80,79 +80,64 @@ function TextBody({ el, editing, selected, style, boxStyle, onCommit, onPointerD
 }
 
 function ResizeHandles({ onResize, showSides = true }) {
+  const handlePointerDown = (e, dir) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.nativeEvent?.stopImmediatePropagation) {
+      e.nativeEvent.stopImmediatePropagation()
+    }
+    onResize?.(e, dir)
+  }
+
   return (
     <>
       <span
         className="ts-resize ts-resize--se"
-        title="Drag corner to resize"
-        onPointerDown={(e) => {
-          e.stopPropagation()
-          onResize?.(e, 'se')
-        }}
+        title="Drag corner to resize width and height"
+        onPointerDown={(e) => handlePointerDown(e, 'se')}
       />
       <span
         className="ts-resize ts-resize--sw"
-        title="Drag corner to resize"
-        onPointerDown={(e) => {
-          e.stopPropagation()
-          onResize?.(e, 'sw')
-        }}
+        title="Drag corner to resize width and height"
+        onPointerDown={(e) => handlePointerDown(e, 'sw')}
       />
       <span
         className="ts-resize ts-resize--ne"
-        title="Drag corner to resize"
-        onPointerDown={(e) => {
-          e.stopPropagation()
-          onResize?.(e, 'ne')
-        }}
+        title="Drag corner to resize width and height"
+        onPointerDown={(e) => handlePointerDown(e, 'ne')}
       />
       <span
         className="ts-resize ts-resize--nw"
-        title="Drag corner to resize"
-        onPointerDown={(e) => {
-          e.stopPropagation()
-          onResize?.(e, 'nw')
-        }}
+        title="Drag corner to resize width and height"
+        onPointerDown={(e) => handlePointerDown(e, 'nw')}
       />
       {showSides && (
         <>
           <span
             className="ts-resize ts-resize--s"
             title="Drag to increase or decrease length (height)"
-            onPointerDown={(e) => {
-              e.stopPropagation()
-              onResize?.(e, 's')
-            }}
+            onPointerDown={(e) => handlePointerDown(e, 's')}
           >
             <span className="ts-resize-bar" />
           </span>
           <span
             className="ts-resize ts-resize--n"
             title="Drag to adjust length from top"
-            onPointerDown={(e) => {
-              e.stopPropagation()
-              onResize?.(e, 'n')
-            }}
+            onPointerDown={(e) => handlePointerDown(e, 'n')}
           >
             <span className="ts-resize-bar" />
           </span>
           <span
             className="ts-resize ts-resize--e"
             title="Drag to adjust width"
-            onPointerDown={(e) => {
-              e.stopPropagation()
-              onResize?.(e, 'e')
-            }}
+            onPointerDown={(e) => handlePointerDown(e, 'e')}
           >
             <span className="ts-resize-bar" />
           </span>
           <span
             className="ts-resize ts-resize--w"
             title="Drag to adjust width from left"
-            onPointerDown={(e) => {
-              e.stopPropagation()
-              onResize?.(e, 'w')
-            }}
+            onPointerDown={(e) => handlePointerDown(e, 'w')}
           >
             <span className="ts-resize-bar" />
           </span>
@@ -202,7 +187,13 @@ function BannerBody({
       data-el-type="banner"
       className={`ts-el ts-banner${selected ? ' is-selected' : ''}${editing ? ' is-editing' : ''}${el.ornaments ? ' has-ornaments' : ''}`}
       style={plateStyle}
-      onPointerDown={onPointerDown}
+      onPointerDown={(e) => {
+        if (e.target.closest?.('.ts-resize') || e.target.closest?.('.ts-el-remove-btn')) {
+          e.stopPropagation()
+          return
+        }
+        onPointerDown?.(e)
+      }}
       onDoubleClick={(e) => {
         e.stopPropagation()
         if (!editing) onStartEdit?.(el.id)
@@ -330,7 +321,13 @@ function NameCardBody({
       data-el-type="namecard"
       className={`ts-el ts-namecard align-${el.align || 'left'}${selected ? ' is-selected' : ''}${editing ? ' is-editing' : ''}`}
       style={wrapperStyle}
-      onPointerDown={onPointerDown}
+      onPointerDown={(e) => {
+        if (e.target.closest?.('.ts-resize') || e.target.closest?.('.ts-el-remove-btn')) {
+          e.stopPropagation()
+          return
+        }
+        onPointerDown?.(e)
+      }}
       onDoubleClick={(e) => {
         e.stopPropagation()
         if (!editing) onStartEdit?.(el.id)
@@ -583,7 +580,7 @@ export default function TemplateCanvas({
   // Paint keeps a marching-ants frame over the selection once the mouse is
   // released, and the frame itself can be grabbed to move the group.
   useEffect(() => {
-    if (!interactive || !selectedIds.length || editingId) {
+    if (!interactive || selectedIds.length <= 1 || editingId) {
       setFrameBox(null)
       return
     }
@@ -1833,6 +1830,9 @@ export default function TemplateCanvas({
     if (!interactive) return
     e.preventDefault()
     e.stopPropagation()
+    if (e.nativeEvent?.stopImmediatePropagation) {
+      e.nativeEvent.stopImmediatePropagation()
+    }
     const rect = stageRef.current.getBoundingClientRect()
     const pageHeight = 100 / (aspectOf(docRef.current) || 1)
     const currentH = defaultHeightOf(el)
@@ -1859,29 +1859,47 @@ export default function TemplateCanvas({
       if (dir === 's') {
         const h = Math.max(3, start.h + dh)
         patch = { h: Math.round(h * 10) / 10 }
+        if (el.type === 'sticker') {
+          patch.aspect = Math.round((start.w / h) * 1000) / 1000
+        }
       } else if (dir === 'n') {
         const h = Math.max(3, start.h - dh)
         const y = start.elY + (start.h - h) * (aspectOf(docRef.current) || 1)
         patch = { y: Math.max(0, Math.round(y * 10) / 10), h: Math.round(h * 10) / 10 }
+        if (el.type === 'sticker') {
+          patch.aspect = Math.round((start.w / h) * 1000) / 1000
+        }
       } else if (dir === 'e') {
         const w = Math.min(100 - start.elX, Math.max(6, start.w + dw))
         patch = { w: Math.round(w * 10) / 10 }
+        if (el.type === 'sticker') {
+          patch.aspect = Math.round((w / start.h) * 1000) / 1000
+        }
       } else if (dir === 'w') {
         const maxW = start.elX + start.w
         const w = Math.min(maxW, Math.max(6, start.w - dw))
         const x = maxW - w
         patch = { x: Math.round(x * 10) / 10, w: Math.round(w * 10) / 10 }
+        if (el.type === 'sticker') {
+          patch.aspect = Math.round((w / start.h) * 1000) / 1000
+        }
       } else if (dir === 'sw') {
         const maxW = start.elX + start.w
         const w = Math.min(maxW, Math.max(6, start.w - dw))
         const x = maxW - w
         const h = Math.max(3, start.h + dh)
         patch = { x: Math.round(x * 10) / 10, w: Math.round(w * 10) / 10, h: Math.round(h * 10) / 10 }
+        if (el.type === 'sticker') {
+          patch.aspect = Math.round((w / h) * 1000) / 1000
+        }
       } else if (dir === 'ne') {
         const w = Math.min(100 - start.elX, Math.max(6, start.w + dw))
         const h = Math.max(3, start.h - dh)
         const y = start.elY + (start.h - h) * (aspectOf(docRef.current) || 1)
         patch = { y: Math.max(0, Math.round(y * 10) / 10), w: Math.round(w * 10) / 10, h: Math.round(h * 10) / 10 }
+        if (el.type === 'sticker') {
+          patch.aspect = Math.round((w / h) * 1000) / 1000
+        }
       } else if (dir === 'nw') {
         const maxW = start.elX + start.w
         const w = Math.min(maxW, Math.max(6, start.w - dw))
@@ -1889,16 +1907,16 @@ export default function TemplateCanvas({
         const h = Math.max(3, start.h - dh)
         const y = start.elY + (start.h - h) * (aspectOf(docRef.current) || 1)
         patch = { x: Math.round(x * 10) / 10, y: Math.max(0, Math.round(y * 10) / 10), w: Math.round(w * 10) / 10, h: Math.round(h * 10) / 10 }
+        if (el.type === 'sticker') {
+          patch.aspect = Math.round((w / h) * 1000) / 1000
+        }
       } else {
         // 'se'
+        const w = Math.min(100 - start.elX, Math.max(6, start.w + dw))
+        const h = Math.min(pageHeight, Math.max(3, start.h + dh))
+        patch = { w: Math.round(w * 10) / 10, h: Math.round(h * 10) / 10 }
         if (el.type === 'sticker') {
-          const w = Math.min(100 - start.elX, Math.max(6, start.w + dw))
-          const h = Math.min(pageHeight, Math.max(3, start.h + dh))
-          patch = { w: Math.round(w * 10) / 10, aspect: Math.round((w / h) * 1000) / 1000 }
-        } else {
-          const w = Math.min(100 - start.elX, Math.max(6, start.w + dw))
-          const h = Math.min(pageHeight, Math.max(3, start.h + dh))
-          patch = { w: Math.round(w * 10) / 10, h: Math.round(h * 10) / 10 }
+          patch.aspect = Math.round((w / h) * 1000) / 1000
         }
       }
 
@@ -1955,6 +1973,10 @@ export default function TemplateCanvas({
       className: cls,
       onPointerDown: (e) => {
         if (!interactive) return
+        if (e.target.closest?.('.ts-resize') || e.target.closest?.('.ts-el-remove-btn')) {
+          e.stopPropagation()
+          return
+        }
         if (editingId) {
           if (editingId === el.id) return
           const node = stageRef.current?.querySelector(`[data-el="${editingId}"]`)
@@ -2288,6 +2310,7 @@ export default function TemplateCanvas({
             </span>
           ))}
           {handles && <ResizeHandles onResize={(e, dir) => beginResize(e, el, dir)} />}
+          {removeBtn}
         </div>
       )
     }
@@ -2319,6 +2342,7 @@ export default function TemplateCanvas({
             />
           </svg>
           {handles && <ResizeHandles onResize={(e, dir) => beginResize(e, el, dir)} />}
+          {removeBtn}
         </div>
       )
     }
@@ -2398,6 +2422,7 @@ export default function TemplateCanvas({
     }
 
     if (el.type === 'sticker') {
+      const h = el.h ?? (el.aspect > 0 ? el.w / el.aspect : el.w)
       return (
         <div
           key={el.id}
@@ -2407,6 +2432,7 @@ export default function TemplateCanvas({
             left: `${el.x}%`,
             top: `${el.y}%`,
             width: `${el.w}%`,
+            height: `${h}cqw`,
             opacity: el.opacity ?? 1,
             transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
           }}
@@ -2416,7 +2442,8 @@ export default function TemplateCanvas({
             alt=""
             draggable={false}
             style={{
-              aspectRatio: String(el.aspect > 0 ? el.aspect : 1),
+              width: '100%',
+              height: '100%',
               objectFit: 'fill',
               mixBlendMode: el.blend && el.blend !== 'normal' ? el.blend : undefined,
               transform: el.flipX || el.flipY ? `scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})` : undefined,
@@ -2481,6 +2508,7 @@ export default function TemplateCanvas({
             )
           })}
           {handles && <ResizeHandles onResize={(e, dir) => beginResize(e, el, dir)} />}
+          {removeBtn}
         </div>
       )
     }
@@ -3001,6 +3029,7 @@ export default function TemplateCanvas({
           }}
           title="Drag inside to move selection"
           onPointerDown={(e) => {
+            if (e.target.closest?.('.ts-resize') || e.target.closest?.('.ts-el-remove-btn')) return
             e.stopPropagation()
             beginGroupDrag(e)
           }}

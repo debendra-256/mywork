@@ -831,7 +831,7 @@ export const css = `
 /* Paint's post-release selection: marching ants stay on the page. */
 .ts-select-frame {
   position: absolute;
-  z-index: 46;
+  z-index: 25;
   cursor: move;
   pointer-events: auto;
   box-sizing: border-box;
@@ -953,6 +953,7 @@ export const css = `
   cursor: ns-resize;
   z-index: 40;
   touch-action: none;
+  pointer-events: none;
 }
 .ts-stage-resize-pill {
   display: inline-flex;
@@ -1149,8 +1150,9 @@ export const css = `
   border: 1.5px solid #fff;
   border-radius: 3px;
   box-shadow: 0 1px 4px rgba(40, 30, 10, 0.35);
-  z-index: 10;
+  z-index: 60;
   touch-action: none;
+  pointer-events: auto;
   transition: transform 0.1s ease, background 0.1s ease;
 }
 .ts-resize:hover {
