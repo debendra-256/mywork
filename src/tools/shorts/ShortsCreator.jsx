@@ -1207,7 +1207,7 @@ export default function ShortsCreator({ className = '', style }) {
         status: 'error',
         error: reason instanceof Error ? reason.message : 'Could not stream this YouTube video.',
       });
-      setError('Could not stream this YouTube video directly. Try another link or upload the video file.');
+      setError('YouTube restricts automated downloads on cloud websites. Use 1-Click Download below to save the MP4, then upload it here for instant HD shorts generation!');
     }
   };
 
@@ -2317,20 +2317,63 @@ export default function ShortsCreator({ className = '', style }) {
               </div>
 
               {error && (
-                <div className="sc-err" role="alert" style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '10px 14px' }}>
-                  <span>{error}</span>
-                  {srcMode === 'youtube' && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <div className="sc-err" role="alert" style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '12px 14px', borderRadius: 10, border: '1px solid rgba(239, 68, 68, 0.3)', background: 'rgba(254, 242, 242, 0.95)' }}>
+                  <div style={{ fontWeight: 600, color: '#991b1b', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <span>{error}</span>
+                  </div>
+                  {srcMode === 'youtube' && videoId && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
+                      <a
+                        href={`https://cobalt.tools/`}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="sc-btn"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          padding: '6px 12px',
+                          fontSize: 12,
+                          background: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
+                          color: '#fff',
+                          fontWeight: 600,
+                          borderRadius: 6,
+                          textDecoration: 'none',
+                        }}
+                      >
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="7 10 12 15 17 10" />
+                          <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        1-Click Download MP4
+                      </a>
                       <button
                         type="button"
                         className="sc-btn"
-                        style={{ padding: '4px 12px', fontSize: 12, background: 'rgba(255,255,255,0.9)', border: '1px solid #f87171', color: '#b91c1c', fontWeight: 600, borderRadius: 6 }}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          padding: '6px 12px',
+                          fontSize: 12,
+                          background: '#fff',
+                          border: '1px solid #d1d5db',
+                          color: '#374151',
+                          fontWeight: 600,
+                          borderRadius: 6,
+                        }}
                         onClick={() => {
                           setSrcMode('file');
                           setError('');
                         }}
                       >
-                        📁 Switch to Upload Video File
+                        📁 Switch to Upload Video
                       </button>
                     </div>
                   )}
