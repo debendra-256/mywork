@@ -2316,7 +2316,26 @@ export default function ShortsCreator({ className = '', style }) {
                 )}
               </div>
 
-              {error && <p className="sc-err" role="alert">{error}</p>}
+              {error && (
+                <div className="sc-err" role="alert" style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '10px 14px' }}>
+                  <span>{error}</span>
+                  {srcMode === 'youtube' && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        className="sc-btn"
+                        style={{ padding: '4px 12px', fontSize: 12, background: 'rgba(255,255,255,0.9)', border: '1px solid #f87171', color: '#b91c1c', fontWeight: 600, borderRadius: 6 }}
+                        onClick={() => {
+                          setSrcMode('file');
+                          setError('');
+                        }}
+                      >
+                        📁 Switch to Upload Video File
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
               {notice && <p className="sc-ok" role="status">{notice}</p>}
 
               {jobs.length > 0 && (
