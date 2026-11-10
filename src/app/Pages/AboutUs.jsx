@@ -1,271 +1,157 @@
-
-import React from "react";
+import React from 'react'
+import { Link } from 'react-router-dom'
 import {
-  Zap,
-  ShieldCheck,
-  Smile,
-  Layers,
   Image,
+  QrCode,
   FileText,
   Video,
   Wrench,
-  ArrowRight,
-  Sparkles,
   Target,
-  Heart,
-} from "lucide-react";
+  Code2,
+  CheckCircle2,
+  Mail,
+  ArrowRight,
+} from 'lucide-react'
+import './AboutUs.css'
 
+const categories = [
+  {
+    icon: <Image size={22} />,
+    title: 'Image Tools',
+    description: 'Resize, compress, convert, and edit images.',
+  },
+  {
+    icon: <QrCode size={22} />,
+    title: 'QR Code Tools',
+    description: 'Generate QR codes for links, text, and other purposes.',
+  },
+  {
+    icon: <FileText size={22} />,
+    title: 'PDF Tools',
+    description: 'Simplify common PDF-related tasks.',
+  },
+  {
+    icon: <Video size={22} />,
+    title: 'Screen Recording',
+    description: 'Record screen activities for tutorials, presentations, and demonstrations.',
+  },
+  {
+    icon: <Wrench size={22} />,
+    title: 'Other Online Utilities',
+    description: 'Explore useful tools that make everyday digital work simpler.',
+  },
+]
 
-import "./AboutUs.css";
-
-const features = [
-  {
-    icon: <Zap />,
-    title: "Fast & Efficient",
-    description: "Complete your everyday tasks quickly with simple workflows.",
-  },
-  {
-    icon: <Smile />,
-    title: "Easy to Use",
-    description: "A clean and intuitive experience designed for everyone.",
-  },
-  {
-    icon: <ShieldCheck />,
-    title: "Privacy Focused",
-    description: "Your privacy matters. We aim to handle your files responsibly.",
-  },
-  {
-    icon: <Layers />,
-    title: "All-in-One Platform",
-    description: "Access multiple useful tools from one convenient destination.",
-  },
-];
-
-const tools = [
-  {
-    icon: <Image />,
-    title: "Image Tools",
-    description: "Compress, resize, crop, convert and optimize images.",
-    color: "#7957ff",
-  },
-  {
-    icon: <FileText />,
-    title: "PDF Tools",
-    description: "Edit, convert, merge and organize PDF documents.",
-    color: "#ff5959",
-  },
-  {
-    icon: <Video />,
-    title: "Video Tools",
-    description: "Explore useful utilities for everyday video tasks.",
-    color: "#16a6a1",
-  },
-  {
-    icon: <Wrench />,
-    title: "Smart Utilities",
-    description: "Discover calculators, converters and productivity tools.",
-    color: "#ed9c31",
-  },
-];
+const commitments = [
+  'Providing useful and accessible online tools.',
+  'Continuously improving website functionality and user experience.',
+  'Making our tools easy to understand and operate.',
+  'Maintaining transparency about our services and offerings.',
+  'Respecting user privacy and working towards a safe browsing experience.',
+]
 
 export default function AboutUs() {
   return (
-    <main className="about-page">
-
-      {/* HERO SECTION */}
-      <section className="about-hero">
-        <div className="hero-content">
-          <span className="hero-tag">
-            <Sparkles size={15} /> Welcome to ImgMojo
-          </span>
-
-          <h1>
-            Your Creativity.
-            <br />
-            Our Tools.
-            <br />
-            <span>Infinite Possibilities.</span>
-          </h1>
-
+    <main className="simple-page">
+      <div className="simple-container">
+        {/* PAGE HEADER */}
+        <header className="simple-header">
+          <h1>About Us</h1>
+          <p className="simple-lead">
+            Welcome to <strong>ImgMojo.com</strong>, a software platform focused on building simple, useful, and accessible online tools for everyone.
+          </p>
           <p>
-            Make images better. Make work easier.
-            Make every digital moment creative.
-            ImgMojo brings powerful online tools together
-            in one simple destination.
+            At ImgMojo, our goal is to make everyday digital tasks easier by providing free, easy-to-use online tools that help individuals, students, professionals, creators, and businesses save time and work more efficiently.
+          </p>
+        </header>
+
+        {/* WHAT WE DO */}
+        <section className="simple-section">
+          <h2>What We Do</h2>
+          <p>
+            We develop and provide a growing collection of online tools designed to solve everyday digital needs. Our tools cover different categories, including:
           </p>
 
-          <a href="/" className="about-btn">
-            Explore Our Tools <ArrowRight size={18} />
-          </a>
-
-          <div className="hero-note">
-            Simple tools. Smart solutions. Creative possibilities.
-          </div>
-        </div>
-
-        <div className="hero-visual">
-          <div className="hero-glow"></div>
-          <img
-            src="/images/imgmojo-monkey.png"
-            alt="ImgMojo Monkey Mascot"
-            className="hero-monkey"
-          />
-
-          <div className="floating-card card-one">
-            <Image size={20} />
-            <span>Image Tools</span>
-          </div>
-
-          <div className="floating-card card-two">
-            <Zap size={20} />
-            <span>Super Fast</span>
-          </div>
-        </div>
-      </section>
-
-      {/* INTRODUCTION */}
-      <section className="about-intro section-container">
-        <span className="section-label">WHO WE ARE</span>
-
-        <h2>
-          We make digital creativity
-          <span> effortless.</span>
-        </h2>
-
-        <p>
-          ImgMojo is an all-in-one online platform designed
-          to make everyday digital tasks simple, fast and
-          accessible. Whether you want to compress an image,
-          resize a photo, convert file formats, edit PDFs or
-          explore useful online utilities, ImgMojo brings
-          everything together in one convenient place.
-        </p>
-
-        <p>
-          No complicated software. No unnecessary steps.
-          Just simple tools that get the job done.
-        </p>
-      </section>
-
-      {/* FEATURES */}
-      <section className="features-section">
-        <div className="section-container">
-          <div className="section-heading">
-            <span className="section-label">THE IMGMOJO DIFFERENCE</span>
-            <h2>Why choose ImgMojo?</h2>
-            <p>Everything you need for a smoother digital experience.</p>
-          </div>
-
-          <div className="features-grid">
-            {features.map((feature, index) => (
-              <div className="feature-card" key={index}>
-                <div className="feature-icon">{feature.icon}</div>
-                <h3>{feature.title}</h3>
-                <p>{feature.description}</p>
+          <div className="simple-grid">
+            {categories.map((cat, idx) => (
+              <div className="simple-card" key={idx}>
+                <div className="simple-card-icon">{cat.icon}</div>
+                <div className="simple-card-body">
+                  <h3>{cat.title}</h3>
+                  <p>{cat.description}</p>
+                </div>
               </div>
             ))}
           </div>
-        </div>
-      </section>
 
-      {/* TOOLS */}
-      <section className="tools-section section-container">
-        <div className="section-heading">
-          <span className="section-label">WHAT WE OFFER</span>
-          <h2>Everything in one place.</h2>
-          <p>Explore tools designed to make your work easier.</p>
-        </div>
-
-        <div className="tools-grid">
-          {tools.map((tool, index) => (
-            <div className="tool-card" key={index}>
-              <div
-                className="tool-icon"
-                style={{ color: tool.color }}
-              >
-                {tool.icon}
-              </div>
-              <h3>{tool.title}</h3>
-              <p>{tool.description}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* MISSION & VISION */}
-      <section className="mission-section">
-        <div className="section-container mission-grid">
-          <div className="mission-card">
-            <div className="mission-icon">
-              <Target />
-            </div>
-            <span>OUR MISSION</span>
-            <h2>Technology for everyone.</h2>
-            <p>
-              To empower creators, students, professionals
-              and businesses with accessible digital tools
-              that save time and improve productivity.
-            </p>
-          </div>
-
-          <div className="mission-card vision-card">
-            <div className="mission-icon">
-              <Heart />
-            </div>
-            <span>OUR VISION</span>
-            <h2>A world without digital complexity.</h2>
-            <p>
-              We envision a world where everyone can access
-              powerful digital tools without technical
-              complexity or expensive software.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* BRAND STORY */}
-      <section className="brand-section section-container">
-        <span className="section-label">THE STORY BEHIND OUR NAME</span>
-
-        <h2>
-          Why the name <span>ImgMojo?</span>
-        </h2>
-
-        <div className="brand-story">
-          <div>
-            <h3>Img</h3>
-            <p>Represents images, creativity and digital content.</p>
-          </div>
-
-          <div className="brand-plus">+</div>
-
-          <div>
-            <h3>Mojo</h3>
-            <p>Represents magic, energy and the special touch that makes things happen.</p>
-          </div>
-        </div>
-
-        <p className="brand-conclusion">
-          Together, ImgMojo represents our belief that
-          working with digital content should feel simple,
-          enjoyable and a little magical!
-        </p>
-      </section>
-
-      {/* CTA */}
-      <section className="about-cta">
-        <div className="cta-content">
-          <Sparkles size={30} />
-          <h2>Let's create something amazing!</h2>
-          <p>
-            Your everyday digital companion is just a click away.
+          <p className="simple-note">
+            We continuously work to improve our existing tools and introduce new features based on user needs.
           </p>
-          <a href="/" className="cta-btn">
-            Explore ImgMojo <ArrowRight size={18} />
-          </a>
-        </div>
-      </section>
+        </section>
 
+        {/* OUR MISSION */}
+        <section className="simple-section">
+          <h2>Our Mission</h2>
+          <div className="simple-highlight-box">
+            <p>
+              Our mission is to make useful technology accessible to everyone. We believe that essential online utilities should be simple, convenient, and affordable.
+            </p>
+            <p>
+              That is why we aim to make our tools free to use, without creating unnecessary barriers for users.
+            </p>
+          </div>
+        </section>
+
+        {/* SOFTWARE DEVELOPMENT SERVICES */}
+        <section className="simple-section">
+          <h2>Software Development Services</h2>
+          <p>
+            In addition to developing our own online tools, we also undertake small-scale software development projects.
+          </p>
+          <p>
+            We welcome opportunities to work with individuals, startups, and small businesses on website development, custom software solutions, and other practical technology requirements.
+          </p>
+          <p className="simple-quote">
+            We believe every idea deserves an opportunity to grow, regardless of its size.
+          </p>
+        </section>
+
+        {/* OUR COMMITMENT */}
+        <section className="simple-section">
+          <h2>Our Commitment</h2>
+          <p>We are committed to:</p>
+          <ul className="simple-list">
+            {commitments.map((item, idx) => (
+              <li key={idx}>
+                <CheckCircle2 size={18} className="simple-check-icon" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {/* GET IN TOUCH */}
+        <section className="simple-section">
+          <h2>Get in Touch</h2>
+          <p>
+            We value feedback, suggestions, and collaboration opportunities. If you have questions about our tools, want to suggest a new feature, or need help with a small software development project, we would be happy to hear from you.
+          </p>
+          <div className="simple-actions">
+            <Link to="/contact" className="simple-btn">
+              <Mail size={16} /> Contact Us <ArrowRight size={16} />
+            </Link>
+          </div>
+        </section>
+
+        {/* THANK YOU FOOTER */}
+        <section className="simple-footer-card">
+          <h2>Thank you for visiting ImgMojo!</h2>
+          <p>Our goal is simple: to make everyday digital work easier for everyone.</p>
+          <div className="simple-tagline">
+            <strong>ImgMojo – Simple Tools. Smart Solutions. Free for Everyone.</strong>
+          </div>
+        </section>
+      </div>
     </main>
-  );
+  )
 }

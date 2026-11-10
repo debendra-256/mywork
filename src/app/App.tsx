@@ -25,6 +25,9 @@ import { createMenuItemId, defaultSideMenus, type SideMenuSection } from '../dat
 import { isPosterPrompt, promptHashtags, promptLabels, promptTags, type Prompt } from '../domain/prompt'
 import { useInView, whenIdle } from './useInView'
 import { InfoPage, type InfoKind } from './InfoPage'
+import AboutUs from './Pages/AboutUs'
+import ContactUs from './Pages/ContactUs'
+import PrivacyPolicy from './Pages/PrivacyPolicy'
 
 const promptRepository = createPromptRepository({
   contentProvider: appConfig.contentProvider,
@@ -815,6 +818,15 @@ function SiteFooter() {
 }
 
 function InfoRoute({ kind }: { kind: InfoKind }) {
+  if (kind === 'about') {
+    return <div className="detail-shell"><Header onMenu={() => {}} /><AboutUs /><SiteFooter /></div>
+  }
+  if (kind === 'contact') {
+    return <div className="detail-shell"><Header onMenu={() => {}} /><ContactUs /><SiteFooter /></div>
+  }
+  if (kind === 'privacy') {
+    return <div className="detail-shell"><Header onMenu={() => {}} /><PrivacyPolicy /><SiteFooter /></div>
+  }
   return <div className="detail-shell"><Header onMenu={() => {}} /><InfoPage kind={kind} /><SiteFooter /></div>
 }
 
