@@ -13,6 +13,167 @@ import {
 
 const BG_SWATCHES = ['#ffffff', '#101418', '#f7f0e4', '#eaf2fd', '#ecf7ef', '#fdeeee'];
 
+const RATIO_DISPLAY_NAMES = {
+  '1:1': 'Square',
+  '4:5': 'Instagram',
+  '3:4': 'Classic',
+  '9:16': 'Reel',
+  '4:3': 'Landscape',
+  '16:9': 'Wide',
+};
+
+const COLLAGE_TUTORIAL_STEPS = [
+  {
+    step: 1,
+    badge: 'Step 01',
+    title: '1. Select a collage layout & aspect ratio.',
+    description:
+      'Pick from 20+ classic grids, heart frames, radial fan templates, or seasonal cards, and set your canvas size for Instagram (4:5), Reels (9:16), Square (1:1), or Widescreen (16:9).',
+  },
+  {
+    step: 2,
+    badge: 'Step 02',
+    title: '2. Add your photos and videos.',
+    description:
+      'Click any numbered box, use the + Add Media button, or drag and drop multiple photos and video clips directly from your device into the collage slots.',
+  },
+  {
+    step: 3,
+    badge: 'Step 03',
+    title: '3. Customize position, text & elements.',
+    description:
+      'Drag inside any box to pan, switch between Fill and Fit, zoom or flip media, change background colors, and layer custom typography, stickers, or shapes.',
+  },
+  {
+    step: 4,
+    badge: 'Step 04',
+    title: '4. Export in Full HD PNG or WebM video.',
+    description:
+      'Choose Draft, Full HD, or Ultra HD quality and download a crisp PNG photo collage or render an animated WebM video collage in seconds—with zero watermarks.',
+  },
+];
+
+const COLLAGE_FAQ_ITEMS = [
+  {
+    question: 'Is the ImgMojo Photo & Video Collage Editor free to use?',
+    answer:
+      'Yes! You can create and download both photo collages (PNG) and video collages (WebM) completely free online with no watermarks and no account signup required.',
+  },
+  {
+    question: 'Can I combine photos and videos in the same collage?',
+    answer:
+      'Absolutely. Each slot in your collage template accepts either an image (JPG, PNG, WebP, SVG) or a video clip (MP4, WebM, MOV). When you click "Create Video (WebM)", all video slots play simultaneously alongside your photos and text overlays.',
+  },
+  {
+    question: 'What aspect ratios and export resolutions are supported?',
+    answer:
+      'ImgMojo supports 1:1 Square, 4:5 Instagram Portrait, 3:4 Classic, 9:16 Reels/TikTok Story, 4:3 Landscape, and 16:9 Widescreen in Draft, Full HD (1080p), and Ultra HD (up to 4K) resolutions.',
+  },
+  {
+    question: 'How do I pan, zoom, or fit a photo inside a collage box?',
+    answer:
+      'Click any slot on the canvas to select it, then drag directly on the image to reposition it. Use the top floating toolbar to toggle between Fill (cover) and Fit (contain), rotate/zoom, flip, or recenter.',
+  },
+  {
+    question: 'Can I add custom text captions, stickers, and decorative frames?',
+    answer:
+      'Yes. Open the "Text" tab in the left sidebar to add and style multiple text layers with curated fonts and colors, or open the "Elements" tab to add ribbons, badges, shapes, and custom photo stickers.',
+  },
+  {
+    question: 'Are my photos and videos uploaded to a server?',
+    answer:
+      'No. All collage rendering and video encoding happen 100% locally inside your browser using HTML5 Canvas and MediaRecorder—your personal photos and videos never leave your device.',
+  },
+];
+
+function CollageStepIllustration({ step }) {
+  if (step === 1) {
+    return (
+      <svg viewBox="0 0 240 130" fill="none" className="cj-tutorial-svg" aria-hidden="true">
+        <rect x="16" y="12" width="208" height="106" rx="14" className="cj-illus-card" />
+        <rect x="34" y="24" width="48" height="38" rx="7" className="cj-illus-slot-active" />
+        <rect x="88" y="24" width="48" height="38" rx="7" className="cj-illus-slot" />
+        <rect x="34" y="68" width="48" height="38" rx="7" className="cj-illus-slot" />
+        <rect x="88" y="68" width="48" height="38" rx="7" className="cj-illus-slot-active" opacity="0.75" />
+        <rect x="150" y="28" width="58" height="20" rx="6" className="cj-illus-pill-active" />
+        <rect x="150" y="55" width="58" height="20" rx="6" className="cj-illus-pill" />
+        <rect x="150" y="82" width="58" height="20" rx="6" className="cj-illus-pill" />
+      </svg>
+    );
+  }
+  if (step === 2) {
+    return (
+      <svg viewBox="0 0 240 130" fill="none" className="cj-tutorial-svg" aria-hidden="true">
+        <rect x="16" y="12" width="208" height="106" rx="14" className="cj-illus-card" />
+        <rect x="34" y="26" width="78" height="78" rx="12" className="cj-illus-slot" />
+        <circle cx="73" cy="56" r="13" className="cj-illus-slot-active" />
+        <path d="M73 50v12M67 56h12" stroke="#ffffff" strokeWidth="2.4" strokeLinecap="round" />
+        <rect x="52" y="78" width="42" height="7" rx="3.5" className="cj-illus-bar-brand" />
+        <rect x="126" y="26" width="78" height="36" rx="9" className="cj-illus-pill-active" />
+        <polygon points="158,38 172,44 158,50" className="cj-illus-slot-active" />
+        <rect x="126" y="68" width="78" height="36" rx="9" className="cj-illus-slot" />
+      </svg>
+    );
+  }
+  if (step === 3) {
+    return (
+      <svg viewBox="0 0 240 130" fill="none" className="cj-tutorial-svg" aria-hidden="true">
+        <rect x="16" y="12" width="208" height="106" rx="14" className="cj-illus-card" />
+        <rect x="34" y="24" width="172" height="24" rx="8" className="cj-illus-pill" />
+        <rect x="44" y="30" width="36" height="12" rx="4" className="cj-illus-slot-active" />
+        <rect x="86" y="30" width="36" height="12" rx="4" className="cj-illus-bar" />
+        <rect x="128" y="30" width="66" height="12" rx="4" className="cj-illus-pill-active" />
+        <rect x="34" y="56" width="172" height="50" rx="10" className="cj-illus-slot" />
+        <rect x="64" y="72" width="112" height="18" rx="6" className="cj-illus-card" />
+        <rect x="80" y="78" width="80" height="6" rx="3" className="cj-illus-bar-brand" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 240 130" fill="none" className="cj-tutorial-svg" aria-hidden="true">
+      <rect x="16" y="12" width="208" height="106" rx="14" className="cj-illus-card" />
+      <rect x="36" y="28" width="168" height="32" rx="16" className="cj-illus-slot-active" />
+      <rect x="66" y="40" width="90" height="8" rx="4" fill="#ffffff" opacity="0.92" />
+      <path d="M180 38v10M176 44l4 4 4-4" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="36" y="68" width="168" height="32" rx="16" className="cj-illus-pill-active" />
+      <circle cx="56" cy="84" r="8" className="cj-illus-slot-active" />
+      <polygon points="54,80 60,84 54,88" fill="#ffffff" />
+      <rect x="72" y="80" width="94" height="8" rx="4" className="cj-illus-bar-brand" />
+    </svg>
+  );
+}
+
+const SAMPLE_SCENIC_THUMBS = [
+  {
+    name: 'mountain-lake.svg',
+    label: 'Mountain Lake',
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 140"><defs><linearGradient id="sky1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#38bdf8"/><stop offset="60%" stop-color="#bae6fd"/><stop offset="100%" stop-color="#0284c7"/></linearGradient></defs><rect width="160" height="140" fill="url(#sky1)"/><polygon points="10,95 55,32 105,95" fill="#1e3a8a"/><polygon points="55,32 72,56 42,56" fill="#f8fafc"/><polygon points="65,95 115,40 160,95" fill="#0f172a"/><rect y="92" width="160" height="48" fill="#0369a1"/><path d="M0 105 Q80 95 160 108 L160 140 L0 140 Z" fill="#0c4a6e" opacity="0.65"/></svg>`,
+  },
+  {
+    name: 'sunset-ocean.svg',
+    label: 'Sunset Horizon',
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 140"><defs><linearGradient id="sky2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#7c2d12"/><stop offset="45%" stop-color="#f97316"/><stop offset="75%" stop-color="#fde047"/><stop offset="100%" stop-color="#1e293b"/></linearGradient></defs><rect width="160" height="140" fill="url(#sky2)"/><circle cx="82" cy="76" r="18" fill="#fef08a"/><rect y="88" width="160" height="52" fill="#1e1b4b" opacity="0.78"/><ellipse cx="82" cy="104" rx="34" ry="4" fill="#fb923c" opacity="0.75"/><ellipse cx="82" cy="116" rx="22" ry="3" fill="#fde047" opacity="0.65"/></svg>`,
+  },
+  {
+    name: 'forest-sunlight.svg',
+    label: 'Forest Path',
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 140"><defs><linearGradient id="sky3" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#bef264"/><stop offset="55%" stop-color="#15803d"/><stop offset="100%" stop-color="#052e16"/></linearGradient></defs><rect width="160" height="140" fill="url(#sky3)"/><circle cx="46" cy="34" r="24" fill="#fef9c3" opacity="0.55"/><rect x="18" y="0" width="12" height="140" fill="#14532d"/><rect x="122" y="0" width="14" height="140" fill="#052e16"/><rect x="88" y="0" width="9" height="140" fill="#166534"/><path d="M0 112 Q80 88 160 116 L160 140 L0 140 Z" fill="#14532d"/></svg>`,
+  },
+  {
+    name: 'pink-blossom.svg',
+    label: 'Pink Blossom',
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 140"><rect width="160" height="140" fill="#fce7f3"/><g transform="translate(80,70)"><ellipse rx="22" ry="48" fill="#ec4899" transform="rotate(0)"/><ellipse rx="22" ry="48" fill="#f472b6" transform="rotate(45)"/><ellipse rx="22" ry="48" fill="#db2777" transform="rotate(90)"/><ellipse rx="22" ry="48" fill="#f472b6" transform="rotate(135)"/><circle r="15" fill="#facc15"/><circle r="8" fill="#ca8a04"/></g></svg>`,
+  },
+  {
+    name: 'tropical-beach.svg',
+    label: 'Tropical Beach',
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 140"><rect width="160" height="90" fill="#38bdf8"/><rect y="78" width="160" height="32" fill="#06b6d4"/><path d="M0 104 Q75 94 160 112 L160 140 L0 140 Z" fill="#fde68a"/><path d="M126 115 Q108 65 92 34" stroke="#78350f" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M92 34 Q60 26 48 44" stroke="#15803d" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M92 34 Q118 14 142 28" stroke="#16a34a" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M92 34 Q72 48 58 68" stroke="#15803d" stroke-width="5" fill="none" stroke-linecap="round"/></svg>`,
+  },
+].map((item) => ({
+  ...item,
+  url: `data:image/svg+xml;utf8,${encodeURIComponent(item.svg)}`,
+}));
+
 const defAdj = () => ({ dx: 0, dy: 0, zoom: 1, mode: 'fill' });
 
 const LINE_H = 1.22;
@@ -391,7 +552,7 @@ const Section = ({ title, children }) => (
 // thumbnail is a true miniature of what picking it will paint.
 function TemplateCells({ cells }) {
   return cells.map(([l, tp, r, b, shape, points], k) => {
-    const P = 2.2, G = 1.1;
+    const P = 3.2, G = 2.2;
     if (shape === 'poly' && points) {
       const style = { left: `${l * 100}%`, top: `${tp * 100}%`, width: `${(r - l) * 100}%`, height: `${(b - tp) * 100}%` };
       return (
@@ -431,6 +592,134 @@ export default function CollageStudio({ className = '', style }) {
   const [jobs, setJobs] = useState([]);
   const [err, setErr] = useState('');
 
+  // UI-only tab & filter state for the redesigned left panel
+  const [leftTab, setLeftTab] = useState('templates');
+  const [boxFilter, setBoxFilter] = useState('all');
+  const [openFaq, setOpenFaq] = useState(0);
+
+  // SEO Meta Tags & JSON-LD Structured Data (WebApplication, HowTo, FAQPage)
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+    const previousTitle = document.title;
+    const seoTitle = 'Free Photo & Video Collage Maker Online – Collage Editor | ImgMojo';
+    const seoDescription =
+      'Create stunning photo and video collages online for free with ImgMojo Collage Editor. Choose from 20+ grid, heart, and fan templates, add photos or videos, customize text & stickers, and export in Full HD PNG or WebM video—no signup required.';
+    const seoKeywords =
+      'photo collage maker, video collage editor, free online collage maker, photo grid maker, Instagram collage maker, video grid maker, heart photo collage, combine photos and videos online, HD collage export, ImgMojo';
+    const canonicalUrl = window.location.href.split('#')[0];
+    const ogImageUrl = `${window.location.origin}/sample-portrait.jpg`;
+
+    document.title = seoTitle;
+
+    const managedMeta = [];
+    const setMetaTag = (attrName, attrValue, content) => {
+      let element = document.head.querySelector(`meta[${attrName}="${attrValue}"]`);
+      const created = !element;
+      const prevContent = element ? element.getAttribute('content') : null;
+      if (!element) {
+        element = document.createElement('meta');
+        element.setAttribute(attrName, attrValue);
+        document.head.appendChild(element);
+      }
+      element.setAttribute('content', content);
+      managedMeta.push({ element, created, prevContent });
+    };
+
+    setMetaTag('name', 'description', seoDescription);
+    setMetaTag('name', 'keywords', seoKeywords);
+    setMetaTag('name', 'robots', 'index, follow, max-image-preview:large');
+    setMetaTag('name', 'author', 'ImgMojo');
+    setMetaTag('property', 'og:title', seoTitle);
+    setMetaTag('property', 'og:description', seoDescription);
+    setMetaTag('property', 'og:type', 'website');
+    setMetaTag('property', 'og:url', canonicalUrl);
+    setMetaTag('property', 'og:site_name', 'ImgMojo');
+    setMetaTag('property', 'og:image', ogImageUrl);
+    setMetaTag('name', 'twitter:card', 'summary_large_image');
+    setMetaTag('name', 'twitter:title', seoTitle);
+    setMetaTag('name', 'twitter:description', seoDescription);
+    setMetaTag('name', 'twitter:image', ogImageUrl);
+
+    let canonicalLink = document.head.querySelector('link[rel="canonical"]');
+    const createdCanonical = !canonicalLink;
+    const prevCanonicalHref = canonicalLink ? canonicalLink.getAttribute('href') : null;
+    if (!canonicalLink) {
+      canonicalLink = document.createElement('link');
+      canonicalLink.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonicalLink);
+    }
+    canonicalLink.setAttribute('href', canonicalUrl);
+
+    const structuredData = {
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'WebApplication',
+          name: 'ImgMojo Photo & Video Collage Editor',
+          url: canonicalUrl,
+          applicationCategory: 'MultimediaApplication',
+          operatingSystem: 'All',
+          description: seoDescription,
+          offers: {
+            '@type': 'Offer',
+            price: '0',
+            priceCurrency: 'USD',
+          },
+        },
+        {
+          '@type': 'HowTo',
+          name: 'How to Make a Photo or Video Collage Online',
+          description: 'Follow these 4 simple steps to create, customize, and export a photo or video collage online for free.',
+          step: COLLAGE_TUTORIAL_STEPS.map((item) => ({
+            '@type': 'HowToStep',
+            position: item.step,
+            name: item.title,
+            text: item.description,
+          })),
+        },
+        {
+          '@type': 'FAQPage',
+          mainEntity: COLLAGE_FAQ_ITEMS.map((item) => ({
+            '@type': 'Question',
+            name: item.question,
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: item.answer,
+            },
+          })),
+        },
+      ],
+    };
+
+    const scriptId = 'collage-studio-seo-jsonld';
+    let jsonLdScript = document.getElementById(scriptId);
+    if (!jsonLdScript) {
+      jsonLdScript = document.createElement('script');
+      jsonLdScript.id = scriptId;
+      jsonLdScript.type = 'application/ld+json';
+      document.head.appendChild(jsonLdScript);
+    }
+    jsonLdScript.textContent = JSON.stringify(structuredData);
+
+    return () => {
+      document.title = previousTitle;
+      managedMeta.forEach(({ element, created, prevContent }) => {
+        if (created) {
+          element.remove();
+        } else if (prevContent !== null) {
+          element.setAttribute('content', prevContent);
+        }
+      });
+      if (createdCanonical && canonicalLink) {
+        canonicalLink.remove();
+      } else if (canonicalLink && prevCanonicalHref !== null) {
+        canonicalLink.setAttribute('href', prevCanonicalHref);
+      }
+      const existingScript = document.getElementById(scriptId);
+      if (existingScript) existingScript.remove();
+    };
+  }, []);
+
   const canvasRef = useRef(null);
   const fillRef = useRef(null);
   const slotFileRef = useRef(null);
@@ -459,6 +748,11 @@ export default function CollageStudio({ className = '', style }) {
   const runningJob = jobs.find((j) => j.status === 'running') || null;
   const runningCount = runningJob ? 1 : 0;
   const premiumShown = PREMIUM_TEMPLATES.filter((t) => premCat === 'all' || t.cat === premCat);
+  const templatesShown = TEMPLATES.filter((t) => {
+    if (boxFilter === 'all') return true;
+    if (boxFilter === '5+') return t.slots >= 5;
+    return String(t.slots) === boxFilter;
+  });
 
   const pickTemplate = (t) => {
     setTplId(t.id);
@@ -528,6 +822,18 @@ export default function CollageStudio({ className = '', style }) {
           if (!next[i]) next[i] = makeItem(files[k++]);
         }
       }
+      return next;
+    });
+  };
+
+  const loadScenicThumb = (scenicItem) => {
+    const img = new Image();
+    img.src = scenicItem.url;
+    setItems((prev) => {
+      const next = prev.slice();
+      const targetIdx = sel >= 0 ? sel : next.findIndex((x) => !x);
+      const idx = targetIdx >= 0 ? targetIdx : 0;
+      next[idx] = { kind: 'image', el: img, url: scenicItem.url, name: scenicItem.name };
       return next;
     });
   };
@@ -653,6 +959,7 @@ export default function CollageStudio({ className = '', style }) {
     setSelText(id);
     setSel(-1);
     setSelEl(null);
+    setLeftTab('text');
     setTimeout(() => { const el = textFieldRef.current; if (el) { el.focus(); el.select(); } }, 40);
   };
 
@@ -675,6 +982,7 @@ export default function CollageStudio({ className = '', style }) {
     setSelEl(id);
     setSelText(null);
     setSel(-1);
+    setLeftTab('elements');
   };
 
   const removeEl = (id) => {
@@ -945,8 +1253,9 @@ export default function CollageStudio({ className = '', style }) {
     return { el, style: pctStyle(bx.x, bx.y, bx.w, bx.h) };
   });
 
+  const activeSlot = sel >= 0 ? sel : 0;
   const selItem = sel >= 0 ? items[sel] : null;
-  const selAdj = sel >= 0 ? adjusts[sel] || {} : {};
+  const selAdj = sel >= 0 ? adjusts[sel] || {} : (adjusts[0] || {});
   const selMode = selAdj.mode || 'fill';
   const selTextObj = texts.find((t) => t.id === selText) || null;
   const selElObj = els.find((el) => el.id === selEl) || null;
@@ -954,154 +1263,366 @@ export default function CollageStudio({ className = '', style }) {
 
   return (
     <div className={`cj-page ${className}`} style={style}>
+      {/* Top Full-Width Hero Banner */}
+      <header className="cj-hero">
+        <svg className="cj-hero-wave" viewBox="0 0 1440 160" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M720,160 C910,40 1120,130 1320,20 C1380,-10 1415,15 1440,0 L1440,160 Z" fill="rgba(255,255,255,0.14)" />
+          <path d="M920,160 C1080,80 1240,135 1440,35 L1440,160 Z" fill="rgba(255,255,255,0.08)" />
+        </svg>
+
+        <div className="cj-hero-left">
+          <div className="cj-hero-icon" aria-hidden="true">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect width="18" height="18" x="3" y="3" rx="3" ry="3" />
+              <circle cx="9" cy="9" r="2" />
+              <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+            </svg>
+          </div>
+          <div className="cj-hero-copy">
+            <h1>Photo &amp; Video Collage Editor</h1>
+            <p>Create stunning photo and video collages online for free. Use ready templates, add media, customize and export in high quality.</p>
+          </div>
+        </div>
+
+        <div className="cj-hero-badges" aria-hidden="true">
+          <div className="cj-hero-badge-item">
+            <span className="cj-hero-badge-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
+              </svg>
+            </span>
+            <span className="cj-hero-badge-text">
+              <span>No Signup</span>
+              <span>Required</span>
+            </span>
+          </div>
+
+          <div className="cj-hero-badge-item">
+            <span className="cj-hero-badge-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="5" width="20" height="14" rx="3" />
+                <path d="M7 9v6M11 9v6M7 12h4M14 9h2.5a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2H14V9z" />
+              </svg>
+            </span>
+            <span className="cj-hero-badge-text">
+              <span>Full HD</span>
+              <span>Export</span>
+            </span>
+          </div>
+
+          <div className="cj-hero-badge-item">
+            <span className="cj-hero-badge-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="6 3 20 12 6 21 6 3" />
+              </svg>
+            </span>
+            <span className="cj-hero-badge-text">
+              <span>Video</span>
+              <span>Collage</span>
+            </span>
+          </div>
+
+          <div className="cj-hero-badge-item">
+            <span className="cj-hero-badge-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="12 2 2 7 12 12 22 7 12 2" />
+                <polyline points="2 17 12 22 22 17" />
+                <polyline points="2 12 12 17 22 12" />
+              </svg>
+            </span>
+            <span className="cj-hero-badge-text">
+              <span>Multiple</span>
+              <span>Templates</span>
+            </span>
+          </div>
+        </div>
+      </header>
+
+      {/* Main 3-Column Studio Body */}
       <div className="cj-body">
-        <aside className="cj-side">
-          <div className="cj-sidehead">Collage editor</div>
+        {/* Left Sidebar: Templates | Media | Text | Elements */}
+        <aside className="cj-side cj-leftside">
+          <div className="cj-tabs" role="tablist" aria-label="Collage tools">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={leftTab === 'templates'}
+              className={`cj-tab${leftTab === 'templates' ? ' is-active' : ''}`}
+              onClick={() => setLeftTab('templates')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                <rect x="3" y="14" width="7" height="7" rx="1.5" />
+              </svg>
+              <span>Templates</span>
+            </button>
+
+            <button
+              type="button"
+              role="tab"
+              aria-selected={leftTab === 'media'}
+              className={`cj-tab${leftTab === 'media' ? ' is-active' : ''}`}
+              onClick={() => setLeftTab('media')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect width="18" height="18" x="3" y="3" rx="2.5" />
+                <circle cx="9" cy="9" r="2" />
+                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+              </svg>
+              <span>Media</span>
+            </button>
+
+            <button
+              type="button"
+              role="tab"
+              aria-selected={leftTab === 'text'}
+              className={`cj-tab${leftTab === 'text' ? ' is-active' : ''}`}
+              onClick={() => setLeftTab('text')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polyline points="4 7 4 4 20 4 20 7" />
+                <line x1="9" x2="15" y1="20" y2="20" />
+                <line x1="12" x2="12" y1="4" y2="20" />
+              </svg>
+              <span>Text</span>
+            </button>
+
+            <button
+              type="button"
+              role="tab"
+              aria-selected={leftTab === 'elements'}
+              className={`cj-tab${leftTab === 'elements' ? ' is-active' : ''}`}
+              onClick={() => setLeftTab('elements')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polygon points="12 2 2 7 12 12 22 7 12 2" />
+                <polyline points="2 17 12 22 22 17" />
+                <polyline points="2 12 12 17 22 12" />
+              </svg>
+              <span>Elements</span>
+            </button>
+          </div>
+
           <div className="cj-sidebody">
-            <Section title={`Templates (${tpl.slots} box${tpl.slots > 1 ? 'es' : ''})`}>
-              <div className="cj-tplgrid">
-                {TEMPLATES.map((t) => (
-                  <div key={t.id}>
-                    <button
-                      type="button"
-                      className={`cj-tplthumb${tplId === t.id ? ' on' : ''}`}
-                      title={`${t.label} — ${t.slots} box${t.slots > 1 ? 'es' : ''}`}
-                      onClick={() => pickTemplate(t)}
+            {leftTab === 'templates' && (
+              <>
+                <div>
+                  <div className="cj-subhead-row">
+                    <h4 className="cj-subhead-title">Collage Templates</h4>
+                    <select
+                      className="cj-box-filter"
+                      value={boxFilter}
+                      onChange={(e) => setBoxFilter(e.target.value)}
+                      aria-label="Filter templates by box count"
                     >
-                      <TemplateCells cells={t.cells} />
-                    </button>
-                    <span className="cj-tplname">{t.label}</span>
+                      <option value="all">{tpl.slots} Boxes</option>
+                      <option value="1">1 Box</option>
+                      <option value="2">2 Boxes</option>
+                      <option value="3">3 Boxes</option>
+                      <option value="4">4 Boxes</option>
+                      <option value="5+">5+ Boxes</option>
+                    </select>
                   </div>
-                ))}
-              </div>
-            </Section>
 
-            <Section title="Wedding story">
-              <div className="cj-tplgrid">
-                {WEDDING_TEMPLATES.map((t) => (
-                  <div key={t.id}>
-                    <button
-                      type="button"
-                      className={`cj-tplthumb${tplId === t.id ? ' on' : ''}`}
-                      title={`${t.label} — ${t.slots} box${t.slots > 1 ? 'es' : ''}`}
-                      onClick={() => pickTemplate(t)}
-                    >
-                      <TemplateCells cells={t.cells} />
-                    </button>
-                    <span className="cj-tplname">{t.label}</span>
+                  <div className="cj-tplgrid">
+                    {templatesShown.map((t) => {
+                      const isOn = tplId === t.id;
+                      return (
+                        <div key={t.id} className={`cj-tplitem${isOn ? ' is-selected' : ''}`}>
+                          <button
+                            type="button"
+                            className={`cj-tplthumb${isOn ? ' on' : ''}`}
+                            title={`${t.label} — ${t.slots} box${t.slots > 1 ? 'es' : ''}`}
+                            onClick={() => pickTemplate(t)}
+                          >
+                            {isOn && (
+                              <span className="cj-tplcheck" aria-hidden="true">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                              </span>
+                            )}
+                            <span className="cj-tplthumb-inner">
+                              <TemplateCells cells={t.cells} />
+                            </span>
+                          </button>
+                          <span className="cj-tplname">{t.label}</span>
+                        </div>
+                      );
+                    })}
                   </div>
-                ))}
-              </div>
-              <p className="cj-note">Scattered, shard and fan layouts. Fan rings mask each photo into its own wedge; pick a segment on the canvas to fill it.</p>
-            </Section>
-
-            <Section title="Premium templates">
-              <div className="cj-chiprow">
-                <button
-                  type="button"
-                  className={`cj-chip${premCat === 'all' ? ' on' : ''}`}
-                  onClick={() => setPremCat('all')}
-                >All</button>
-                {PREMIUM_CATS.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    className={`cj-chip${premCat === c.id ? ' on' : ''}`}
-                    onClick={() => setPremCat(c.id)}
-                  >{c.label}</button>
-                ))}
-              </div>
-              <div className="cj-tplgrid">
-                {premiumShown.map((t) => (
-                  <div key={t.id}>
-                    <button
-                      type="button"
-                      className={`cj-tplthumb premium pj-${t.cat}${tplId === t.id ? ' on' : ''}`}
-                      title={`${t.label} — ${t.slots} box${t.slots > 1 ? 'es' : ''}`}
-                      onClick={() => pickPremium(t)}
-                    >
-                      <TemplateCells cells={t.cells} />
-                    </button>
-                    <span className="cj-tplname">{t.label}</span>
-                  </div>
-                ))}
-              </div>
-              <p className="cj-note">Premium sets apply a matching background and hand-drawn ornaments automatically. Heart sets mask every photo to the heart outline.</p>
-            </Section>
-
-            <Section title="Canvas size">
-              <div className="cj-chiprow">
-                {RATIOS.map((r) => (
-                  <button key={r.id} type="button" className={`cj-chip${ratioId === r.id ? ' on' : ''}`} onClick={() => setRatioId(r.id)}>
-                    {r.id}
-                  </button>
-                ))}
-              </div>
-              <div className="cj-sizetag">{dims.w} × {dims.h} px</div>
-            </Section>
-
-            <Section title="Background">
-              <div className="cj-swrow">
-                {BG_SWATCHES.map((c) => (
-                  <button key={c} type="button" className={`cj-sw${bg === c ? ' on' : ''}`} style={{ background: c }} title={c} onClick={() => setBg(c)} />
-                ))}
-              </div>
-            </Section>
-
-            <Section title="Photos & videos">
-              <div className="cj-row">
-                <button type="button" className="cj-btn primary" onClick={() => fillRef.current && fillRef.current.click()}>Add files</button>
-                <button type="button" className="cj-btn" onClick={loadSample}>Try sample</button>
-                <button type="button" className="cj-btn" disabled={!filled} onClick={clearAll}>Clear all</button>
-              </div>
-              <p className="cj-note">{filled}/{tpl.slots} boxes filled. Files go into empty boxes in order — or hover a box and use its + button.</p>
-              {filledNames.length > 0 && <div className="cj-fileinfo" style={{ marginTop: 8 }}>{filledNames.join(', ')}</div>}
-            </Section>
-
-            <Section title="Text">
-              <div className="cj-row">
-                <button type="button" className="cj-btn primary" onClick={() => addText()}>+ Add text</button>
-                {texts.length > 0 && (
-                  <button type="button" className="cj-btn" onClick={clearAllTexts}>Remove all</button>
-                )}
-              </div>
-              {texts.length > 0 && (
-                <div className="cj-chiprow" style={{ marginTop: 8 }}>
-                  {texts.map((t) => (
-                    <button
-                      key={t.id} type="button"
-                      className={`cj-chip${selText === t.id ? ' on' : ''}`}
-                      onClick={() => { setSelText(t.id); setSel(-1); setSelEl(null); }}
-                    >{(String(t.text).split('\n')[0] || 'Text').slice(0, 14)}</button>
-                  ))}
                 </div>
-              )}
-              <p className="cj-note">
-                {texts.length
-                  ? 'Drag a text layer on the canvas to place it. Text is painted into the exported image and video.'
-                  : 'No text layers yet — add one to write over the collage.'}
-              </p>
-            </Section>
 
-            <Section title="Elements">
-              <AddElementsPanel prefix="cj" onAdd={(kind, ref) => addElement(kind, ref)} />
-              {els.length > 0 && (
-                <>
-                  <div className="cj-chiprow" style={{ marginTop: 8 }}>
-                    {els.map((el) => (
+                <Section title="Wedding story">
+                  <div className="cj-tplgrid">
+                    {WEDDING_TEMPLATES.map((t) => {
+                      const isOn = tplId === t.id;
+                      return (
+                        <div key={t.id} className={`cj-tplitem${isOn ? ' is-selected' : ''}`}>
+                          <button
+                            type="button"
+                            className={`cj-tplthumb${isOn ? ' on' : ''}`}
+                            title={`${t.label} — ${t.slots} box${t.slots > 1 ? 'es' : ''}`}
+                            onClick={() => pickTemplate(t)}
+                          >
+                            {isOn && (
+                              <span className="cj-tplcheck" aria-hidden="true">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                              </span>
+                            )}
+                            <span className="cj-tplthumb-inner">
+                              <TemplateCells cells={t.cells} />
+                            </span>
+                          </button>
+                          <span className="cj-tplname">{t.label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="cj-note">Scattered, shard and fan layouts. Fan rings mask each photo into its own wedge; pick a segment on the canvas to fill it.</p>
+                </Section>
+
+                <Section title="Premium templates">
+                  <div className="cj-chiprow" style={{ marginBottom: 10 }}>
+                    <button
+                      type="button"
+                      className={`cj-chip${premCat === 'all' ? ' on' : ''}`}
+                      onClick={() => setPremCat('all')}
+                    >All</button>
+                    {PREMIUM_CATS.map((c) => (
                       <button
-                        key={el.id} type="button"
-                        className={`cj-chip${selEl === el.id ? ' on' : ''}`}
-                        onClick={() => { setSelEl(el.id); setSelText(null); setSel(-1); }}
-                      >{elementLabel(el)}</button>
+                        key={c.id}
+                        type="button"
+                        className={`cj-chip${premCat === c.id ? ' on' : ''}`}
+                        onClick={() => setPremCat(c.id)}
+                      >{c.label}</button>
                     ))}
                   </div>
-                  <div className="cj-row" style={{ marginTop: 8 }}>
-                    <button type="button" className="cj-btn" onClick={clearAllEls}>Remove all elements</button>
+                  <div className="cj-tplgrid">
+                    {premiumShown.map((t) => {
+                      const isOn = tplId === t.id;
+                      return (
+                        <div key={t.id} className={`cj-tplitem${isOn ? ' is-selected' : ''}`}>
+                          <button
+                            type="button"
+                            className={`cj-tplthumb premium pj-${t.cat}${isOn ? ' on' : ''}`}
+                            title={`${t.label} — ${t.slots} box${t.slots > 1 ? 'es' : ''}`}
+                            onClick={() => pickPremium(t)}
+                          >
+                            {isOn && (
+                              <span className="cj-tplcheck" aria-hidden="true">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                              </span>
+                            )}
+                            <span className="cj-tplthumb-inner">
+                              <TemplateCells cells={t.cells} />
+                            </span>
+                          </button>
+                          <span className="cj-tplname">{t.label}</span>
+                        </div>
+                      );
+                    })}
                   </div>
-                </>
-              )}
-            </Section>
+                  <p className="cj-note">Premium sets apply a matching background and hand-drawn ornaments automatically. Heart sets mask every photo to the heart outline.</p>
+                </Section>
+
+                <Section title="Background">
+                  <div className="cj-swrow">
+                    {BG_SWATCHES.map((c) => (
+                      <button key={c} type="button" className={`cj-sw${bg === c ? ' on' : ''}`} style={{ background: c }} title={c} onClick={() => setBg(c)} />
+                    ))}
+                  </div>
+                </Section>
+              </>
+            )}
+
+            {leftTab === 'media' && (
+              <>
+                <Section title="Photos & videos">
+                  <div className="cj-row">
+                    <button type="button" className="cj-btn primary" onClick={() => fillRef.current && fillRef.current.click()}>Add files</button>
+                    <button type="button" className="cj-btn" onClick={loadSample}>Try sample</button>
+                    <button type="button" className="cj-btn" disabled={!filled} onClick={clearAll}>Clear all</button>
+                  </div>
+                  <p className="cj-note">{filled}/{tpl.slots} boxes filled. Files go into empty boxes in order — or hover a box and use its + button.</p>
+                  {filledNames.length > 0 && <div className="cj-fileinfo" style={{ marginTop: 8 }}>{filledNames.join(', ')}</div>}
+                </Section>
+
+                <Section title="Canvas size">
+                  <div className="cj-chiprow">
+                    {RATIOS.map((r) => (
+                      <button key={r.id} type="button" className={`cj-chip${ratioId === r.id ? ' on' : ''}`} onClick={() => setRatioId(r.id)}>
+                        {r.id}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="cj-sizetag">{dims.w} × {dims.h} px</div>
+                </Section>
+
+                <Section title="Background">
+                  <div className="cj-swrow">
+                    {BG_SWATCHES.map((c) => (
+                      <button key={c} type="button" className={`cj-sw${bg === c ? ' on' : ''}`} style={{ background: c }} title={c} onClick={() => setBg(c)} />
+                    ))}
+                  </div>
+                </Section>
+              </>
+            )}
+
+            {leftTab === 'text' && (
+              <Section title="Text">
+                <div className="cj-row">
+                  <button type="button" className="cj-btn primary" onClick={() => addText()}>+ Add text</button>
+                  {texts.length > 0 && (
+                    <button type="button" className="cj-btn" onClick={clearAllTexts}>Remove all</button>
+                  )}
+                </div>
+                {texts.length > 0 && (
+                  <div className="cj-chiprow" style={{ marginTop: 8 }}>
+                    {texts.map((t) => (
+                      <button
+                        key={t.id} type="button"
+                        className={`cj-chip${selText === t.id ? ' on' : ''}`}
+                        onClick={() => { setSelText(t.id); setSel(-1); setSelEl(null); }}
+                      >{(String(t.text).split('\n')[0] || 'Text').slice(0, 14)}</button>
+                    ))}
+                  </div>
+                )}
+                <p className="cj-note">
+                  {texts.length
+                    ? 'Drag a text layer on the canvas to place it. Text is painted into the exported image and video.'
+                    : 'No text layers yet — add one to write over the collage.'}
+                </p>
+              </Section>
+            )}
+
+            {leftTab === 'elements' && (
+              <Section title="Elements">
+                <AddElementsPanel prefix="cj" onAdd={(kind, ref) => addElement(kind, ref)} />
+                {els.length > 0 && (
+                  <>
+                    <div className="cj-chiprow" style={{ marginTop: 8 }}>
+                      {els.map((el) => (
+                        <button
+                          key={el.id} type="button"
+                          className={`cj-chip${selEl === el.id ? ' on' : ''}`}
+                          onClick={() => { setSelEl(el.id); setSelText(null); setSel(-1); }}
+                        >{elementLabel(el)}</button>
+                      ))}
+                    </div>
+                    <div className="cj-row" style={{ marginTop: 8 }}>
+                      <button type="button" className="cj-btn" onClick={clearAllEls}>Remove all elements</button>
+                    </div>
+                  </>
+                )}
+              </Section>
+            )}
 
             {selTextObj && (
               <Section title="Edit text">
@@ -1306,117 +1827,341 @@ export default function CollageStudio({ className = '', style }) {
           </div>
         </aside>
 
-        <main
-          className="cj-stage"
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={(e) => {
-            e.preventDefault();
-            const raw = e.dataTransfer.getData('application/x-ts-element');
-            if (raw) {
-              try {
-                const payload = JSON.parse(raw);
-                const b = canvasRef.current.getBoundingClientRect();
-                addElement(payload.kind, payload.id, {
-                  x: clamp((e.clientX - b.left) / b.width, 0, 1),
-                  y: clamp((e.clientY - b.top) / b.height, 0, 1),
-                });
-                return;
-              } catch (er) { /* fall through to files */ }
-            }
-            loadFiles(e.dataTransfer.files);
-          }}
-        >
-          <div className="cj-canvasWrap">
-            <canvas ref={canvasRef} className="cj-canvas" style={{ aspectRatio: `${dims.w} / ${dims.h}` }} />
-            <div className="cj-overlay" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp}>
-              {rectsPct.map(({ shape, style, points, centroid, numberStyle }, i) => (
-                <div key={i} role="button" aria-label={`Box ${i + 1}`} className={`cj-slotcell${shape === 'heart' ? ' shape-heart' : ''}${shape === 'poly' ? ' shape-poly' : ''}${sel === i ? ' sel' : ''}`} style={style}>
-                  {shape === 'heart' && (
-                    <svg className="cj-slotshape" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-                      <path d={HEART_PATH_D} />
-                    </svg>
-                  )}
-                  {shape === 'poly' && (
-                    <svg className="cj-slotshape" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-                      <polygon points={points.map(([x, y]) => `${x * 100},${y * 100}`).join(' ')} />
-                    </svg>
-                  )}
-                  {!items[i] && (
-                    <button
-                      type="button" className="cj-slotadd" title="Add photo / video"
-                      style={centroid || undefined}
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onClick={(e) => { e.stopPropagation(); openSlotFile(i); }}
-                    >+</button>
-                  )}
-                  {items[i] && (
-                    <button
-                      type="button" className="cj-swapbtn" title="Replace"
-                      style={centroid || undefined}
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onClick={(e) => { e.stopPropagation(); openSlotFile(i); }}
-                    >⟳</button>
-                  )}
-                  {(shape !== 'poly' || items[i]) && <span className="cj-slotnum" style={numberStyle || undefined}>{i + 1}</span>}
-                </div>
-              ))}
-              {grips && (
-                <React.Fragment>
-                  <button
-                    type="button" className="cj-grip cj-grip-move" style={grips.move} title="Drag to move this heart"
-                    onPointerDown={startFrameDrag(sel, 'move')} onPointerMove={onFrameDragMove}
-                    onPointerUp={endFrameDrag} onPointerCancel={endFrameDrag}
-                  >✥</button>
-                  <button
-                    type="button" className="cj-grip cj-grip-size" style={grips.size} title="Drag to resize this heart"
-                    onPointerDown={startFrameDrag(sel, 'size')} onPointerMove={onFrameDragMove}
-                    onPointerUp={endFrameDrag} onPointerCancel={endFrameDrag}
-                  >◢</button>
-                </React.Fragment>
-              )}
-              {textPct.map(({ t, style }) => (
-                <div
-                  key={t.id} role="button" aria-label={`Text layer ${t.text}`}
-                  className={`cj-textcell${selText === t.id ? ' sel' : ''}`} style={style}
-                  onPointerDown={(e) => { e.stopPropagation(); setSel(-1); setSelText(t.id); setSelEl(null); startTextDrag(t, e); }}
-                  onPointerMove={onTextDragMove} onPointerUp={endTextDrag} onPointerCancel={endTextDrag}
-                  onDoubleClick={() => { const el = textFieldRef.current; if (el) { el.focus(); el.select(); } }}
-                />
-              ))}
-              {elementPct.map(({ el, style }) => (
-                <div
-                  key={el.id} role="button" aria-label={`Element ${elementLabel(el)}`}
-                  className={`cj-elcell${selEl === el.id ? ' sel' : ''}`} style={style}
-                  onPointerDown={(e) => { e.stopPropagation(); setSel(-1); setSelText(null); setSelEl(el.id); startElDrag(el, e); }}
-                  onPointerMove={onElDragMove} onPointerUp={endElDrag} onPointerCancel={endElDrag}
-                >
-                  <span className="cj-elcell-tag">{elementLabel(el)}</span>
-                </div>
-              ))}
+        {/* Center Column: Top Floating Action Toolbar + Canvas Stage + Bottom Media Strip */}
+        <div className="cj-center">
+          {/* Top Floating Action Bar */}
+          <div className="cj-toolbar" role="toolbar" aria-label="Canvas quick actions">
+            <div className="cj-tool-group">
+              <button
+                type="button"
+                className="cj-tool-iconbtn"
+                title="Reset active slot position"
+                onClick={() => resetAdj(activeSlot)}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 7v6h6" />
+                  <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                className="cj-tool-iconbtn"
+                title="Center active slot"
+                onClick={() => centerAdj(activeSlot)}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 7v6h-6" />
+                  <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7" />
+                </svg>
+              </button>
             </div>
-          </div>
-          <p className="cj-note" style={{ marginTop: 10 }}>
-            Click a box to select it, drag to move, use Fill/Fit and nudge arrows from the left panel. Select a heart to drag or resize it with its corner grips. Add text from the left panel, then drag it into place. Drop files anywhere on the canvas.
-          </p>
-        </main>
 
+            <div className="cj-tool-group">
+              <button
+                type="button"
+                className={`cj-tool-pill${selMode === 'fill' ? ' is-active' : ''}`}
+                onClick={() => setAdjMode(activeSlot, 'fill')}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+                </svg>
+                <span>Fill</span>
+              </button>
+
+              <button
+                type="button"
+                className={`cj-tool-pill${selMode === 'fit' ? ' is-active' : ''}`}
+                onClick={() => setAdjMode(activeSlot, 'fit')}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" strokeDasharray="4 3" />
+                </svg>
+                <span>Fit</span>
+              </button>
+
+              <button
+                type="button"
+                className="cj-tool-pill"
+                onClick={() => {
+                  const curZoom = (adjusts[activeSlot]?.zoom || 1);
+                  const nextZoom = curZoom >= 1.8 ? 1 : Number((curZoom + 0.25).toFixed(2));
+                  setAdjusts((prev) => prev.map((a, k) => (k === activeSlot ? { ...a, zoom: nextZoom } : a)));
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                  <path d="M21 3v5h-5" />
+                </svg>
+                <span>Rotate</span>
+              </button>
+
+              <button
+                type="button"
+                className="cj-tool-pill"
+                onClick={() => {
+                  setAdjusts((prev) => prev.map((a, k) => (
+                    k === activeSlot ? { ...a, dx: -(a.dx || 0), dy: -(a.dy || 0) } : a
+                  )));
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m3 7 5 5-5 5V7" />
+                  <path d="m21 7-5 5 5 5V7" />
+                  <path d="M12 20v2M12 14v2M12 8v2M12 2v2" />
+                </svg>
+                <span>Flip</span>
+              </button>
+            </div>
+
+            <select
+              className="cj-toolbar-ratio"
+              value={ratioId}
+              onChange={(e) => setRatioId(e.target.value)}
+              aria-label="Canvas aspect ratio"
+            >
+              {RATIOS.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.w} × {r.h} ({RATIO_DISPLAY_NAMES[r.id] || r.label})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Center Collage Canvas Stage */}
+          <main
+            className="cj-stage"
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              const raw = e.dataTransfer.getData('application/x-ts-element');
+              if (raw) {
+                try {
+                  const payload = JSON.parse(raw);
+                  const b = canvasRef.current.getBoundingClientRect();
+                  addElement(payload.kind, payload.id, {
+                    x: clamp((e.clientX - b.left) / b.width, 0, 1),
+                    y: clamp((e.clientY - b.top) / b.height, 0, 1),
+                  });
+                  return;
+                } catch (er) { /* fall through to files */ }
+              }
+              loadFiles(e.dataTransfer.files);
+            }}
+          >
+            <div className="cj-canvasWrap">
+              <canvas ref={canvasRef} className="cj-canvas" style={{ aspectRatio: `${dims.w} / ${dims.h}` }} />
+              <div className="cj-overlay" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp}>
+                {rectsPct.map(({ shape, style, points, centroid, numberStyle }, i) => (
+                  <div
+                    key={i}
+                    role="button"
+                    aria-label={`Box ${i + 1}`}
+                    className={`cj-slotcell${!items[i] ? ' is-empty' : ''}${shape === 'heart' ? ' shape-heart' : ''}${shape === 'poly' ? ' shape-poly' : ''}${sel === i ? ' sel' : ''}`}
+                    style={style}
+                  >
+                    {shape === 'heart' && (
+                      <svg className="cj-slotshape" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                        <path d={HEART_PATH_D} />
+                      </svg>
+                    )}
+                    {shape === 'poly' && (
+                      <svg className="cj-slotshape" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                        <polygon points={points.map(([x, y]) => `${x * 100},${y * 100}`).join(' ')} />
+                      </svg>
+                    )}
+                    {!items[i] && (
+                      <button
+                        type="button" className="cj-slotadd" title="Add photo / video"
+                        style={centroid || undefined}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={(e) => { e.stopPropagation(); openSlotFile(i); }}
+                      >
+                        <span className="cj-slotadd-circle">+</span>
+                        <span className="cj-slotadd-label">Add Photo/Video</span>
+                      </button>
+                    )}
+                    {items[i] && (
+                      <button
+                        type="button" className="cj-swapbtn" title="Replace"
+                        style={centroid || undefined}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={(e) => { e.stopPropagation(); openSlotFile(i); }}
+                      >⟳</button>
+                    )}
+                    {(shape !== 'poly' || items[i]) && <span className="cj-slotnum" style={numberStyle || undefined}>{i + 1}</span>}
+                  </div>
+                ))}
+                {grips && (
+                  <React.Fragment>
+                    <button
+                      type="button" className="cj-grip cj-grip-move" style={grips.move} title="Drag to move this heart"
+                      onPointerDown={startFrameDrag(sel, 'move')} onPointerMove={onFrameDragMove}
+                      onPointerUp={endFrameDrag} onPointerCancel={endFrameDrag}
+                    >✥</button>
+                    <button
+                      type="button" className="cj-grip cj-grip-size" style={grips.size} title="Drag to resize this heart"
+                      onPointerDown={startFrameDrag(sel, 'size')} onPointerMove={onFrameDragMove}
+                      onPointerUp={endFrameDrag} onPointerCancel={endFrameDrag}
+                    >◢</button>
+                  </React.Fragment>
+                )}
+                {textPct.map(({ t, style }) => (
+                  <div
+                    key={t.id} role="button" aria-label={`Text layer ${t.text}`}
+                    className={`cj-textcell${selText === t.id ? ' sel' : ''}`} style={style}
+                    onPointerDown={(e) => { e.stopPropagation(); setSel(-1); setSelText(t.id); setSelEl(null); startTextDrag(t, e); }}
+                    onPointerMove={onTextDragMove} onPointerUp={endTextDrag} onPointerCancel={endTextDrag}
+                    onDoubleClick={() => { setLeftTab('text'); const el = textFieldRef.current; if (el) { el.focus(); el.select(); } }}
+                  />
+                ))}
+                {elementPct.map(({ el, style }) => (
+                  <div
+                    key={el.id} role="button" aria-label={`Element ${elementLabel(el)}`}
+                    className={`cj-elcell${selEl === el.id ? ' sel' : ''}`} style={style}
+                    onPointerDown={(e) => { e.stopPropagation(); setSel(-1); setSelText(null); setSelEl(el.id); startElDrag(el, e); }}
+                    onPointerMove={onElDragMove} onPointerUp={endElDrag} onPointerCancel={endElDrag}
+                  >
+                    <span className="cj-elcell-tag">{elementLabel(el)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <p className="cj-stage-tip">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 16v-4M12 8h.01" />
+              </svg>
+              <span>Click a box to add media, drag to move, use Fill/Fit, and resize from corner grips.</span>
+            </p>
+          </main>
+
+          {/* Bottom Media Bar */}
+          <div className="cj-media-bar">
+            <button
+              type="button"
+              className="cj-add-media-btn"
+              onClick={() => fillRef.current && fillRef.current.click()}
+            >
+              <span>+</span>
+              <span>Add Media</span>
+            </button>
+
+            <div className="cj-media-thumbs">
+              {SAMPLE_SCENIC_THUMBS.map((scenic, idx) => {
+                const userMedia = items[idx];
+                return (
+                  <button
+                    key={scenic.name}
+                    type="button"
+                    className="cj-media-thumb"
+                    title={userMedia ? `Replace ${userMedia.name}` : `Load sample: ${scenic.label}`}
+                    onClick={() => {
+                      if (userMedia) {
+                        openSlotFile(idx);
+                      } else {
+                        loadScenicThumb(scenic);
+                      }
+                    }}
+                  >
+                    {userMedia && userMedia.kind === 'video' ? (
+                      <video src={userMedia.url} muted playsInline />
+                    ) : (
+                      <img src={userMedia ? userMedia.url : scenic.url} alt={userMedia ? userMedia.name : scenic.label} />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              type="button"
+              className="cj-upload-tile-btn"
+              onClick={() => fillRef.current && fillRef.current.click()}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" x2="12" y1="3" y2="15" />
+              </svg>
+              <span>Upload</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Right Sidebar: Export & Save */}
         <aside className="cj-side cj-rightside">
-          <div className="cj-sidehead">Export &amp; saves</div>
+          <div className="cj-sidehead">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" x2="12" y1="15" y2="3" />
+            </svg>
+            <span>Export &amp; Save</span>
+          </div>
+
           <div className="cj-sidebody">
             <Section title="Quality">
-              <div className="cj-chiprow">
-                {QUALITIES.map((q) => (
-                  <button key={q.id} type="button" className={`cj-chip${qualityId === q.id ? ' on' : ''}`} onClick={() => setQualityId(q.id)}>
-                    {q.label}
-                  </button>
-                ))}
+              <div className="cj-quality-grid">
+                {QUALITIES.map((q) => {
+                  const isOn = qualityId === q.id;
+                  return (
+                    <button
+                      key={q.id}
+                      type="button"
+                      className={`cj-quality-pill${isOn ? ' on' : ''}`}
+                      onClick={() => setQualityId(q.id)}
+                    >
+                      {q.id === 'hd' && isOn && (
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <rect width="18" height="18" x="3" y="3" rx="4" />
+                          <path d="m9 12 2 2 4-4" />
+                        </svg>
+                      )}
+                      <span>{q.label}</span>
+                      {q.id === 'hd' && isOn && (
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      )}
+                      {q.id === 'uhd' && <span className="cj-crown" aria-hidden="true">👑</span>}
+                    </button>
+                  );
+                })}
               </div>
             </Section>
 
-            <Section title="Export size">
-              <div className="cj-sizetag">Export size — {ed.w} × {ed.h} px</div>
-              <div className="cj-row" style={{ marginTop: 8 }}>
-                <button type="button" className="cj-btn" onClick={makeReelPreset}>Reel preset · 9:16 Ultra HD</button>
+            <Section title="Export Size">
+              <div className="cj-export-size-box">
+                <span className="cj-export-size-icon" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+                    <rect width="20" height="14" x="2" y="3" rx="2" />
+                    <line x1="8" x2="16" y1="21" y2="21" />
+                    <line x1="12" x2="12" y1="17" y2="21" />
+                  </svg>
+                </span>
+                <select
+                  className="cj-export-size-select"
+                  value={ratioId}
+                  onChange={(e) => {
+                    if (e.target.value === 'reel-uhd') {
+                      makeReelPreset();
+                    } else {
+                      setRatioId(e.target.value);
+                    }
+                  }}
+                  aria-label="Export size"
+                >
+                  {RATIOS.map((r) => {
+                    const rDims = exportDims(r, quality);
+                    return (
+                      <option key={r.id} value={r.id}>
+                        {rDims.w} × {rDims.h} px ({RATIO_DISPLAY_NAMES[r.id] || r.label})
+                      </option>
+                    );
+                  })}
+                  <option value="reel-uhd">Reel preset · 9:16 Ultra HD</option>
+                </select>
               </div>
             </Section>
 
@@ -1427,47 +2172,204 @@ export default function CollageStudio({ className = '', style }) {
                   id="cj-dur" type="range" min={3} max={30} step={1} value={recDur}
                   onChange={(e) => setRecDur(parseInt(e.target.value, 10))}
                 />
-                <span className="cj-val">{recDur}s</span>
+                <span className="cj-val">{recDur} s</span>
               </div>
-              <div className="cj-row" style={{ marginTop: 8 }}>
-                <button type="button" className="cj-btn primary" onClick={exportPng}>Save image (PNG)</button>
-                <button type="button" className="cj-btn" onClick={exportVideo}>Create video (WebM)</button>
+
+              <div className="cj-export-actions">
+                <button type="button" className="cj-export-btn is-primary" onClick={exportPng}>
+                  <span className="cj-export-btn-left">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <rect width="18" height="18" x="3" y="3" rx="2.5" />
+                      <circle cx="9" cy="9" r="2" />
+                      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                    </svg>
+                    <span>Save Image (PNG)</span>
+                  </span>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" x2="12" y1="15" y2="3" />
+                  </svg>
+                </button>
+
+                <button type="button" className="cj-export-btn is-secondary" onClick={exportVideo}>
+                  <span className="cj-export-btn-left">
+                    <span className="cj-export-btn-badge" aria-hidden="true">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="7 4 20 12 7 20 7 4" />
+                      </svg>
+                    </span>
+                    <span>Create Video (WebM)</span>
+                  </span>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" x2="12" y1="15" y2="3" />
+                  </svg>
+                </button>
               </div>
-              <p className="cj-note">Renders at {ed.w}×{ed.h} px{` · ${recDur}s`} for video. The editor is locked while an export runs — cancel to unlock.</p>
+
+              <div className="cj-info-callout">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 16v-4M12 8h.01" />
+                </svg>
+                <span>
+                  Renders at {ed.w} × {ed.h} px · {recDur}s for video. The editor is locked while an export runs — cancel to unlock.
+                </span>
+              </div>
               {err && <div className="cj-err" style={{ marginTop: 8 }}>{err}</div>}
             </Section>
 
-            <Section title={`Exports${runningCount ? ' — 1 running' : ''}`}>
-              {!jobs.length && <p className="cj-note">Nothing exported yet. PNG and video jobs appear here with percent progress, cancel and download.</p>}
-              {jobs.map((j) => (
-                <div key={j.id} className="cj-job">
-                  <div className="cj-jobtop">
-                    <span>
-                      {j.label}
-                      {j.status === 'done' && <span className="cj-badge" style={{ marginLeft: 6 }}>done</span>}
-                      {j.status === 'canceled' && <span style={{ marginLeft: 6, color: '#8a93a3' }}>canceled</span>}
-                      {j.status === 'error' && <span style={{ marginLeft: 6, color: '#b42323' }}>failed</span>}
-                    </span>
-                    <span className="cj-jobmeta">
-                      {j.w}×{j.h}{j.kind === 'webm' ? ` · ${j.dur}s` : ''}
-                      {j.status === 'running' && <span className="cj-pct" style={{ marginLeft: 6 }}>{Math.round((j.progress || 0) * 100)}%</span>}
-                    </span>
+            {jobs.length > 0 && (
+              <Section title={`Exports${runningCount ? ' — 1 running' : ''}`}>
+                {jobs.map((j) => (
+                  <div key={j.id} className="cj-job">
+                    <div className="cj-jobtop">
+                      <span>
+                        {j.label}
+                        {j.status === 'done' && <span className="cj-badge" style={{ marginLeft: 6 }}>done</span>}
+                        {j.status === 'canceled' && <span style={{ marginLeft: 6, color: '#8a93a3' }}>canceled</span>}
+                        {j.status === 'error' && <span style={{ marginLeft: 6, color: '#b42323' }}>failed</span>}
+                      </span>
+                      <span className="cj-jobmeta">
+                        {j.w}×{j.h}{j.kind === 'webm' ? ` · ${j.dur}s` : ''}
+                        {j.status === 'running' && <span className="cj-pct" style={{ marginLeft: 6 }}>{Math.round((j.progress || 0) * 100)}%</span>}
+                      </span>
+                    </div>
+                    {j.status === 'running' && (
+                      <div className="cj-bar"><div className="cj-barfill" style={{ width: `${Math.round((j.progress || 0) * 100)}%` }} /></div>
+                    )}
+                    {j.status === 'error' && <div className="cj-err" style={{ marginTop: 8 }}>{j.error}</div>}
+                    {j.status === 'done' && j.url && j.kind === 'webm' && <video className="cj-jobvid" src={j.url} controls />}
+                    <div className="cj-jobacts">
+                      {j.status === 'running' && <button type="button" className="cj-btn" onClick={() => cancelJob(j)}>Cancel</button>}
+                      {j.status === 'done' && j.url && <a className="cj-btn primary" href={j.url} download={j.name}>Download</a>}
+                      {j.status !== 'running' && <button type="button" className="cj-btn" onClick={() => removeJob(j)}>Remove</button>}
+                    </div>
                   </div>
-                  {j.status === 'running' && (
-                    <div className="cj-bar"><div className="cj-barfill" style={{ width: `${Math.round((j.progress || 0) * 100)}%` }} /></div>
-                  )}
-                  {j.status === 'error' && <div className="cj-err" style={{ marginTop: 8 }}>{j.error}</div>}
-                  {j.status === 'done' && j.url && j.kind === 'webm' && <video className="cj-jobvid" src={j.url} controls />}
-                  <div className="cj-jobacts">
-                    {j.status === 'running' && <button type="button" className="cj-btn" onClick={() => cancelJob(j)}>Cancel</button>}
-                    {j.status === 'done' && j.url && <a className="cj-btn primary" href={j.url} download={j.name}>Download</a>}
-                    {j.status !== 'running' && <button type="button" className="cj-btn" onClick={() => removeJob(j)}>Remove</button>}
-                  </div>
-                </div>
-              ))}
-            </Section>
+                ))}
+              </Section>
+            )}
           </div>
         </aside>
+      </div>
+
+      {/* Below-the-Fold SEO Content: Step-by-Step Tutorial & FAQ */}
+      <div className="cj-below-fold">
+        <section className="cj-tutorial-section" aria-labelledby="cj-how-to-heading">
+          <div className="cj-section-header">
+            <span className="cj-section-eyebrow">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z" />
+              </svg>
+              <span>Quick Step-by-Step Guide</span>
+            </span>
+            <h2 id="cj-how-to-heading" className="cj-section-title">
+              How to Make a Photo &amp; Video Collage Online
+            </h2>
+            <p className="cj-section-subtitle">
+              Combine photos and videos into eye-catching grids, hearts, and social media layouts in four simple steps—completely free and right in your browser.
+            </p>
+          </div>
+
+          <ol className="cj-tutorial-grid">
+            {COLLAGE_TUTORIAL_STEPS.map((item) => (
+              <li key={item.step} className="cj-tutorial-card">
+                <div className="cj-tutorial-media">
+                  <span className="cj-tutorial-badge">{item.badge}</span>
+                  <CollageStepIllustration step={item.step} />
+                </div>
+                <div className="cj-tutorial-content">
+                  <h3 className="cj-tutorial-card-title">{item.title}</h3>
+                  <p className="cj-tutorial-card-desc">{item.description}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <section className="cj-faq-section" aria-labelledby="cj-faq-heading">
+          <div className="cj-faq-layout">
+            <aside className="cj-faq-aside">
+              <span className="cj-section-eyebrow">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                  <path d="M12 17h.01" />
+                </svg>
+                <span>Got Questions?</span>
+              </span>
+              <h2 id="cj-faq-heading" className="cj-section-title">
+                Frequently Asked Questions
+              </h2>
+              <p className="cj-section-subtitle">
+                Everything you need to know about designing custom photo grids and animated video collages on ImgMojo.
+              </p>
+
+              <div className="cj-faq-illustration-card" aria-hidden="true">
+                <svg viewBox="0 0 320 180" fill="none" className="cj-faq-svg">
+                  <rect x="16" y="14" width="288" height="152" rx="18" className="cj-illus-card" />
+                  <rect x="34" y="30" width="58" height="54" rx="10" className="cj-illus-slot-active" />
+                  <rect x="98" y="30" width="58" height="54" rx="10" className="cj-illus-slot" />
+                  <rect x="34" y="92" width="58" height="54" rx="10" className="cj-illus-slot" />
+                  <rect x="98" y="92" width="58" height="54" rx="10" className="cj-illus-slot-active" opacity="0.8" />
+                  <rect x="174" y="34" width="112" height="30" rx="10" className="cj-illus-pill-active" />
+                  <circle cx="190" cy="49" r="6" className="cj-illus-slot-active" />
+                  <rect x="204" y="45" width="66" height="8" rx="4" className="cj-illus-bar-brand" />
+                  <rect x="174" y="75" width="112" height="30" rx="10" className="cj-illus-pill" />
+                  <circle cx="190" cy="90" r="6" className="cj-illus-bar" />
+                  <rect x="204" y="86" width="60" height="8" rx="4" className="cj-illus-bar" />
+                  <rect x="174" y="116" width="112" height="30" rx="10" className="cj-illus-pill" />
+                  <circle cx="190" cy="131" r="6" className="cj-illus-bar" />
+                  <rect x="204" y="127" width="54" height="8" rx="4" className="cj-illus-bar" />
+                </svg>
+                <div className="cj-faq-highlights">
+                  <span>✓ 100% Free &amp; No Watermark</span>
+                  <span>✓ Photo + Video Support</span>
+                  <span>✓ Up to Ultra HD Export</span>
+                </div>
+              </div>
+            </aside>
+
+            <div className="cj-faq-list">
+              {COLLAGE_FAQ_ITEMS.map((item, idx) => {
+                const isOpen = openFaq === idx;
+                return (
+                  <div key={item.question} className={`cj-faq-item${isOpen ? ' is-open' : ''}`}>
+                    <button
+                      type="button"
+                      className="cj-faq-question"
+                      aria-expanded={isOpen}
+                      onClick={() => setOpenFaq(isOpen ? -1 : idx)}
+                    >
+                      <span>{item.question}</span>
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="cj-faq-chevron"
+                        aria-hidden="true"
+                      >
+                        <path d="m6 9 6 6 6-6" />
+                      </svg>
+                    </button>
+                    {isOpen && (
+                      <div className="cj-faq-answer">
+                        <p>{item.answer}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
       </div>
 
       <input
