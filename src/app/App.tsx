@@ -14,7 +14,7 @@ import { promptCatalog, promptCategories } from '../data/prompt-catalog'
 import { createPromptRepository } from '../data/prompt-repository'
 import { imageAtWidth, responsiveImage } from '../data/prompt-image'
 import { engagementFor, formatCount, useEngagement, type EngagementCounts } from '../data/prompt-engagement'
-import { clearBloggerSession, connectBlogger, getBloggerAccessToken, hasBloggerSession } from '../data/blogger-auth'
+import { clearBloggerSession, connectBlogger, getBloggerAccessTokenIfAvailable, hasBloggerSession } from '../data/blogger-auth'
 import { getPromptBloggerDraftMetadata, parseBloggerEditUrl, promptBloggerDraft, publishPromptToBlogger } from '../data/blogger-publisher'
 import { publishPdfProduct } from '../data/digital-products'
 import { loadStoreSnapshot, storeAction } from '../data/store-admin'
@@ -1175,6 +1175,14 @@ const defaultCustomBaseUrl = 'https://api.zyloai.net/v1'
 const zyloModelIds = ['gemini-3.1-pro', 'zimage', 'openai/gpt-image-1.5']
 const providerLabel = (provider: string) => provider === 'custom' ? 'Custom endpoint' : provider
 
+function aiAuthHeaders(includeJson = false): Record<string, string> {
+  const token = getBloggerAccessTokenIfAvailable()
+  const headers: Record<string, string> = {}
+  if (token) headers.Authorization = `Bearer ${token}`
+  if (includeJson) headers['Content-Type'] = 'application/json'
+  return headers
+}
+
 function AiModelSettingsPage() {
   const [models, setModels] = useState<AdminAiModel[]>([
     { id: 'openai-gpt-4o', name: 'GPT-4o', provider: 'OpenAI', model: 'gpt-4o', configured: false },
@@ -1199,7 +1207,7 @@ function AiModelSettingsPage() {
     let cancelled = false
     const load = async () => {
       try {
-        const response = await fetch('/api/ai-model-settings', { headers: { Authorization: `Bearer ${getBloggerAccessToken()}` } })
+        const response = await fetch('/api/ai-model-settings', { headers: aiAuthHeaders() })
         const result = await response.json().catch(() => ({})) as { models?: AdminAiModel[]; activeModel?: string | null; error?: string }
         if (!response.ok) throw new Error(result.error || `Could not load model settings (${response.status}).`)
         if (!cancelled) { setModels(result.models ?? []); setActiveModel(result.activeModel ?? null) }
@@ -1233,7 +1241,7 @@ function AiModelSettingsPage() {
     try {
       const response = await fetch('/api/ai-model-settings', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${getBloggerAccessToken()}`, 'Content-Type': 'application/json' },
+        headers: aiAuthHeaders(true),
         body: JSON.stringify({ modelId: model.id, apiKey: apiKeys[model.id] ?? '' }),
       })
       const result = await response.json().catch(() => ({})) as { ok?: boolean; detail?: string; error?: string }
@@ -1264,7 +1272,7 @@ function AiModelSettingsPage() {
     try {
       const response = await fetch('/api/ai-model-settings', {
         method: 'PUT',
-        headers: { Authorization: `Bearer ${getBloggerAccessToken()}`, 'Content-Type': 'application/json' },
+        headers: aiAuthHeaders(true),
         body: JSON.stringify({ activeModel, apiKeys, customModels: models.filter((item) => item.custom).map(({ id, name, provider, model, baseUrl }) => ({ id, name, provider, model, ...(provider === 'custom' && baseUrl ? { baseUrl } : {}) })) }),
       })
       const result = await response.json().catch(() => ({})) as { models?: AdminAiModel[]; activeModel?: string | null; error?: string }
@@ -1345,10 +1353,9 @@ function PromptEditor({ onPublish, customCategories }: { onPublish: (prompt: Pro
     setIsGenerating(true)
     setGeneratorError('')
     try {
-      const accessToken = getBloggerAccessToken()
       const response = await fetch('/api/generate-prompt', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        headers: aiAuthHeaders(true),
         body: JSON.stringify({ image: generatorPhoto }),
       })
       const result = await response.json().catch(() => ({})) as { prompt?: string; error?: string }
