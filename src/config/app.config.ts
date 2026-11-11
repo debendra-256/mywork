@@ -12,6 +12,22 @@ const communitySettings: { whatsappPhone: string; instagramUsername: string; fac
   telegramUsername: '',
 }
 
+const CURRENT_BLOG_ID = '7320184749093787409'
+const CURRENT_CLIENT_ID = '422817864573-7dds0taiqk26f26r3u2dgiapggp4h9qc.apps.googleusercontent.com'
+const PUBLIC_BLOGGER_API_KEY = 'AIzaSyCj2wg9a-JBEkSlMw2gIt80oswPzNftsdY'
+
+function resolveBlogId(val?: string): string {
+  const clean = val?.trim()
+  if (!clean || clean === '1194691713972639537') return CURRENT_BLOG_ID
+  return clean
+}
+
+function resolveClientId(val?: string): string {
+  const clean = val?.trim()
+  if (!clean || clean.startsWith('654724034712-')) return CURRENT_CLIENT_ID
+  return clean
+}
+
 /** Central, typed configuration shared by app features and adapters. Never put secrets here. */
 export const appConfig = Object.freeze({
   appName: 'ImgMojo',
@@ -25,16 +41,16 @@ export const appConfig = Object.freeze({
   }),
   blogger: Object.freeze({
     apiUrl: normalizeBaseUrl(env.VITE_BLOGGER_API_URL) || 'https://www.googleapis.com/blogger/v3',
-    blogId: env.VITE_BLOGGER_BLOG_ID?.trim() || '7320184749093787409',
-    clientId: env.VITE_BLOGGER_CLIENT_ID?.trim() || '422817864573-7dds0taiqk26f26r3u2dgiapggp4h9qc.apps.googleusercontent.com',
+    blogId: resolveBlogId(env.VITE_BLOGGER_BLOG_ID),
+    clientId: resolveClientId(env.VITE_BLOGGER_CLIENT_ID),
     // Browser-visible by design; restrict this key to Blogger API + approved origins in Google Cloud.
-    apiKey: env.VITE_BLOGGER_API_KEY?.trim() || '',
+    apiKey: env.VITE_BLOGGER_API_KEY?.trim() || PUBLIC_BLOGGER_API_KEY,
   }),
   analytics: Object.freeze({ measurementId: env.VITE_GA_MEASUREMENT_ID?.trim() || '' }),
   supportEmail: env.VITE_SUPPORT_EMAIL?.trim() || 'imgmojo@gmail.com',
   social: Object.freeze({
     // Public OAuth client identifiers. The matching secrets stay on the server.
-    googleClientId: env.VITE_GOOGLE_CLIENT_ID?.trim() || env.VITE_BLOGGER_CLIENT_ID?.trim() || '',
+    googleClientId: resolveClientId(env.VITE_GOOGLE_CLIENT_ID) || resolveClientId(env.VITE_BLOGGER_CLIENT_ID),
     facebookAppId: env.VITE_FACEBOOK_APP_ID?.trim() || '',
   }),
   community: Object.freeze(communitySettings),
