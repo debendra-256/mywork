@@ -285,16 +285,27 @@
 .tile-stats{display:flex;align-items:center;gap:12px;margin:9px 0 0;color:#98a0a9;font-size:8px;font-weight:700}
 .tile-stats span{display:inline-flex;align-items:center;gap:4px}
 .tile-stats svg{color:#b9c0c8}
-.library-pagination{display:flex;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap;margin-top:26px}
-.pagination-edge,.pagination-page{display:inline-flex;align-items:center;gap:5px;min-height:32px;padding:7px 11px;border:1px solid #e8eaed;border-radius:20px;background:#fff;color:#5d6570;font-size:9px;font-weight:750;transition:color .18s,border-color .18s,background .18s}
-.pagination-edge:hover:not(:disabled),.pagination-page:hover:not(.is-current){border-color:#bfe0cd;background:#eef8f1;color:#07864f}
-.pagination-edge:disabled{opacity:.4;cursor:not-allowed}
-.pagination-page.is-current{border-color:#2c2a33;background:#2c2a33;color:#fff}
-.pagination-gap{padding:0 3px;color:#a8afb8;font-size:9px;font-weight:750}
-.pagination-range{margin-left:6px;color:#98a0a9;font-size:8px;font-weight:700;letter-spacing:.04em}
-.detail-stats{display:flex;align-items:center;gap:14px;margin-top:11px;color:#8e96a0;font-size:9px;font-weight:750}
-.detail-stats span{display:inline-flex;align-items:center;gap:5px}
-@media(max-width:700px){.tile-hashtags{padding:9px 9px 0}.tile-stats{gap:10px}.library-pagination{gap:5px}.pagination-range{width:100%;margin:4px 0 0;text-align:center}}
+.filter-division-wrap{display:flex;flex-direction:column;gap:12px;margin:16px 0 10px}
+.hashtag-filter-row{display:flex;align-items:center;gap:10px;padding:6px 0 14px;border-bottom:1px solid #edf1ee;overflow-x:auto;scrollbar-width:none}
+.hashtag-filter-row::-webkit-scrollbar{display:none}
+.hashtag-filter-label{display:inline-flex;align-items:center;gap:5px;flex:none;color:#5a6860;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+.hashtag-pills-scroll{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.hashtag-pill{display:inline-flex;align-items:center;height:29px;padding:0 12px;border:1px solid #e2eae5;border-radius:999px;background:#f7faf8;color:#55665c;font-size:10.5px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .16s ease}
+.hashtag-pill:hover{border-color:#1bb76e;background:#eef8f2;color:#07884f;transform:translateY(-1px)}
+.hashtag-pill.active{border-color:#0a9f62;background:#0a9f62;color:#fff;font-weight:750;box-shadow:0 3px 10px rgba(10,159,98,.25)}
+
+/* Round button pagination */
+.library-pagination{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin:38px 0 24px;padding:12px 0}
+.pagination-pages{display:flex;align-items:center;gap:8px}
+.pagination-page{width:38px;height:38px;min-height:38px;padding:0;border-radius:50% !important;display:inline-grid;place-items:center;border:1.5px solid #dce4de;background:#fff;color:#35423a;font-size:12.5px;font-weight:750;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.04);transition:all .18s cubic-bezier(.16,1,.3,1)}
+.pagination-page:hover:not(.is-current){border-color:#1bb76e;background:#edf8f1;color:#07884f;transform:translateY(-2px);box-shadow:0 4px 10px rgba(10,159,98,.18)}
+.pagination-page.is-current{border-color:#0a9f62;background:#0a9f62;color:#fff;font-weight:800;box-shadow:0 4px 12px rgba(10,159,98,.35);transform:scale(1.05)}
+.pagination-edge{height:38px;min-height:38px;padding:0 16px;border:1.5px solid #dce4de;border-radius:999px;background:#fff;color:#3c4c42;display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:750;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.04);transition:all .18s cubic-bezier(.16,1,.3,1)}
+.pagination-edge:hover:not(:disabled){border-color:#1bb76e;background:#edf8f1;color:#07884f;transform:translateY(-1px)}
+.pagination-edge:disabled{opacity:.35;cursor:not-allowed;box-shadow:none;transform:none}
+.pagination-gap{padding:0 3px;color:#92a096;font-size:13px;font-weight:800}
+.pagination-range{margin-left:8px;color:#7d8b81;font-size:10.5px;font-weight:750;letter-spacing:.04em}
+@media(max-width:700px){.tile-hashtags{padding:9px 9px 0}.tile-stats{gap:10px}.library-pagination{gap:6px}.pagination-pages{gap:5px}.pagination-page{width:34px;height:34px;min-height:34px;font-size:11.5px}.pagination-edge{height:34px;min-height:34px;padding:0 12px;font-size:10.5px}.pagination-range{width:100%;margin:6px 0 0;text-align:center}}
 .poster-tile{display:flex;flex-direction:column}
 .poster-tile-content{display:flex;align-items:center;justify-content:center;margin-top:auto;padding:11px 10px 13px}
 .poster-create-button{display:inline-flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:10px 14px;border-radius:11px;background:#0a9f62;color:#fff;font-size:11px;font-weight:750;letter-spacing:.04em;text-decoration:none;transition:background .18s,transform .18s,box-shadow .18s}

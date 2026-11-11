@@ -73,7 +73,7 @@ export const appConfig = Object.freeze({
     localPromptsKey: env.VITE_LOCAL_PROMPTS_STORAGE_KEY?.trim() || 'imgmojo:local-prompts',
     sideMenusKey: env.VITE_SIDE_MENUS_STORAGE_KEY?.trim() || 'imgmojo:side-menus',
   }),
-  pagination: Object.freeze({ pageSize: 12 }),
+  pagination: Object.freeze({ pageSize: 20 }),
 })
 
 export type AppConfig = typeof appConfig

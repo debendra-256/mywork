@@ -480,27 +480,22 @@ function FeatureHero({ prompts }: { prompts: Prompt[] }) {
   </section>
 }
 
-const showcaseLimit = 4
-
-/** Home showcase: fresh prompt posts from Blogger, ready to copy and remix. */
-function HomeCategoryShowcase({ prompts, onViewAll }: { prompts: Prompt[]; onViewAll: (filter: string) => void }) {
-  const templates = useMemo(() => {
-    const ordered = [...prompts].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    return ordered.slice(0, showcaseLimit)
-  }, [prompts])
-  if (!templates.length) return null
-  return <section className="home-showcase" aria-label="Latest prompt templates from the blog">
-    <div className="showcase-block">
-      <div className="showcase-head">
-        <div className="showcase-title"><span className="feature-eyebrow"><Sparkles size={14} /> JUST PUBLISHED</span><h2>Latest prompt <em>templates</em></h2><p>Fresh prompts from the blog, ready to copy and remix.</p></div>
-        <div className="showcase-actions"><span className="showcase-hashtag">{templates.length} NEW</span><button type="button" className="showcase-view-all" onClick={() => onViewAll('Latest')}>View all <ArrowRight size={14} /></button></div>
-      </div>
-      <div className="showcase-grid">{templates.map((prompt) => <Link className="showcase-card" to={`/prompt/${prompt.slug}`} key={prompt.id}>
-        <div className="showcase-card-image">{prompt.image ? <img {...responsiveImage(prompt.image, '(max-width: 650px) 46vw, 22vw')} alt={prompt.imageAlt || prompt.title} loading="lazy" /> : <span className="showcase-card-fallback"><Sparkles size={26} /></span>}<span className="showcase-card-tag">{prompt.category}</span><span className="showcase-card-open"><ArrowUpRight size={16} /></span></div>
-        <div className="showcase-card-body"><h3>{prompt.title || 'Creative Prompt'}</h3><p>{prompt.description || prompt.promptText}</p><span className="showcase-card-meta">{prompt.tool} <b>·</b> {prompt.style}</span></div>
-      </Link>)}</div>
-    </div>
-  </section>
+/** Ensures no duplicate posts appear on the home page or library grid. */
+function deduplicatePrompts(items: Prompt[]): Prompt[] {
+  const seenImages = new Set<string>()
+  const seenIds = new Set<string>()
+  const result: Prompt[] = []
+  for (const item of items) {
+    if (seenIds.has(item.id)) continue
+    seenIds.add(item.id)
+    const imgKey = item.image
+      ? item.image.replace(/=(?:s|w)\d[\w-]*$/i, '').replace(/\/(?:s|w)\d+(?:-[a-z0-9]+)*\//i, '/')
+      : item.slug
+    if (imgKey && seenImages.has(imgKey)) continue
+    if (imgKey) seenImages.add(imgKey)
+    result.push(item)
+  }
+  return result
 }
 
 const scrollerTiles = { software: '/images/tile-software.png', pdf: '/images/tile-pdf.png', feature: '/images/tile-license.png' }
@@ -542,33 +537,50 @@ function ProductScroller() {
 }
 
 interface PromptFilter { key: string; label: string; count: number }
+interface FilterGroup { categories: PromptFilter[]; hashtags: PromptFilter[] }
 
 /** Labels handled by the built-in pills instead of getting one of their own. */
 const reservedFilterKeys = new Set(['all', 'trending', 'latest', 'saved', 'featured'])
 
-/** Filter choices read from the loaded prompts, so a tag the blog actually uses is never missing. */
-function collectPromptFilters(prompts: Prompt[]): PromptFilter[] {
+/** Filter choices divided into Blog Page Categories and Hashtags. */
+function collectPromptFilters(prompts: Prompt[]): FilterGroup {
   const curated = promptCategories.filter((name) => name !== 'Trending' && name !== 'Latest')
-  const found = new Map<string, PromptFilter>()
+  const catMap = new Map<string, PromptFilter>()
+  const tagMap = new Map<string, PromptFilter>()
+
   for (const prompt of prompts) {
     const counted = new Set<string>()
     for (const label of promptLabels(prompt)) {
-      const key = label.toLowerCase()
+      const isHash = label.startsWith('#')
+      const clean = label.replace(/^#+/, '').trim()
+      if (!clean) continue
+      const key = clean.toLowerCase()
       if (counted.has(key) || reservedFilterKeys.has(key)) continue
       counted.add(key)
-      const existing = found.get(key)
-      if (existing) existing.count += 1
-      else found.set(key, { key, label: curated.find((name) => name.toLowerCase() === key) ?? label, count: 1 })
+
+      if (isHash) {
+        const existing = tagMap.get(key)
+        if (existing) existing.count += 1
+        else tagMap.set(key, { key, label: `#${clean}`, count: 1 })
+      } else {
+        const existing = catMap.get(key)
+        if (existing) existing.count += 1
+        else catMap.set(key, { key, label: curated.find((name) => name.toLowerCase() === key) ?? clean, count: 1 })
+      }
     }
   }
+
   const curatedRank = new Map(curated.map((name, index) => [name.toLowerCase(), index]))
-  const present = [...found.values()].sort((a, b) => (curatedRank.get(a.key) ?? 100) - (curatedRank.get(b.key) ?? 100) || b.count - a.count || a.key.localeCompare(b.key))
-  const unused = curated.filter((name) => !found.has(name.toLowerCase())).map((name) => ({ key: name.toLowerCase(), label: name, count: 0 }))
-  return [...present, ...unused]
+  const categories = [...catMap.values()].sort(
+    (a, b) => (curatedRank.get(a.key) ?? 100) - (curatedRank.get(b.key) ?? 100) || b.count - a.count || a.key.localeCompare(b.key)
+  )
+  const hashtags = [...tagMap.values()].sort((a, b) => b.count - a.count || a.key.localeCompare(b.key))
+
+  return { categories, hashtags }
 }
 
 /** Prompt tiles shown per page of the library grid. */
-const libraryPageSize = 24
+const libraryPageSize = 20
 
 /** Current page plus at most two neighbours on each side, always including the first and last page. */
 function pageNumbers(current: number, total: number): (number | 'gap')[] {
@@ -582,9 +594,87 @@ function pageNumbers(current: number, total: number): (number | 'gap')[] {
   return withGaps
 }
 
-function CategoryPills({ active, categories, onSelect }: { active: string; categories: PromptFilter[]; onSelect: (category: string) => void }) {
-  const visible: PromptFilter[] = [{ key: 'all', label: 'All', count: 0 }, { key: 'trending', label: 'Trending', count: 0 }, { key: 'latest', label: 'Latest', count: 0 }, ...categories.filter((category) => category.count > 0)]
-  return <div className="category-pills" aria-label="Filter by category">{visible.map((item) => <button key={item.key} className={active.toLowerCase() === item.key ? 'category-pill active' : 'category-pill'} onClick={() => onSelect(item.label)}>{item.label === 'Trending' && <Flame size={14} />}{item.label === 'Latest' && <Clock3 size={14} />}{item.label !== 'Trending' && item.label !== 'Latest' && item.label !== 'All' && <span className="pill-mark">✳</span>}{item.label}</button>)}</div>
+function HashIcon({ size = 13 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="4" y1="9" x2="20" y2="9" />
+      <line x1="4" y1="15" x2="20" y2="15" />
+      <line x1="10" y1="3" x2="8" y2="21" />
+      <line x1="16" y1="3" x2="14" y2="21" />
+    </svg>
+  )
+}
+
+function FilterBar({
+  active,
+  categories,
+  hashtags,
+  onSelect,
+}: {
+  active: string
+  categories: PromptFilter[]
+  hashtags: PromptFilter[]
+  onSelect: (category: string) => void
+}) {
+  const visibleCategories: PromptFilter[] = [
+    { key: 'all', label: 'All', count: 0 },
+    { key: 'trending', label: 'Trending', count: 0 },
+    { key: 'latest', label: 'Latest', count: 0 },
+    { key: 'saved', label: 'Saved', count: 0 },
+    ...categories.filter((cat) => cat.count > 0),
+  ]
+
+  const activeNorm = active.toLowerCase().replace(/^#+/, '')
+
+  return (
+    <div className="filter-division-wrap">
+      {/* 1. Blog Page Categories */}
+      <div className="category-pills" aria-label="Filter by blog page category">
+        {visibleCategories.map((item) => {
+          const isCurrent = activeNorm === item.key
+          return (
+            <button
+              key={item.key}
+              className={isCurrent ? 'category-pill active' : 'category-pill'}
+              onClick={() => onSelect(item.label)}
+            >
+              {item.label === 'Trending' && <Flame size={14} />}
+              {item.label === 'Latest' && <Clock3 size={14} />}
+              {item.label === 'Saved' && <Bookmark size={14} />}
+              {item.label !== 'Trending' && item.label !== 'Latest' && item.label !== 'Saved' && item.label !== 'All' && (
+                <span className="pill-mark">✳</span>
+              )}
+              {item.label}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* 2. HashTags */}
+      {hashtags.length > 0 && (
+        <div className="hashtag-filter-row" aria-label="Filter by hashtag">
+          <span className="hashtag-filter-label">
+            <HashIcon size={13} /> Tags:
+          </span>
+          <div className="hashtag-pills-scroll">
+            {hashtags.map((item) => {
+              const isCurrent = activeNorm === item.key
+              return (
+                <button
+                  key={item.key}
+                  type="button"
+                  className={`hashtag-pill ${isCurrent ? 'active' : ''}`}
+                  onClick={() => onSelect(item.label)}
+                >
+                  {item.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 function HomePage({ prompts, blogStatus, adminLoggedIn = false }: { prompts: Prompt[]; blogStatus: 'idle' | 'loading' | 'connected' | 'error'; menuSections?: SideMenuSection[]; adminLoggedIn?: boolean }) {
@@ -621,18 +711,29 @@ function HomePage({ prompts, blogStatus, adminLoggedIn = false }: { prompts: Pro
     window.addEventListener('imgmojo:open-utility', openPending)
     return () => window.removeEventListener('imgmojo:open-utility', openPending)
   }, [utility])
-  const filters = useMemo(() => collectPromptFilters(prompts), [prompts])
+
+  // Deduplicate prompts so posters never appear twice
+  const deduplicatedPrompts = useMemo(() => deduplicatePrompts(prompts), [prompts])
+  const { categories, hashtags } = useMemo(() => collectPromptFilters(deduplicatedPrompts), [deduplicatedPrompts])
+
   const shown = useMemo(() => {
     const term = query.trim().toLowerCase()
-    const tag = active.toLowerCase()
-    let items = prompts
+    const activeNorm = active.toLowerCase().replace(/^#+/, '')
+    let items = deduplicatedPrompts
     if (active === 'Trending') items = items.filter((item) => item.featured || promptTags(item).includes('trending'))
     else if (active === 'Latest') items = [...items].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     else if (active === 'Saved') items = items.filter((item) => savedIds.includes(item.id))
-    else if (tag !== 'all') items = items.filter((item) => promptTags(item).includes(tag))
+    else if (activeNorm !== 'all') {
+      items = items.filter((item) => {
+        const itemTags = promptTags(item).map((t) => t.replace(/^#+/, ''))
+        const cat = (item.category || '').toLowerCase().replace(/^#+/, '')
+        return itemTags.includes(activeNorm) || cat === activeNorm
+      })
+    }
     if (term) items = items.filter((item) => `${item.title} ${item.description} ${item.category} ${item.tool} ${item.style} ${promptTags(item).join(' ')}`.toLowerCase().includes(term))
     return items
-  }, [active, query, savedIds, prompts])
+  }, [active, query, savedIds, deduplicatedPrompts])
+
   useEffect(() => { setPage(1) }, [active, query, savedIds])
   const toggleSave = (id: string) => setSavedIds((ids) => ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id])
   const totalPages = Math.max(1, Math.ceil(shown.length / libraryPageSize))
@@ -669,13 +770,13 @@ function HomePage({ prompts, blogStatus, adminLoggedIn = false }: { prompts: Pro
   }, [location.hash])
   const title = active === 'All' ? 'All prompts' : active === 'Saved' ? 'Your saved prompts' : active === 'Trending' ? 'Trending prompts' : active === 'Latest' ? 'Latest prompts' : `${active} prompts`
   return <div className={`app-layout ${sidebarVisible ? '' : 'no-sidebar'}`}><SeoHead pageKey="home" /><Header onMenu={() => setSidebarOpen(true)} onJump={jumpTo} onFilter={(filter) => { setActive(filter); setActiveUtility(null); jumpTo('explore') }} adminLoggedIn={adminLoggedIn} /><div className="page-body">{sidebarVisible && <Sidebar open={sidebarOpen} active={active} onHome={() => { setActive('All'); setQuery(''); setActiveUtility(null); setSidebarOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }} activeUtility={activeUtility} onOpenUtility={(id) => { setActiveUtility(id); setSidebarOpen(false); window.setTimeout(() => document.getElementById('home-utility-area')?.scrollIntoView({ behavior: 'smooth' }), 0) }} onSelect={(category) => { setActive(category); setActiveUtility(null); setSidebarOpen(false); document.getElementById('explore')?.scrollIntoView({ behavior: 'smooth' }) }} onClose={() => setSidebarOpen(false)} />}
-    <main className={`main-content ${utilityOpen ? 'recorder-main-wide' : ''}`}><div className={`content-inner ${utilityOpen ? 'recorder-content-wide' : ''}`}>{!utilityOpen && <HomeLanding onJump={jumpTo} onOpenTool={openTool} onNavigate={navigate} />}<div id="home-utility-area">{utilityTool?.overlay ? null : utilityTool && <ToolSurface tool={utilityTool} />}</div>{utilityTool?.overlay && <ToolSurface tool={utilityTool} onClose={() => setActiveUtility(null)} />}<FeatureHero prompts={prompts} /><HomeCategoryShowcase prompts={prompts} onViewAll={showHashtag} /><ProductScroller />
-      <section className="browse-section" id="explore"><div className="section-topline"><div><span className="section-kicker">THE PROMPT LIBRARY</span><h2>Find your next <em>favorite.</em></h2></div><span className="collection-count">{prompts.length} IDEAS <span>↗</span></span></div>
+    <main className={`main-content ${utilityOpen ? 'recorder-main-wide' : ''}`}><div className={`content-inner ${utilityOpen ? 'recorder-content-wide' : ''}`}>{!utilityOpen && <HomeLanding onJump={jumpTo} onOpenTool={openTool} onNavigate={navigate} />}<div id="home-utility-area">{utilityTool?.overlay ? null : utilityTool && <ToolSurface tool={utilityTool} />}</div>{utilityTool?.overlay && <ToolSurface tool={utilityTool} onClose={() => setActiveUtility(null)} />}<FeatureHero prompts={deduplicatedPrompts} /><ProductScroller />
+      <section className="browse-section" id="explore"><div className="section-topline"><div><span className="section-kicker">THE PROMPT LIBRARY</span><h2>Find your next <em>favorite.</em></h2></div><span className="collection-count">{deduplicatedPrompts.length} IDEAS <span>↗</span></span></div>
         
         <div className="inline-search"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search prompts, styles, ideas" aria-label="Filter the prompt library" />{query && <button onClick={() => setQuery('')} aria-label="Clear search"><X size={15} /></button>}</div>
-        <CategoryPills active={active} categories={filters} onSelect={setActive} />
+        <FilterBar active={active} categories={categories} hashtags={hashtags} onSelect={setActive} />
         <div className="results-heading"><div><span className="results-label">BROWSE THE LIBRARY</span><h3>{title}</h3></div><span className="results-number">{String(shown.length).padStart(2, '0')} <span>prompts</span></span></div>
-        {shown.length ? <><div className="prompt-grid">{pageItems.map((prompt, index) => <PromptCard key={prompt.id} prompt={prompt} index={(currentPage - 1) * libraryPageSize + index} saved={savedIds.includes(prompt.id)} engagement={engagementFor(counts, prompt.id)} onToggleSave={() => toggleSave(prompt.id)} onCopy={() => record(prompt.id, 'copy')} onHashtag={showHashtag} />)}</div>{totalPages > 1 && <nav className="library-pagination" aria-label="Prompt pages"><button className="pagination-edge" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}><ArrowLeft size={15} /> Prev</button><div className="pagination-pages">{pageNumbers(currentPage, totalPages).map((entry, index) => entry === 'gap' ? <span className="pagination-gap" key={`gap-${index}`}>…</span> : <button key={entry} className={`pagination-page ${entry === currentPage ? 'is-current' : ''}`} onClick={() => goToPage(entry)} aria-current={entry === currentPage ? 'page' : undefined}>{entry}</button>)}</div><span className="pagination-range">{String((currentPage - 1) * libraryPageSize + 1).padStart(2, '0')}–{String((currentPage - 1) * libraryPageSize + pageItems.length).padStart(2, '0')} of {String(shown.length).padStart(2, '0')}</span><button className="pagination-edge" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}>Next <ArrowRight size={15} /></button></nav>}</> : <div className="no-results"><span>✳</span><h3>{blogStatus === 'connected' && prompts.length === 0 ? 'No published posts yet' : 'No prompts here yet'}</h3><p>{blogStatus === 'connected' && prompts.length === 0 ? 'Your Blogger connection is working. Publish a post on the blog and it will appear here.' : 'Try another category or search term.'}</p>{!(blogStatus === 'connected' && prompts.length === 0) && <button onClick={() => { setActive('All'); setQuery('') }}>Show all prompts <ArrowRight size={15} /></button>}</div>}
+        {shown.length ? <><div className="prompt-grid">{pageItems.map((prompt, index) => <PromptCard key={prompt.id} prompt={prompt} index={(currentPage - 1) * libraryPageSize + index} saved={savedIds.includes(prompt.id)} engagement={engagementFor(counts, prompt.id)} onToggleSave={() => toggleSave(prompt.id)} onCopy={() => record(prompt.id, 'copy')} onHashtag={showHashtag} />)}</div>{totalPages > 1 && <nav className="library-pagination" aria-label="Prompt pages"><button className="pagination-edge" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1} aria-label="Previous page"><ArrowLeft size={15} /> Prev</button><div className="pagination-pages">{pageNumbers(currentPage, totalPages).map((entry, index) => entry === 'gap' ? <span className="pagination-gap" key={`gap-${index}`}>…</span> : <button key={entry} className={`pagination-page ${entry === currentPage ? 'is-current' : ''}`} onClick={() => goToPage(entry)} aria-current={entry === currentPage ? 'page' : undefined}>{entry}</button>)}</div><span className="pagination-range">{String((currentPage - 1) * libraryPageSize + 1).padStart(2, '0')}–{String((currentPage - 1) * libraryPageSize + pageItems.length).padStart(2, '0')} of {String(shown.length).padStart(2, '0')}</span><button className="pagination-edge" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages} aria-label="Next page">Next <ArrowRight size={15} /></button></nav>}</> : <div className="no-results"><span>✳</span><h3>{blogStatus === 'connected' && deduplicatedPrompts.length === 0 ? 'No published posts yet' : 'No prompts here yet'}</h3><p>{blogStatus === 'connected' && deduplicatedPrompts.length === 0 ? 'Your Blogger connection is working. Publish a post on the blog and it will appear here.' : 'Try another category or search term.'}</p>{!(blogStatus === 'connected' && deduplicatedPrompts.length === 0) && <button onClick={() => { setActive('All'); setQuery('') }}>Show all prompts <ArrowRight size={15} /></button>}</div>}
       </section>
       <SiteFooter />
     </div></main></div></div>
