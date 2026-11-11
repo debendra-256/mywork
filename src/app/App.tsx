@@ -1618,7 +1618,7 @@ export default function App() {
     clearBloggerSession(); setBloggerConnected(false); setAdminAuthenticated(false)
     void fetch('/api/admin-auth', { method: 'DELETE' }).catch(() => undefined)
   }
-  useEffect(() => { document.title = `${appConfig.appName || 'ImgMojo'} — AI prompt library` }, [])
+  useEffect(() => { document.title = 'ImgMojo – Free Online Image, Video, PDF & QR Code Tools, Screen Recording' }, [])
   useEffect(() => {
     // The home page does not need license state to paint; store routes still read it immediately.
     if (window.location.pathname === '/') return whenIdle(() => { void loadCustomerSession() })
