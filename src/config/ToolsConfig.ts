@@ -44,6 +44,7 @@ export const toolsConfig: readonly ToolDefinition[] = [
   { id: 'shorts', title: 'YouTube to Shorts Maker', placement: 'library', path: '/shorts', href: '/shorts', icon: 'zap', enabled: true, load: () => import('../tools/shorts/ShortsCreator') },
   { id: 'poster', title: 'Create Poster', placement: 'library', path: '/poster/*', href: '/poster', icon: 'sparkles', editorFonts: true, enabled: true, load: () => import('../tools/poster/CreatePoster') },
   { id: 'fakechat', title: 'FakeChat', placement: 'library', path: '/fakechat', href: '/fakechat', icon: 'bot', enabled: true, load: () => import('../tools/fakechat/FakeChat') },
+  { id: 'get-emoji', title: 'GetEmoji – Copy and Paste Emojis', placement: 'library', path: '/get-emoji', href: '/get-emoji', icon: 'smile', enabled: true, load: () => import('../tools/get-emoji/GetEmoji') },
   { id: 'emoji-text', title: 'Emoji Text Generator', placement: 'library', path: '/emoji-text', href: '/emoji-text', icon: 'smile', enabled: true, load: () => import('../tools/emoji-text/EmojiTextGenerator') },
   { id: 'remove-object', title: 'Remove Object from Image', placement: 'library', path: '/remove-object', href: '/remove-object', icon: 'eraser', enabled: true, load: () => import('../tools/remove-object/RemoveObject') },
   { id: 'watermark-remover', title: 'Watermark Remover', placement: 'library', path: '/watermark-remover', href: '/watermark-remover', icon: 'droplets', enabled: true, load: () => import('../tools/watermark-remover/WatermarkRemover') },

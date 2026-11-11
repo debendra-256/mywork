@@ -74,6 +74,7 @@ const NAV_SECTIONS: { id: string; label: string; href?: string; items?: NavItem[
       { toolId: 'shorts' },
       { group: 'Writing', toolId: 'fakechat' },
       { toolId: 'emoji-text' },
+      { toolId: 'get-emoji' },
       { group: 'File', toolId: 'qr-code' },
       { toolId: 'video-downloader' },
       { group: 'AI & Utilities', toolId: 'prompt-generator' },
@@ -102,6 +103,7 @@ const NAV_SECTIONS: { id: string; label: string; href?: string; items?: NavItem[
       { label: 'Creator dashboard', href: '/login', glyph: 'dashboard' },
     ],
   },
+  { id: 'get-emoji', label: 'GetEmoji', href: '/get-emoji' },
   { id: 'about', label: 'About Us', href: '/about' },
   { id: 'contact', label: 'Contact Us', href: '/contact' },
 ]
@@ -152,6 +154,7 @@ const TOOL_MEGA_GROUPS = [
     items: [
       { toolId: 'fakechat', label: 'Fake Chat Mockup' },
       { toolId: 'emoji-text', label: 'Emoji Text Generator' },
+      { toolId: 'get-emoji', label: 'GetEmoji' },
     ],
   },
 ]

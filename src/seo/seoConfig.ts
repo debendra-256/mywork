@@ -403,6 +403,39 @@ export const SEO_CONFIG: Record<string, SeoMetadata> = {
     twitterImage: DEFAULT_OG_IMAGE,
   },
 
+  // GET EMOJI
+  'get-emoji': {
+    title: 'GetEmoji – Copy and Paste All Emojis Online | ImgMojo',
+    description:
+      'Fast copy and paste emoji keyboard. Copy all emojis for Twitter, WhatsApp, Facebook, Instagram, Slack, Discord, Mac, Windows, iOS and Android with 1 click.',
+    keywords:
+      'get emoji, copy and paste emoji, emoji keyboard, emoji copy paste, copy emojis online, emoticons copy paste, all emojis, getemoji, ImgMojo',
+    canonical: `${BASE_URL}/get-emoji`,
+    author: DEFAULT_AUTHOR,
+    robots: DEFAULT_ROBOTS,
+    ogType: 'website',
+    ogTitle: 'GetEmoji – Copy and Paste All Emojis Online | ImgMojo',
+    ogDescription:
+      'Copy and paste all emojis with one click for WhatsApp, Instagram, Twitter, and TikTok. No apps required.',
+    ogImage: DEFAULT_OG_IMAGE,
+    ogImageAlt: 'ImgMojo GetEmoji – Copy and Paste Emojis',
+    twitterCard: 'summary_large_image',
+    twitterTitle: 'GetEmoji – Copy and Paste All Emojis Online | ImgMojo',
+    twitterDescription: 'Copy and paste emojis with 1 click for social media, chats and documents.',
+    twitterImage: DEFAULT_OG_IMAGE,
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'WebApplication',
+      name: 'GetEmoji – Copy and Paste Emojis',
+      url: `${BASE_URL}/get-emoji`,
+      description:
+        'Fast copy and paste emoji keyboard. Copy all emojis for Twitter, WhatsApp, Facebook, Instagram, Slack, and Discord.',
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'All',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    },
+  },
+
   // MINDCLOUD
   mindcloud: {
     title: 'Word Cloud & Mind Map Maker Online – Free Visual Studio | ImgMojo',
