@@ -5,7 +5,7 @@ import { POSTER_LABEL, posterEditUrl, readPosterSource, splitPostIntoPosterEdits
 import { hasBloggerSession } from '../../data/blogger-auth'
 import './PosterSplitter.css'
 
-const SOURCE_LINK = 'https://www.blogger.com/blog/post/edit/1194691713972639537/2401058807252053039'
+const SOURCE_LINK = 'https://www.blogger.com/blog/posts/7320184749093787409'
 
 export default function PosterSplitter() {
   const [link, setLink] = useState(SOURCE_LINK)

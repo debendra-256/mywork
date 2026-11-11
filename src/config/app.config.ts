@@ -25,13 +25,13 @@ export const appConfig = Object.freeze({
   }),
   blogger: Object.freeze({
     apiUrl: normalizeBaseUrl(env.VITE_BLOGGER_API_URL) || 'https://www.googleapis.com/blogger/v3',
-    blogId: env.VITE_BLOGGER_BLOG_ID?.trim() || '',
+    blogId: env.VITE_BLOGGER_BLOG_ID?.trim() || '7320184749093787409',
     clientId: env.VITE_BLOGGER_CLIENT_ID?.trim() || '',
     // Browser-visible by design; restrict this key to Blogger API + approved origins in Google Cloud.
     apiKey: env.VITE_BLOGGER_API_KEY?.trim() || '',
   }),
   analytics: Object.freeze({ measurementId: env.VITE_GA_MEASUREMENT_ID?.trim() || '' }),
-  supportEmail: env.VITE_SUPPORT_EMAIL?.trim() || 'debendraca@gmail.com',
+  supportEmail: env.VITE_SUPPORT_EMAIL?.trim() || 'imgmojo@gmail.com',
   social: Object.freeze({
     // Public OAuth client identifiers. The matching secrets stay on the server.
     googleClientId: env.VITE_GOOGLE_CLIENT_ID?.trim() || env.VITE_BLOGGER_CLIENT_ID?.trim() || '',

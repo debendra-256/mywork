@@ -2,7 +2,7 @@ import { appConfig } from '../config/app.config'
 
 const bloggerScope = 'https://www.googleapis.com/auth/blogger https://www.googleapis.com/auth/drive.file'
 const identityScriptUrl = 'https://accounts.google.com/gsi/client'
-const sessionStorageKey = 'promptseen:blogger-oauth-session'
+const sessionStorageKey = 'imgmojo:blogger-oauth-session-v2'
 let accessToken: string | null = null
 let expiresAt = 0
 let scriptLoad: Promise<void> | null = null
@@ -62,7 +62,7 @@ export async function connectBlogger(): Promise<void> {
       },
       error_callback: (error) => reject(new Error(error.message || 'Google sign-in was closed or blocked.')),
     })
-    tokenClient.requestAccessToken({ prompt: 'consent' })
+    tokenClient.requestAccessToken({ prompt: 'select_account consent' })
   })
 }
 
