@@ -28,6 +28,7 @@ import { InfoPage, type InfoKind } from './InfoPage'
 import AboutUs from './Pages/AboutUs'
 import ContactUs from './Pages/ContactUs'
 import PrivacyPolicy from './Pages/PrivacyPolicy'
+import { SeoHead } from '../seo/SeoHead'
 
 const promptRepository = createPromptRepository({
   contentProvider: appConfig.contentProvider,
@@ -691,7 +692,7 @@ function HomePage({ prompts, blogStatus, adminLoggedIn = false }: { prompts: Pro
     if (id) window.setTimeout(() => jumpTo(id), 80)
   }, [location.hash])
   const title = active === 'All' ? 'All prompts' : active === 'Saved' ? 'Your saved prompts' : active === 'Trending' ? 'Trending prompts' : active === 'Latest' ? 'Latest prompts' : `${active} prompts`
-  return <div className={`app-layout ${sidebarVisible ? '' : 'no-sidebar'}`}><Header onMenu={() => setSidebarOpen(true)} onJump={jumpTo} onFilter={(filter) => { setActive(filter); setActiveUtility(null); jumpTo('explore') }} adminLoggedIn={adminLoggedIn} /><div className="page-body">{sidebarVisible && <Sidebar open={sidebarOpen} active={active} onHome={() => { setActive('All'); setQuery(''); setActiveUtility(null); setSidebarOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }} activeUtility={activeUtility} onOpenUtility={(id) => { setActiveUtility(id); setSidebarOpen(false); window.setTimeout(() => document.getElementById('home-utility-area')?.scrollIntoView({ behavior: 'smooth' }), 0) }} onSelect={(category) => { setActive(category); setActiveUtility(null); setSidebarOpen(false); document.getElementById('explore')?.scrollIntoView({ behavior: 'smooth' }) }} onClose={() => setSidebarOpen(false)} />}
+  return <div className={`app-layout ${sidebarVisible ? '' : 'no-sidebar'}`}><SeoHead pageKey="home" /><Header onMenu={() => setSidebarOpen(true)} onJump={jumpTo} onFilter={(filter) => { setActive(filter); setActiveUtility(null); jumpTo('explore') }} adminLoggedIn={adminLoggedIn} /><div className="page-body">{sidebarVisible && <Sidebar open={sidebarOpen} active={active} onHome={() => { setActive('All'); setQuery(''); setActiveUtility(null); setSidebarOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }} activeUtility={activeUtility} onOpenUtility={(id) => { setActiveUtility(id); setSidebarOpen(false); window.setTimeout(() => document.getElementById('home-utility-area')?.scrollIntoView({ behavior: 'smooth' }), 0) }} onSelect={(category) => { setActive(category); setActiveUtility(null); setSidebarOpen(false); document.getElementById('explore')?.scrollIntoView({ behavior: 'smooth' }) }} onClose={() => setSidebarOpen(false)} />}
     <main className={`main-content ${utilityOpen ? 'recorder-main-wide' : ''}`}><div className={`content-inner ${utilityOpen ? 'recorder-content-wide' : ''}`}>{!utilityOpen && <HomeLanding onJump={jumpTo} onOpenTool={openTool} onNavigate={navigate} />}<div id="home-utility-area">{utilityTool?.overlay ? null : utilityTool && <ToolSurface tool={utilityTool} />}</div>{utilityTool?.overlay && <ToolSurface tool={utilityTool} onClose={() => setActiveUtility(null)} />}<FeatureHero prompts={prompts} /><HomeCategoryShowcase prompts={prompts} onViewAll={showHashtag} /><ProductScroller />
       <section className="browse-section" id="explore"><div className="section-topline"><div><span className="section-kicker">THE PROMPT LIBRARY</span><h2>Find your next <em>favorite.</em></h2></div><span className="collection-count">{prompts.length} IDEAS <span>↗</span></span></div>
         
@@ -782,15 +783,15 @@ function SiteFooter() {
 
 function InfoRoute({ kind }: { kind: InfoKind }) {
   if (kind === 'about') {
-    return <div className="detail-shell"><Header onMenu={() => {}} /><AboutUs /><SiteFooter /></div>
+    return <div className="detail-shell"><SeoHead pageKey="about" /><Header onMenu={() => {}} /><AboutUs /><SiteFooter /></div>
   }
   if (kind === 'contact') {
-    return <div className="detail-shell"><Header onMenu={() => {}} /><ContactUs /><SiteFooter /></div>
+    return <div className="detail-shell"><SeoHead pageKey="contact" /><Header onMenu={() => {}} /><ContactUs /><SiteFooter /></div>
   }
   if (kind === 'privacy') {
-    return <div className="detail-shell"><Header onMenu={() => {}} /><PrivacyPolicy /><SiteFooter /></div>
+    return <div className="detail-shell"><SeoHead pageKey="privacy" /><Header onMenu={() => {}} /><PrivacyPolicy /><SiteFooter /></div>
   }
-  return <div className="detail-shell"><Header onMenu={() => {}} /><InfoPage kind={kind} /><SiteFooter /></div>
+  return <div className="detail-shell"><SeoHead pageKey={kind} /><Header onMenu={() => {}} /><InfoPage kind={kind} /><SiteFooter /></div>
 }
 
 function StoreFeatureList({ features, benefits }: { features: StoreFeature[]; benefits: string[] }) {
@@ -822,7 +823,7 @@ function StorePage() {
   }, [])
   useEffect(() => { setCategory(new URLSearchParams(location.search).get('type') || 'all') }, [location.search])
   const visible = products.filter((product) => category === 'all' || product.type === category)
-  return <div className="detail-shell store-shell"><Header onMenu={() => {}} /><main className="store-page"><Link className="store-back-link" to="/"><ArrowLeft size={14} /> Prompt library</Link><section className="store-hero"><span className="feature-eyebrow"><Store size={14} /> DIGITAL GOODS</span><h1>Sell online</h1><p>Software and practical PDFs with every feature listed up front. Premium features unlock the moment your license code is redeemed.</p></section><nav className="store-filters" aria-label="Product categories"><Link className={category === 'all' ? 'active' : ''} to="/store">All products</Link><Link className={category === 'software' ? 'active' : ''} to="/store?type=software">Software</Link><Link className={category === 'pdf' ? 'active' : ''} to="/store?type=pdf">PDF</Link></nav>{loading && <div className="store-empty">Loading products…</div>}{error && <div className="store-empty store-error" role="alert">{error}</div>}{!loading && !error && visible.length === 0 && <div className="store-empty"><span><Copy size={23} /></span><h2>No products listed yet</h2><p>Products and their feature lists come from the store database. Add them in Creator Studio under Digital store.</p></div>}{visible.length > 0 && <div className="store-product-grid">{visible.map((product) => <article className={`store-product-card ${product.premium ? 'store-product-premium' : ''}`} key={product.id}><div className="store-product-image">{product.imageUrl ? <img src={product.imageUrl} alt="" loading="lazy" /> : product.type === 'pdf' ? <Copy size={31} /> : <Sparkles size={31} />}<span>{product.type === 'pdf' ? 'PDF' : 'SOFTWARE'}</span>{product.premium && <em className="store-premium-flag">PREMIUM</em>}</div><div className="store-product-copy"><h2>{product.title}</h2><p>{product.description}</p><StoreFeatureList features={product.features} benefits={customer.benefits} />{product.features.some((feature) => feature.tier === 'premium') && <p className="store-feature-hint">Premium features unlock after payment.</p>}<div className="store-product-buy"><strong>{productPrice(product)}</strong><Link to={`/checkout/${encodeURIComponent(product.id)}`}>Buy now <ArrowRight size={15} /></Link></div></div></article>)}</div>}<p className="store-security-note"><ShieldCheck size={14} /> Pay with the on-screen instructions, then redeem your license code in your account to unlock premium features.</p></main><SiteFooter /></div>
+  return <div className="detail-shell store-shell"><SeoHead pageKey="store" /><Header onMenu={() => {}} /><main className="store-page"><Link className="store-back-link" to="/"><ArrowLeft size={14} /> Prompt library</Link><section className="store-hero"><span className="feature-eyebrow"><Store size={14} /> DIGITAL GOODS</span><h1>Sell online</h1><p>Software and practical PDFs with every feature listed up front. Premium features unlock the moment your license code is redeemed.</p></section><nav className="store-filters" aria-label="Product categories"><Link className={category === 'all' ? 'active' : ''} to="/store">All products</Link><Link className={category === 'software' ? 'active' : ''} to="/store?type=software">Software</Link><Link className={category === 'pdf' ? 'active' : ''} to="/store?type=pdf">PDF</Link></nav>{loading && <div className="store-empty">Loading products…</div>}{error && <div className="store-empty store-error" role="alert">{error}</div>}{!loading && !error && visible.length === 0 && <div className="store-empty"><span><Copy size={23} /></span><h2>No products listed yet</h2><p>Products and their feature lists come from the store database. Add them in Creator Studio under Digital store.</p></div>}{visible.length > 0 && <div className="store-product-grid">{visible.map((product) => <article className={`store-product-card ${product.premium ? 'store-product-premium' : ''}`} key={product.id}><div className="store-product-image">{product.imageUrl ? <img src={product.imageUrl} alt="" loading="lazy" /> : product.type === 'pdf' ? <Copy size={31} /> : <Sparkles size={31} />}<span>{product.type === 'pdf' ? 'PDF' : 'SOFTWARE'}</span>{product.premium && <em className="store-premium-flag">PREMIUM</em>}</div><div className="store-product-copy"><h2>{product.title}</h2><p>{product.description}</p><StoreFeatureList features={product.features} benefits={customer.benefits} />{product.features.some((feature) => feature.tier === 'premium') && <p className="store-feature-hint">Premium features unlock after payment.</p>}<div className="store-product-buy"><strong>{productPrice(product)}</strong><Link to={`/checkout/${encodeURIComponent(product.id)}`}>Buy now <ArrowRight size={15} /></Link></div></div></article>)}</div>}<p className="store-security-note"><ShieldCheck size={14} /> Pay with the on-screen instructions, then redeem your license code in your account to unlock premium features.</p></main><SiteFooter /></div>
 }
 
 function CheckoutPage() {
@@ -908,108 +909,13 @@ function AccountPage() {
     finally { setBusy(false) }
   }
   const logout = () => { void signOut(); setError(''); setNotice('Signed out.') }
-  return <div className="detail-shell store-shell"><Header onMenu={() => {}} /><main className="account-page"><Link className="store-back-link" to="/"><ArrowLeft size={14} /> Back to the library</Link>{customer.user ? <section className="account-card"><div className="account-card-head"><span className="section-kicker">MY ACCOUNT</span><h1>{customer.user.displayName || customer.user.email}</h1><p>{customer.user.signupSource === 'password' ? customer.user.email : `Signed in with ${customer.user.signupSource === 'google' ? 'Google' : 'Facebook'}`}</p></div><div className="account-unlocks"><span className="admin-kicker">UNLOCKED PREMIUM FEATURES</span>{customer.entitlements.length ? <ul>{customer.entitlements.map((entitlement) => <li key={`${entitlement.productId}-${entitlement.benefitKey}`}><LockOpen size={15} /><div><strong>{benefitLabels(products, entitlement.benefitKey).join(', ') || entitlement.benefitKey}</strong>{entitlement.expiresAt && <small>Valid until {new Date(entitlement.expiresAt).toLocaleDateString()}</small>}</div></li>)}</ul> : <p className="account-empty">No premium features unlocked yet. Pay for a product, then redeem its license code below.</p>}</div><form className="account-redeem" onSubmit={redeem}><label>License code<input value={code} onChange={(event) => setCode(event.target.value)} placeholder="PS-XXXX-XXXX-XXXX" autoComplete="off" required /></label><button className="admin-primary" type="submit" disabled={busy || !code.trim()}>{busy ? 'Checking…' : 'Redeem code'} <KeyRound size={15} /></button></form><div className="account-foot"><Link to="/store">Browse products <ArrowRight size={14} /></Link><button className="admin-secondary" type="button" onClick={logout}><LogOut size={15} /> Sign out</button></div>{notice && <p className="menu-manager-message" role="status">{notice}</p>}{error && <p className="editor-error" role="alert">{error}</p>}</section> : <section className="account-card"><div className="account-card-head"><span className="section-kicker">CUSTOMER SIGN IN</span><h1>Your licenses, one account</h1><p>Sign in to redeem a license code and unlock the premium features of every product you own.</p></div><div className="account-mode-tabs"><button type="button" className={mode === 'signin' ? 'active' : ''} onClick={() => { setMode('signin'); setError('') }}>Sign in</button><button type="button" className={mode === 'signup' ? 'active' : ''} onClick={() => { setMode('signup'); setError('') }}>Create account</button></div><form className="account-form" onSubmit={authenticate}>{mode === 'signup' && <label className="editor-field">Name <span className="field-optional">OPTIONAL</span><input value={displayName} onChange={(event) => setDisplayName(event.target.value)} maxLength={60} placeholder="How should we greet you?" /></label>}<label className="editor-field">Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="username" required /></label><label className="editor-field">Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} minLength={8} required /></label><button className="publish-button" type="submit" disabled={busy}>{busy ? 'Working…' : mode === 'signup' ? 'Create account' : 'Sign in'} <ArrowRight size={16} /></button></form>{socialRow}{notice && <p className="menu-manager-message" role="status">{notice}</p>}{error && <p className="editor-error" role="alert">{error}</p>}<p className="account-privacy"><ShieldCheck size={15} /> Passwords are stored hashed on the server. This account is only used for product licenses.</p></section>}</main><SiteFooter /></div>
-}
-
-const TOOL_SEO_METADATA: Record<string, {
-  title: string
-  description: string
-  canonical: string
-  ogTitle: string
-  ogDescription: string
-  ogImage: string
-  ogImageAlt: string
-  twitterTitle: string
-  twitterDescription: string
-  twitterImage: string
-  robots?: string
-}> = {
-  'qr-code': {
-    title: 'Free QR Code Generator Online – Create Custom QR Codes | ImgMojo',
-    description: 'Create free QR codes online with ImgMojo. Generate QR codes for URLs, text, Wi-Fi and more. Customize your QR code and download it instantly.',
-    canonical: 'https://www.imgmojo.com/qr-code',
-    ogTitle: 'Free QR Code Generator Online | ImgMojo',
-    ogDescription: 'Generate custom QR codes for websites, text and Wi-Fi. Create and download QR codes online with ImgMojo.',
-    ogImage: 'https://www.imgmojo.com/images/qr-code-generator-og.png',
-    ogImageAlt: 'ImgMojo Free Online QR Code Generator',
-    twitterTitle: 'Free QR Code Generator Online | ImgMojo',
-    twitterDescription: 'Create, customize and download free QR codes online with ImgMojo.',
-    twitterImage: 'https://www.imgmojo.com/images/qr-code-generator-og.png',
-    robots: 'index, follow, max-image-preview:large',
-  },
+  return <div className="detail-shell store-shell"><SeoHead title={`My Account | ${appConfig.appName}`} robots="noindex, nofollow" /><Header onMenu={() => {}} /><main className="account-page"><Link className="store-back-link" to="/"><ArrowLeft size={14} /> Back to the library</Link>{customer.user ? <section className="account-card"><div className="account-card-head"><span className="section-kicker">MY ACCOUNT</span><h1>{customer.user.displayName || customer.user.email}</h1><p>{customer.user.signupSource === 'password' ? customer.user.email : `Signed in with ${customer.user.signupSource === 'google' ? 'Google' : 'Facebook'}`}</p></div><div className="account-unlocks"><span className="admin-kicker">UNLOCKED PREMIUM FEATURES</span>{customer.entitlements.length ? <ul>{customer.entitlements.map((entitlement) => <li key={`${entitlement.productId}-${entitlement.benefitKey}`}><LockOpen size={15} /><div><strong>{benefitLabels(products, entitlement.benefitKey).join(', ') || entitlement.benefitKey}</strong>{entitlement.expiresAt && <small>Valid until {new Date(entitlement.expiresAt).toLocaleDateString()}</small>}</div></li>)}</ul> : <p className="account-empty">No premium features unlocked yet. Pay for a product, then redeem its license code below.</p>}</div><form className="account-redeem" onSubmit={redeem}><label>License code<input value={code} onChange={(event) => setCode(event.target.value)} placeholder="PS-XXXX-XXXX-XXXX" autoComplete="off" required /></label><button className="admin-primary" type="submit" disabled={busy || !code.trim()}>{busy ? 'Checking…' : 'Redeem code'} <KeyRound size={15} /></button></form><div className="account-foot"><Link to="/store">Browse products <ArrowRight size={14} /></Link><button className="admin-secondary" type="button" onClick={logout}><LogOut size={15} /> Sign out</button></div>{notice && <p className="menu-manager-message" role="status">{notice}</p>}{error && <p className="editor-error" role="alert">{error}</p>}</section> : <section className="account-card"><div className="account-card-head"><span className="section-kicker">CUSTOMER SIGN IN</span><h1>Your licenses, one account</h1><p>Sign in to redeem a license code and unlock the premium features of every product you own.</p></div><div className="account-mode-tabs"><button type="button" className={mode === 'signin' ? 'active' : ''} onClick={() => { setMode('signin'); setError('') }}>Sign in</button><button type="button" className={mode === 'signup' ? 'active' : ''} onClick={() => { setMode('signup'); setError('') }}>Create account</button></div><form className="account-form" onSubmit={authenticate}>{mode === 'signup' && <label className="editor-field">Name <span className="field-optional">OPTIONAL</span><input value={displayName} onChange={(event) => setDisplayName(event.target.value)} maxLength={60} placeholder="How should we greet you?" /></label>}<label className="editor-field">Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="username" required /></label><label className="editor-field">Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} minLength={8} required /></label><button className="publish-button" type="submit" disabled={busy}>{busy ? 'Working…' : mode === 'signup' ? 'Create account' : 'Sign in'} <ArrowRight size={16} /></button></form>{socialRow}{notice && <p className="menu-manager-message" role="status">{notice}</p>}{error && <p className="editor-error" role="alert">{error}</p>}<p className="account-privacy"><ShieldCheck size={15} /> Passwords are stored hashed on the server. This account is only used for product licenses.</p></section>}</main><SiteFooter /></div>
 }
 
 function ToolPage({ tool }: { tool: ToolDefinition }) {
-  useEffect(() => {
-    const seo = TOOL_SEO_METADATA[tool.id]
-    const originalTitle = document.title
-    if (seo) {
-      document.title = seo.title
-      const metadata = [
-        ['name', 'description', seo.description],
-        ['name', 'author', 'ImgMojo'],
-        ['name', 'robots', seo.robots || 'index, follow, max-image-preview:large'],
-        ['property', 'og:type', 'website'],
-        ['property', 'og:site_name', 'ImgMojo'],
-        ['property', 'og:title', seo.ogTitle],
-        ['property', 'og:description', seo.ogDescription],
-        ['property', 'og:url', seo.canonical],
-        ['property', 'og:image', seo.ogImage],
-        ['property', 'og:image:width', '1200'],
-        ['property', 'og:image:height', '630'],
-        ['property', 'og:image:alt', seo.ogImageAlt],
-        ['name', 'twitter:card', 'summary_large_image'],
-        ['name', 'twitter:title', seo.twitterTitle],
-        ['name', 'twitter:description', seo.twitterDescription],
-        ['name', 'twitter:image', seo.twitterImage],
-      ]
-      const prior = metadata.map(([attribute, key, content]) => {
-        const selector = `meta[${attribute}="${key}"]`
-        let element = document.head.querySelector<HTMLMetaElement>(selector)
-        const created = !element
-        if (!element) {
-          element = document.createElement('meta')
-          element.setAttribute(attribute, key)
-          document.head.append(element)
-        }
-        const previous = element.getAttribute('content')
-        element.setAttribute('content', content)
-        return { element, previous, created }
-      })
-
-      // Update canonical link
-      let canonicalEl = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]')
-      const prevCanonical = canonicalEl ? canonicalEl.getAttribute('href') : null
-      const createdCanonical = !canonicalEl
-      if (!canonicalEl) {
-        canonicalEl = document.createElement('link')
-        canonicalEl.setAttribute('rel', 'canonical')
-        document.head.append(canonicalEl)
-      }
-      canonicalEl.setAttribute('href', seo.canonical)
-
-      return () => {
-        document.title = originalTitle
-        prior.forEach(({ element, previous, created }) => {
-          if (created) element.remove()
-          else if (previous === null) element.removeAttribute('content')
-          else element.setAttribute('content', previous)
-        })
-        if (canonicalEl) {
-          if (createdCanonical) canonicalEl.remove()
-          else if (prevCanonical) canonicalEl.setAttribute('href', prevCanonical)
-        }
-      }
-    } else {
-      document.title = `${tool.title} – Free Online Creative Tool | ImgMojo`
-      return () => {
-        document.title = originalTitle
-      }
-    }
-  }, [tool.id, tool.title])
-
   return (
     <div className="detail-shell tool-page">
+      <SeoHead toolId={tool.id} />
       <Header onMenu={() => {}} />
       <ToolSurface tool={tool} />
       <SiteFooter />
@@ -1026,47 +932,11 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
   const { counts, record } = useEngagement()
   const normalizeSlug = (s: string) => (s || '').replace(/\.html$/i, '').toLowerCase()
   const prompt = prompts.find((item) => item.slug === slug || normalizeSlug(item.slug) === normalizeSlug(slug || ''))
-  useEffect(() => {
-    if (!prompt) return
-    const originalTitle = document.title
-    const hashtags = (prompt.hashtags ?? []).map((tag) => tag.replace(/^#/, '')).filter(Boolean)
-    const metadata = [
-      ['name', 'description', prompt.description],
-      ['name', 'keywords', hashtags.join(', ')],
-      ['property', 'og:title', prompt.title],
-      ['property', 'og:description', prompt.description],
-      ['property', 'og:type', 'article'],
-      ['property', 'og:url', `${window.location.origin}/prompt/${encodeURIComponent(prompt.slug)}`],
-      ['property', 'og:image', imageAtWidth(prompt.image, 1200) ?? ''],
-      ['name', 'twitter:card', prompt.image ? 'summary_large_image' : 'summary'],
-      ...hashtags.map((tag) => ['property', 'article:tag', tag] as const),
-    ]
-    const prior = metadata.map(([attribute, key, content]) => {
-      const selector = `meta[${attribute}="${key}"]`
-      let element = document.head.querySelector<HTMLMetaElement>(selector)
-      const created = !element
-      if (!element) {
-        element = document.createElement('meta')
-        element.setAttribute(attribute, key)
-        document.head.append(element)
-      }
-      const previous = element.getAttribute('content')
-      element.setAttribute('content', content)
-      return { element, previous, created }
-    })
-    document.title = `${prompt.title} | ${appConfig.appName}`
-    return () => {
-      document.title = originalTitle
-      prior.forEach(({ element, previous, created }) => {
-        if (created) element.remove()
-        else if (previous === null) element.removeAttribute('content')
-        else element.setAttribute('content', previous)
-      })
-    }
-  }, [prompt])
   if (!prompt) return <main className="not-found"><Sparkles size={25} /><h1>This prompt is still a blank canvas.</h1><Link to="/">Back to the library <ArrowRight size={15} /></Link></main>
-  const copy = async () => { try { await navigator.clipboard.writeText(prompt.promptText); setCopied(true); record(prompt.id, 'copy'); window.setTimeout(() => setCopied(false), 1600) } catch { setCopied(false) } }
+  const hashtags = (prompt.hashtags ?? []).map((tag) => tag.replace(/^#/, '')).filter(Boolean)
   const pageUrl = `${window.location.origin}/prompt/${encodeURIComponent(prompt.slug)}`
+  const promptImage = prompt.image ? (imageAtWidth(prompt.image, 1200) ?? undefined) : undefined
+  const copy = async () => { try { await navigator.clipboard.writeText(prompt.promptText); setCopied(true); record(prompt.id, 'copy'); window.setTimeout(() => setCopied(false), 1600) } catch { setCopied(false) } }
   const engagement = engagementFor(counts, prompt.id)
   const shareText = `${prompt.title}\n\n${prompt.promptText}${prompt.image ? `\n\nImage:\n${imageAtWidth(prompt.image, 1200)}` : ''}\n\n${pageUrl}`
   const copyForAiTool = (label: string) => {
@@ -1083,7 +953,7 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
       window.setTimeout(() => setShareMessage(''), 4000)
     })
   }
-  return <div className="detail-shell"><Header onMenu={() => navigate('/')} /><main className="prompt-detail"><button className="detail-back" onClick={() => navigate(-1)}><ArrowLeft size={16} /> Back to prompts</button><div className="detail-columns"><div className={`detail-cover ${prompt.video ? 'detail-cover-video' : ''}`}>{prompt.video ? <PromptVideo src={prompt.video} title={prompt.title} className="detail-video-iframe" /> : prompt.image ? <img src={imageAtWidth(prompt.image, 1000)} alt={prompt.imageAlt || ''} /> : <span className="tile-image-fallback"><Sparkles size={28} /></span>}<span>{prompt.category}</span></div><div className="detail-info">{!prompt.sourceUrl && <span className="section-kicker">{prompt.tool} · {prompt.style}</span>}<h1>{prompt.title}</h1><p>{prompt.description}</p><div className="detail-prompt-label">THE PROMPT <span>READY TO COPY</span></div><div className="detail-prompt-text">{prompt.promptText}</div><button className="copy-large" onClick={copy}>{copied ? <Check size={17} /> : <Copy size={17} />}{copied ? 'Copied to clipboard' : 'Copy prompt'} <ArrowRight size={16} /></button><div className="detail-stats"><span><Copy size={13} /> {formatCount(engagement.copy)} copies</span><span><Share2 size={13} /> {formatCount(engagement.share)} shares</span></div><section className="prompt-share-panel"><button type="button" className="prompt-share-toggle" aria-expanded={shareMenuOpen} onClick={() => setShareMenuOpen((open) => !open)}><Copy size={17} /> Share prompt <span>{shareMenuOpen ? '−' : '+'}</span></button>{shareMenuOpen && <div className="prompt-share-options"><div className="share-group"><strong>Send to someone</strong><div className="share-target-list">{appConfig.promptSharing.messaging.map((target) => {
+  return <div className="detail-shell"><SeoHead title={`${prompt.title} | ${appConfig.appName}`} description={prompt.description} keywords={hashtags.join(', ')} canonical={pageUrl} ogTitle={prompt.title} ogDescription={prompt.description} ogImage={promptImage} twitterTitle={prompt.title} twitterDescription={prompt.description} twitterImage={promptImage} robots="index, follow, max-image-preview:large" schema={{ '@context': 'https://schema.org', '@type': 'Article', headline: prompt.title, description: prompt.description, image: promptImage, mainEntityOfPage: pageUrl, author: { '@type': 'Organization', name: 'ImgMojo' } }} /><Header onMenu={() => navigate('/')} /><main className="prompt-detail"><button className="detail-back" onClick={() => navigate(-1)}><ArrowLeft size={16} /> Back to prompts</button><div className="detail-columns"><div className={`detail-cover ${prompt.video ? 'detail-cover-video' : ''}`}>{prompt.video ? <PromptVideo src={prompt.video} title={prompt.title} className="detail-video-iframe" /> : prompt.image ? <img src={imageAtWidth(prompt.image, 1000)} alt={prompt.imageAlt || ''} /> : <span className="tile-image-fallback"><Sparkles size={28} /></span>}<span>{prompt.category}</span></div><div className="detail-info">{!prompt.sourceUrl && <span className="section-kicker">{prompt.tool} · {prompt.style}</span>}<h1>{prompt.title}</h1><p>{prompt.description}</p><div className="detail-prompt-label">THE PROMPT <span>READY TO COPY</span></div><div className="detail-prompt-text">{prompt.promptText}</div><button className="copy-large" onClick={copy}>{copied ? <Check size={17} /> : <Copy size={17} />}{copied ? 'Copied to clipboard' : 'Copy prompt'} <ArrowRight size={16} /></button><div className="detail-stats"><span><Copy size={13} /> {formatCount(engagement.copy)} copies</span><span><Share2 size={13} /> {formatCount(engagement.share)} shares</span></div><section className="prompt-share-panel"><button type="button" className="prompt-share-toggle" aria-expanded={shareMenuOpen} onClick={() => setShareMenuOpen((open) => !open)}><Copy size={17} /> Share prompt <span>{shareMenuOpen ? '−' : '+'}</span></button>{shareMenuOpen && <div className="prompt-share-options"><div className="share-group"><strong>Send to someone</strong><div className="share-target-list">{appConfig.promptSharing.messaging.map((target) => {
         const url = target.id === 'whatsapp'
           ? `${target.baseUrl}?text=${encodeURIComponent(shareText)}`
           : `${target.baseUrl}?url=${encodeURIComponent(prompt.image || pageUrl)}&text=${encodeURIComponent(`${prompt.title}\n\n${prompt.promptText}${prompt.image ? `\n\n${pageUrl}` : ''}`)}`
@@ -1121,6 +991,7 @@ function LoginPage({ onAdminLogin }: { onAdminLogin: () => void }) {
 
   return (
     <div className="detail-shell auth-shell">
+      <SeoHead title={`Admin Sign In | ${appConfig.appName}`} robots="noindex, nofollow" />
       <main className="auth-page simple-login-page">
         <Link to="/" className="auth-back">
           <ArrowLeft size={15} /> Back to {appConfig.appName}
@@ -1720,7 +1591,6 @@ export default function App() {
     clearBloggerSession(); setBloggerConnected(false); setAdminAuthenticated(false)
     void fetch('/api/admin-auth', { method: 'DELETE' }).catch(() => undefined)
   }
-  useEffect(() => { document.title = 'ImgMojo – Free Online Image, Video, PDF & QR Code Tools, Screen Recording' }, [])
   useEffect(() => {
     // The home page does not need license state to paint; store routes still read it immediately.
     if (window.location.pathname === '/') return whenIdle(() => { void loadCustomerSession() })
