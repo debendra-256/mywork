@@ -2,10 +2,10 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, ArrowUpRight, Check, Image as ImageIcon, Loader2, Layers, ShieldCheck, X } from 'lucide-react'
 import { POSTER_LABEL, posterEditUrl, readPosterSource, splitPostIntoPosterEdits } from '../../data/blogger-poster-split'
-import { hasBloggerSession } from '../../data/blogger-auth'
+import { connectBlogger, hasBloggerSession } from '../../data/blogger-auth'
 import './PosterSplitter.css'
 
-const SOURCE_LINK = 'https://www.blogger.com/blog/post/edit/7320184749093787409/3197207734898901749'
+const SOURCE_LINK = 'https://www.blogger.com/blog/post/edit/7320184749093787409/5541102165640297788'
 
 export default function PosterSplitter() {
   const [link, setLink] = useState(SOURCE_LINK)
@@ -17,8 +17,22 @@ export default function PosterSplitter() {
   const [progress, setProgress] = useState([])
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [connecting, setConnecting] = useState(false)
+  const [connected, setConnected] = useState(hasBloggerSession)
 
-  const connected = hasBloggerSession()
+  const handleConnect = async () => {
+    setConnecting(true)
+    setError('')
+    try {
+      await connectBlogger()
+      setConnected(true)
+      setNotice('Blogger connected successfully.')
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Could not connect to Blogger.')
+    } finally {
+      setConnecting(false)
+    }
+  }
 
   const load = async () => {
     setLoading(true)
@@ -43,6 +57,20 @@ export default function PosterSplitter() {
   const create = async () => {
     if (!source) return
     const images = source.images.filter((image) => picked.includes(image.url))
+    if (!images.length) {
+      setError('Tick at least one photo to create a post for it.')
+      return
+    }
+    if (!hasBloggerSession()) {
+      try {
+        setNotice('Connecting to Blogger to publish split posts…')
+        await connectBlogger()
+        setConnected(true)
+      } catch (reason) {
+        setError(reason instanceof Error ? reason.message : 'Connect Blogger to create new posts.')
+        return
+      }
+    }
     setBusy(true)
     setError('')
     setNotice('')
@@ -71,11 +99,18 @@ export default function PosterSplitter() {
         <Link to="/admin" className="admin-secondary"><ArrowLeft size={15} /> Back to dashboard</Link>
       </div>
 
-      {!connected && (
+      {!connected ? (
         <div className="ps-connect">
           <ShieldCheck size={16} />
-          <span>Connect Blogger first — the split reads your post and creates new ones as you.</span>
-          <Link to="/login">Connect Blogger</Link>
+          <span>Connect Blogger — required when creating new split posts.</span>
+          <button type="button" className="ps-connect-btn" onClick={() => void handleConnect()} disabled={connecting}>
+            {connecting ? 'Connecting…' : 'Connect Blogger'}
+          </button>
+        </div>
+      ) : (
+        <div className="ps-connect ps-connected">
+          <Check size={16} />
+          <span>Blogger connected — ready to create split posts.</span>
         </div>
       )}
 
@@ -90,7 +125,7 @@ export default function PosterSplitter() {
             spellCheck={false}
             aria-label="Blogger post edit link"
           />
-          <button type="button" className="admin-primary" onClick={() => void load()} disabled={loading || !connected}>
+          <button type="button" className="admin-primary" onClick={() => void load()} disabled={loading || !link.trim()}>
             {loading ? <><Loader2 size={15} className="ps-spin" /> Reading…</> : <><ImageIcon size={15} /> Find photos</>}
           </button>
         </div>

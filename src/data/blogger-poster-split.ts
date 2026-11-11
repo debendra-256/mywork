@@ -1,6 +1,6 @@
 import { appConfig } from '../config/app.config'
 import { posterLabel } from '../domain/prompt'
-import { getBloggerAccessToken } from './blogger-auth'
+import { getBloggerAccessToken, getBloggerAccessTokenIfAvailable } from './blogger-auth'
 import { parseBloggerEditUrl } from './blogger-publisher'
 
 /** Label that keeps poster photos apart from prompt posts in the Blogger blog. */
@@ -74,10 +74,19 @@ function fromContent(content = ''): PosterSourceImage[] {
 /** Reads one Blogger post and returns every image it holds, in page order. */
 export async function readPosterSource(value: string): Promise<PosterSourcePost> {
   const { blogId, postId } = parseBloggerEditUrl(value)
-  const accessToken = getBloggerAccessToken()
-  const response = await fetch(`${postEndpoint(blogId, postId)}?view=ADMIN`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  })
+  const token = getBloggerAccessTokenIfAvailable()
+  const apiKey = appConfig.blogger.apiKey
+
+  let url = postEndpoint(blogId, postId)
+  const headers: Record<string, string> = {}
+  if (token) {
+    url += '?view=ADMIN'
+    headers.Authorization = `Bearer ${token}`
+  } else if (apiKey) {
+    url += `?key=${encodeURIComponent(apiKey)}`
+  }
+
+  const response = await fetch(url, Object.keys(headers).length ? { headers } : undefined)
   const result = await response.json().catch(() => ({})) as BloggerPostBody
   if (!response.ok || !result.id) throw new Error(result.error?.message || `Could not load that Blogger post (${response.status}).`)
   const apiImages = (result.images ?? []).map((image) => cleanSrc(largeImage(image.url))).filter(Boolean)
