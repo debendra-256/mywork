@@ -862,12 +862,19 @@ export default function QRCodeGenerator() {
   useEffect(() => {
     if (typeof document === 'undefined') return undefined
     const previousTitle = document.title
-    const seoTitle = 'Free QR Code Generator Online – Create Custom QR Codes with Logo | ImgMojo'
+    const seoTitle = 'Free QR Code Generator Online – Create Custom QR Codes | ImgMojo'
     const seoDescription =
-      'Create custom QR codes online for free with ImgMojo QR Code Generator. Generate high-resolution QR codes for Website URLs, Wi-Fi, Contact (vCard), and Locations with custom colors, frames, and logos in PNG, SVG, and JPG.'
+      'Create free QR codes online with ImgMojo. Generate QR codes for URLs, text, Wi-Fi and more. Customize your QR code and download it instantly.'
+    const ogTitle = 'Free QR Code Generator Online | ImgMojo'
+    const ogDescription =
+      'Generate custom QR codes for websites, text and Wi-Fi. Create and download QR codes online with ImgMojo.'
+    const twitterTitle = 'Free QR Code Generator Online | ImgMojo'
+    const twitterDescription =
+      'Create, customize and download free QR codes online with ImgMojo.'
     const seoKeywords =
       'QR code generator, create QR code online, free QR code maker, custom QR code with logo, URL to QR code, Wi-Fi QR code generator, vCard QR code, location QR code, SVG QR code download, ImgMojo'
-    const canonicalUrl = window.location.href.split('#')[0]
+    const canonicalUrl = 'https://www.imgmojo.com/qr-code'
+    const ogImageUrl = 'https://www.imgmojo.com/images/qr-code-generator-og.png'
 
     document.title = seoTitle
 
@@ -887,15 +894,21 @@ export default function QRCodeGenerator() {
 
     setMetaTag('name', 'description', seoDescription)
     setMetaTag('name', 'keywords', seoKeywords)
+    setMetaTag('name', 'author', 'ImgMojo')
     setMetaTag('name', 'robots', 'index, follow, max-image-preview:large')
-    setMetaTag('property', 'og:title', seoTitle)
-    setMetaTag('property', 'og:description', seoDescription)
     setMetaTag('property', 'og:type', 'website')
-    setMetaTag('property', 'og:url', canonicalUrl)
     setMetaTag('property', 'og:site_name', 'ImgMojo')
+    setMetaTag('property', 'og:title', ogTitle)
+    setMetaTag('property', 'og:description', ogDescription)
+    setMetaTag('property', 'og:url', canonicalUrl)
+    setMetaTag('property', 'og:image', ogImageUrl)
+    setMetaTag('property', 'og:image:width', '1200')
+    setMetaTag('property', 'og:image:height', '630')
+    setMetaTag('property', 'og:image:alt', 'ImgMojo Free Online QR Code Generator')
     setMetaTag('name', 'twitter:card', 'summary_large_image')
-    setMetaTag('name', 'twitter:title', seoTitle)
-    setMetaTag('name', 'twitter:description', seoDescription)
+    setMetaTag('name', 'twitter:title', twitterTitle)
+    setMetaTag('name', 'twitter:description', twitterDescription)
+    setMetaTag('name', 'twitter:image', ogImageUrl)
 
     let canonicalLink = document.head.querySelector('link[rel="canonical"]')
     const createdCanonical = !canonicalLink

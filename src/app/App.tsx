@@ -911,8 +911,110 @@ function AccountPage() {
   return <div className="detail-shell store-shell"><Header onMenu={() => {}} /><main className="account-page"><Link className="store-back-link" to="/"><ArrowLeft size={14} /> Back to the library</Link>{customer.user ? <section className="account-card"><div className="account-card-head"><span className="section-kicker">MY ACCOUNT</span><h1>{customer.user.displayName || customer.user.email}</h1><p>{customer.user.signupSource === 'password' ? customer.user.email : `Signed in with ${customer.user.signupSource === 'google' ? 'Google' : 'Facebook'}`}</p></div><div className="account-unlocks"><span className="admin-kicker">UNLOCKED PREMIUM FEATURES</span>{customer.entitlements.length ? <ul>{customer.entitlements.map((entitlement) => <li key={`${entitlement.productId}-${entitlement.benefitKey}`}><LockOpen size={15} /><div><strong>{benefitLabels(products, entitlement.benefitKey).join(', ') || entitlement.benefitKey}</strong>{entitlement.expiresAt && <small>Valid until {new Date(entitlement.expiresAt).toLocaleDateString()}</small>}</div></li>)}</ul> : <p className="account-empty">No premium features unlocked yet. Pay for a product, then redeem its license code below.</p>}</div><form className="account-redeem" onSubmit={redeem}><label>License code<input value={code} onChange={(event) => setCode(event.target.value)} placeholder="PS-XXXX-XXXX-XXXX" autoComplete="off" required /></label><button className="admin-primary" type="submit" disabled={busy || !code.trim()}>{busy ? 'Checking…' : 'Redeem code'} <KeyRound size={15} /></button></form><div className="account-foot"><Link to="/store">Browse products <ArrowRight size={14} /></Link><button className="admin-secondary" type="button" onClick={logout}><LogOut size={15} /> Sign out</button></div>{notice && <p className="menu-manager-message" role="status">{notice}</p>}{error && <p className="editor-error" role="alert">{error}</p>}</section> : <section className="account-card"><div className="account-card-head"><span className="section-kicker">CUSTOMER SIGN IN</span><h1>Your licenses, one account</h1><p>Sign in to redeem a license code and unlock the premium features of every product you own.</p></div><div className="account-mode-tabs"><button type="button" className={mode === 'signin' ? 'active' : ''} onClick={() => { setMode('signin'); setError('') }}>Sign in</button><button type="button" className={mode === 'signup' ? 'active' : ''} onClick={() => { setMode('signup'); setError('') }}>Create account</button></div><form className="account-form" onSubmit={authenticate}>{mode === 'signup' && <label className="editor-field">Name <span className="field-optional">OPTIONAL</span><input value={displayName} onChange={(event) => setDisplayName(event.target.value)} maxLength={60} placeholder="How should we greet you?" /></label>}<label className="editor-field">Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="username" required /></label><label className="editor-field">Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} minLength={8} required /></label><button className="publish-button" type="submit" disabled={busy}>{busy ? 'Working…' : mode === 'signup' ? 'Create account' : 'Sign in'} <ArrowRight size={16} /></button></form>{socialRow}{notice && <p className="menu-manager-message" role="status">{notice}</p>}{error && <p className="editor-error" role="alert">{error}</p>}<p className="account-privacy"><ShieldCheck size={15} /> Passwords are stored hashed on the server. This account is only used for product licenses.</p></section>}</main><SiteFooter /></div>
 }
 
+const TOOL_SEO_METADATA: Record<string, {
+  title: string
+  description: string
+  canonical: string
+  ogTitle: string
+  ogDescription: string
+  ogImage: string
+  ogImageAlt: string
+  twitterTitle: string
+  twitterDescription: string
+  twitterImage: string
+  robots?: string
+}> = {
+  'qr-code': {
+    title: 'Free QR Code Generator Online – Create Custom QR Codes | ImgMojo',
+    description: 'Create free QR codes online with ImgMojo. Generate QR codes for URLs, text, Wi-Fi and more. Customize your QR code and download it instantly.',
+    canonical: 'https://www.imgmojo.com/qr-code',
+    ogTitle: 'Free QR Code Generator Online | ImgMojo',
+    ogDescription: 'Generate custom QR codes for websites, text and Wi-Fi. Create and download QR codes online with ImgMojo.',
+    ogImage: 'https://www.imgmojo.com/images/qr-code-generator-og.png',
+    ogImageAlt: 'ImgMojo Free Online QR Code Generator',
+    twitterTitle: 'Free QR Code Generator Online | ImgMojo',
+    twitterDescription: 'Create, customize and download free QR codes online with ImgMojo.',
+    twitterImage: 'https://www.imgmojo.com/images/qr-code-generator-og.png',
+    robots: 'index, follow, max-image-preview:large',
+  },
+}
+
 function ToolPage({ tool }: { tool: ToolDefinition }) {
-  return <div className="detail-shell tool-page"><Header onMenu={() => {}} /><ToolSurface tool={tool} /><SiteFooter /></div>
+  useEffect(() => {
+    const seo = TOOL_SEO_METADATA[tool.id]
+    const originalTitle = document.title
+    if (seo) {
+      document.title = seo.title
+      const metadata = [
+        ['name', 'description', seo.description],
+        ['name', 'author', 'ImgMojo'],
+        ['name', 'robots', seo.robots || 'index, follow, max-image-preview:large'],
+        ['property', 'og:type', 'website'],
+        ['property', 'og:site_name', 'ImgMojo'],
+        ['property', 'og:title', seo.ogTitle],
+        ['property', 'og:description', seo.ogDescription],
+        ['property', 'og:url', seo.canonical],
+        ['property', 'og:image', seo.ogImage],
+        ['property', 'og:image:width', '1200'],
+        ['property', 'og:image:height', '630'],
+        ['property', 'og:image:alt', seo.ogImageAlt],
+        ['name', 'twitter:card', 'summary_large_image'],
+        ['name', 'twitter:title', seo.twitterTitle],
+        ['name', 'twitter:description', seo.twitterDescription],
+        ['name', 'twitter:image', seo.twitterImage],
+      ]
+      const prior = metadata.map(([attribute, key, content]) => {
+        const selector = `meta[${attribute}="${key}"]`
+        let element = document.head.querySelector<HTMLMetaElement>(selector)
+        const created = !element
+        if (!element) {
+          element = document.createElement('meta')
+          element.setAttribute(attribute, key)
+          document.head.append(element)
+        }
+        const previous = element.getAttribute('content')
+        element.setAttribute('content', content)
+        return { element, previous, created }
+      })
+
+      // Update canonical link
+      let canonicalEl = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]')
+      const prevCanonical = canonicalEl ? canonicalEl.getAttribute('href') : null
+      const createdCanonical = !canonicalEl
+      if (!canonicalEl) {
+        canonicalEl = document.createElement('link')
+        canonicalEl.setAttribute('rel', 'canonical')
+        document.head.append(canonicalEl)
+      }
+      canonicalEl.setAttribute('href', seo.canonical)
+
+      return () => {
+        document.title = originalTitle
+        prior.forEach(({ element, previous, created }) => {
+          if (created) element.remove()
+          else if (previous === null) element.removeAttribute('content')
+          else element.setAttribute('content', previous)
+        })
+        if (canonicalEl) {
+          if (createdCanonical) canonicalEl.remove()
+          else if (prevCanonical) canonicalEl.setAttribute('href', prevCanonical)
+        }
+      }
+    } else {
+      document.title = `${tool.title} – Free Online Creative Tool | ImgMojo`
+      return () => {
+        document.title = originalTitle
+      }
+    }
+  }, [tool.id, tool.title])
+
+  return (
+    <div className="detail-shell tool-page">
+      <Header onMenu={() => {}} />
+      <ToolSurface tool={tool} />
+      <SiteFooter />
+    </div>
+  )
 }
 
 function PromptPage({ prompts }: { prompts: Prompt[] }) {
