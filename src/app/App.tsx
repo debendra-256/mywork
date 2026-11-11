@@ -934,7 +934,7 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
   const [shareMessage, setShareMessage] = useState('')
   const { counts, record } = useEngagement()
   const normalizeSlug = (s: string) => (s || '').replace(/\.html$/i, '').toLowerCase()
-  const prompt = prompts.find((item) => item.slug === slug || normalizeSlug(item.slug) === normalizeSlug(slug || ''))
+  const prompt = prompts.find((item) => item.slug === slug || item.id === slug || normalizeSlug(item.slug) === normalizeSlug(slug || ''))
   if (!prompt) return <main className="not-found"><Sparkles size={25} /><h1>This prompt is still a blank canvas.</h1><Link to="/">Back to the library <ArrowRight size={15} /></Link></main>
   const hashtags = (prompt.hashtags ?? []).map((tag) => tag.replace(/^#/, '')).filter(Boolean)
   const pageUrl = `${window.location.origin}/prompt/${encodeURIComponent(prompt.slug)}`

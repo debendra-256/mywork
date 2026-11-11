@@ -170,6 +170,85 @@ class WordPressPromptRepository implements PromptRepository {
   }
 }
 
+function loadBloggerFeedJsonp(blogId: string, limit = 24, query?: string): Promise<{ feed?: { entry?: any[] } } | null> {
+  if (typeof document === 'undefined') return Promise.resolve(null)
+  return new Promise((resolve) => {
+    const callbackName = '__blogger_feed_' + Math.random().toString(36).slice(2)
+    const script = document.createElement('script')
+    let resolved = false
+
+    const cleanup = () => {
+      try { delete (window as any)[callbackName] } catch {}
+      script.remove()
+    }
+
+    const timer = window.setTimeout(() => {
+      if (!resolved) {
+        resolved = true
+        cleanup()
+        resolve(null)
+      }
+    }, 8000)
+
+    ;(window as any)[callbackName] = (data: any) => {
+      if (!resolved) {
+        resolved = true
+        window.clearTimeout(timer)
+        cleanup()
+        resolve(data)
+      }
+    }
+
+    script.onerror = () => {
+      if (!resolved) {
+        resolved = true
+        window.clearTimeout(timer)
+        cleanup()
+        resolve(null)
+      }
+    }
+
+    const params = new URLSearchParams({
+      alt: 'json-in-script',
+      'max-results': String(limit),
+      callback: callbackName,
+    })
+    if (query?.trim()) params.set('q', query.trim())
+
+    script.src = `https://www.blogger.com/feeds/${encodeURIComponent(blogId)}/posts/default?${params.toString()}`
+    document.head.appendChild(script)
+  })
+}
+
+function mapFeedEntryToBloggerPost(entry: any, blogId: string): BloggerPost {
+  const rawId = String(entry.id?.$t || '')
+  const postId = rawId.includes('.post-') ? rawId.split('.post-')[1] : rawId
+  const alternateLink = entry.link?.find((l: any) => l.rel === 'alternate')?.href || ''
+  const content = String(entry.content?.$t || entry.summary?.$t || '')
+  const labels = Array.isArray(entry.category) ? entry.category.map((c: any) => String(c.term || '')).filter(Boolean) : []
+
+  const images: Array<{ url: string }> = []
+  if (entry.media$thumbnail?.url) {
+    images.push({ url: entry.media$thumbnail.url.replace(/\/s\d+(-c)?\//, '/s1600/') })
+  }
+  const imgMatches = content.matchAll(/<img[^>]+src=["']([^"']+)["']/gi)
+  for (const m of imgMatches) {
+    if (m[1] && !images.some((img) => img.url === m[1])) {
+      images.push({ url: m[1] })
+    }
+  }
+
+  return {
+    id: postId,
+    url: alternateLink || `https://www.blogger.com/blog/post/edit/${blogId}/${postId}`,
+    title: String(entry.title?.$t || ''),
+    content,
+    published: String(entry.published?.$t || ''),
+    labels,
+    images: images.length ? images : undefined,
+  }
+}
+
 class BloggerPromptRepository implements PromptRepository {
   constructor(private readonly config: PromptDataConfig) {}
 
@@ -179,37 +258,55 @@ class BloggerPromptRepository implements PromptRepository {
     return `${this.config.blogger.apiUrl}/blogs/${encodeURIComponent(blogId)}/${resource}`
   }
 
-  private async fetchPosts(query: PromptQuery = {}, limit = this.config.pageSize): Promise<Prompt[]> {
-    if (!this.config.blogger.apiKey && !getBloggerAccessTokenIfAvailable()) {
-      throw new Error('Set VITE_BLOGGER_API_KEY for public posts, or connect a Google account for authorized access.')
-    }
-    const resource = query.search ? 'posts/search' : 'posts'
-    const params = new URLSearchParams({
-      maxResults: String(limit),
-      fetchBodies: 'true',
-      fetchImages: 'true',
-      orderBy: 'published',
+  private async fetchFromFeed(query: PromptQuery = {}, limit = this.config.pageSize): Promise<Prompt[]> {
+    const { blogId } = this.config.blogger
+    if (!blogId) return []
+    const data = await loadBloggerFeedJsonp(blogId, limit, query.search)
+    const entries = data?.feed?.entry ?? []
+    const posts: Prompt[] = entries.map((entry: any) => {
+      const post = mapFeedEntryToBloggerPost(entry, blogId)
+      return isPosterPost(post) ? mapPosterPost(post) : mapBloggerPost(post)
     })
-    if (resource === 'posts') params.set('status', 'live')
-    if (this.config.blogger.apiKey) params.set('key', this.config.blogger.apiKey)
-    if (query.search) params.set('q', query.search)
-    const accessToken = getBloggerAccessTokenIfAvailable()
-    const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined
-    const response = await fetch(`${this.endpoint(resource)}?${params}`, headers ? { headers } : undefined)
-    if (!response.ok) {
-      const body = await response.json().catch(() => ({})) as { error?: { message?: string } }
-      throw new Error(body.error?.message ?? `Blogger API returned ${response.status}. Check the blog ID and access permissions.`)
-    }
-    const result = await response.json() as { items?: BloggerPost[] }
-    const posts = (result.items ?? []).map((post) => (isPosterPost(post) ? mapPosterPost(post) : mapBloggerPost(post)))
     return query.category ? posts.filter((post) => promptTags(post).includes(query.category!.toLowerCase())) : posts
+  }
+
+  private async fetchPosts(query: PromptQuery = {}, limit = this.config.pageSize): Promise<Prompt[]> {
+    const hasKey = Boolean(this.config.blogger.apiKey)
+    const accessToken = getBloggerAccessTokenIfAvailable()
+
+    if (hasKey || accessToken) {
+      try {
+        const resource = query.search ? 'posts/search' : 'posts'
+        const params = new URLSearchParams({
+          maxResults: String(limit),
+          fetchBodies: 'true',
+          fetchImages: 'true',
+          orderBy: 'published',
+        })
+        if (resource === 'posts') params.set('status', 'live')
+        if (hasKey) params.set('key', this.config.blogger.apiKey)
+        if (query.search) params.set('q', query.search)
+        const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined
+        const response = await fetch(`${this.endpoint(resource)}?${params}`, headers ? { headers } : undefined)
+        if (response.ok) {
+          const result = await response.json() as { items?: BloggerPost[] }
+          const posts = (result.items ?? []).map((post) => (isPosterPost(post) ? mapPosterPost(post) : mapBloggerPost(post)))
+          return query.category ? posts.filter((post) => promptTags(post).includes(query.category!.toLowerCase())) : posts
+        }
+      } catch {
+        // Fall back to public feed below
+      }
+    }
+
+    return this.fetchFromFeed(query, limit)
   }
 
   list(query: PromptQuery = {}) { return this.fetchPosts(query) }
 
   async getBySlug(slug: string) {
     const posts = await this.fetchPosts({}, 100)
-    return posts.find((post) => post.slug === slug) ?? null
+    const norm = (s: string) => (s || '').replace(/\.html$/i, '').toLowerCase()
+    return posts.find((post) => post.slug === slug || post.id === slug || norm(post.slug) === norm(slug)) ?? null
   }
 
   async categories() {

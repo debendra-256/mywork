@@ -18,7 +18,7 @@ interface BloggerEditablePost extends BloggerInsertResponse {
 
 interface DriveImageResponse { id?: string; name?: string; error?: { message?: string } }
 
-export const promptBloggerDraft: Readonly<{ blogId: string; postId: string }> = Object.freeze({ blogId: '7320184749093787409', postId: '' })
+export const promptBloggerDraft: Readonly<{ blogId: string; postId: string }> = Object.freeze({ blogId: '7320184749093787409', postId: '3197207734898901749' })
 
 export function parseBloggerEditUrl(value: string): { blogId: string; postId: string } {
   let parsed: URL
