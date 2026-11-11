@@ -38,13 +38,30 @@ function saveMessage(entry) {
   }
 }
 
-export default async function sendContactMailHandler(req, res, env = {}) {
+export default async function sendContactMailHandler(req, res, serverEnv) {
+  if (typeof res.status !== 'function') {
+    res.status = function(code) { this.statusCode = code; return this; }
+  }
+  if (typeof res.json !== 'function') {
+    res.json = function(val) {
+      this.setHeader('Content-Type', 'application/json; charset=utf-8');
+      this.end(JSON.stringify(val));
+      return this;
+    }
+  }
+
+  const env = (serverEnv && Object.keys(serverEnv).length > 0) ? serverEnv : process.env
+
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST')
     return res.status(405).json({ error: 'Method not allowed. Only POST is accepted.' })
   }
 
-  const { name, email, phone, subject, category, message } = req.body || {}
+  let body = req.body
+  if (typeof body === 'string') {
+    try { body = JSON.parse(body) } catch {}
+  }
+  const { name, email, phone, subject, category, message } = body || {}
 
   if (!name || !email || !message) {
     return res.status(400).json({ error: 'Name, email, and message are required.' })

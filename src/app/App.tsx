@@ -526,23 +526,6 @@ function HomeCategoryShowcase({ prompts, onViewAll }: { prompts: Prompt[]; onVie
   </section>
 }
 
-interface SocialTrend {
-  id: string
-  platform: 'X' | 'Instagram'
-  author: string
-  text: string
-  permalink: string
-  createdAt: string
-  imageUrl?: string
-  engagement: number
-}
-
-interface SocialTrendResponse {
-  items: SocialTrend[]
-  configured: { x: boolean; instagram: boolean }
-  errors: string[]
-}
-
 const scrollerTiles = { software: '/images/tile-software.png', pdf: '/images/tile-pdf.png', feature: '/images/tile-license.png' }
 
 interface ScrollerSlide {
@@ -578,44 +561,6 @@ function ProductScroller() {
         </div>)}
       </div>)}
     </div>
-  </section>
-}
-
-function SocialTrendSection({ addedIds, onAdd }: { addedIds: Set<string>; onAdd: (trend: SocialTrend) => boolean }) {
-  const [trends, setTrends] = useState<SocialTrendResponse | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [saveError, setSaveError] = useState('')
-  const [refreshKey, setRefreshKey] = useState(0)
-  const { ref, inView } = useInView<HTMLElement>()
-  useEffect(() => {
-    if (!inView) return
-    const controller = new AbortController()
-    setLoading(true); setError('')
-    fetch('/api/social-trends', { signal: controller.signal })
-      .then(async (response) => {
-        if (!response.ok) throw new Error(`Social feed returned ${response.status}.`)
-        return await response.json() as SocialTrendResponse
-      })
-      .then(setTrends)
-      .catch((reason: unknown) => { if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : 'Could not load social trends.') })
-      .finally(() => { if (!controller.signal.aborted) setLoading(false) })
-    return () => controller.abort()
-  }, [refreshKey, inView])
-
-  return <section className="social-trends" aria-labelledby="social-trends-title" ref={ref}>
-    <div className="social-trends-heading"><div><span className="section-kicker">LIVE FROM SOCIAL</span><h2 id="social-trends-title">Prompts people are <em>sharing.</em></h2><p>Popular public posts from X and Instagram, ranked by available engagement.</p></div><button className="social-refresh" onClick={() => setRefreshKey((key) => key + 1)} disabled={loading} aria-label="Refresh social trends"><ArrowRight size={15} />{loading ? 'Updating' : 'Refresh'}</button></div>
-    {error && <div className="social-feed-message" role="status">{error}. The live feed is available when the server API is running.</div>}
-    {loading && <div className="social-feed-message"><span className="blog-status-dot" />Loading public social posts…</div>}
-    {!loading && trends && trends.items.length > 0 && <div className="social-trend-grid">{trends.items.map((trend) => <article className="social-trend-card" key={`${trend.platform}-${trend.id}`}>
-      {trend.imageUrl ? <a className="social-trend-image" href={trend.permalink} target="_blank" rel="noreferrer"><img src={trend.imageUrl} alt="" loading="lazy" /></a> : <div className="social-trend-image social-image-empty"><Sparkles size={22} /></div>}
-      <div className="social-trend-copy"><div className="social-trend-meta"><span className={`social-platform ${trend.platform === 'Instagram' ? 'instagram' : 'x-platform'}`}>{trend.platform === 'Instagram' ? <b>◎</b> : <b>𝕏</b>}{trend.platform}</span><span>{trend.engagement.toLocaleString()} interactions</span></div>
-        <p>{trend.text}</p><div className="social-trend-footer"><span>@{trend.author}</span><a href={trend.permalink} target="_blank" rel="noreferrer">View post <ArrowUpRight size={13} /></a></div><button className="social-add-button" disabled={addedIds.has(`${trend.platform.toLowerCase()}-${trend.id}`)} onClick={() => { setSaveError(''); if (!onAdd(trend)) setSaveError('Could not add this post. Browser storage may be full.') }}>{addedIds.has(`${trend.platform.toLowerCase()}-${trend.id}`) ? <><Check size={13} /> Added to library</> : <><Plus size={13} /> Add to library</>}</button>
-      </div>
-    </article>)}</div>}
-    {saveError && <div className="social-feed-error" role="alert">{saveError}</div>}
-    {!loading && trends && trends.items.length === 0 && <div className="social-feed-message">{trends.configured.x || trends.configured.instagram ? 'No matching public posts were returned. Try broader search terms or hashtags.' : 'Add X and Instagram API credentials to the server environment to show live posts.'}</div>}
-    {!loading && trends?.errors.map((message) => <div className="social-feed-error" key={message}>{message}</div>)}
   </section>
 }
 
@@ -665,7 +610,7 @@ function CategoryPills({ active, categories, onSelect }: { active: string; categ
   return <div className="category-pills" aria-label="Filter by category">{visible.map((item) => <button key={item.key} className={active.toLowerCase() === item.key ? 'category-pill active' : 'category-pill'} onClick={() => onSelect(item.label)}>{item.label === 'Trending' && <Flame size={14} />}{item.label === 'Latest' && <Clock3 size={14} />}{item.label !== 'Trending' && item.label !== 'Latest' && item.label !== 'All' && <span className="pill-mark">✳</span>}{item.label}</button>)}</div>
 }
 
-function HomePage({ prompts, blogStatus, onAddTrend, adminLoggedIn = false }: { prompts: Prompt[]; blogStatus: 'idle' | 'loading' | 'connected' | 'error'; onAddTrend: (trend: SocialTrend) => boolean; menuSections?: SideMenuSection[]; adminLoggedIn?: boolean }) {
+function HomePage({ prompts, blogStatus, adminLoggedIn = false }: { prompts: Prompt[]; blogStatus: 'idle' | 'loading' | 'connected' | 'error'; menuSections?: SideMenuSection[]; adminLoggedIn?: boolean }) {
   const [active, setActive] = useState('All')
   const [query, setQuery] = useState(() => new URLSearchParams(window.location.search).get('q') ?? '')
   const [savedIds, setSavedIds] = useState<string[]>([])
@@ -745,10 +690,9 @@ function HomePage({ prompts, blogStatus, onAddTrend, adminLoggedIn = false }: { 
     const id = decodeURIComponent(location.hash.slice(1))
     if (id) window.setTimeout(() => jumpTo(id), 80)
   }, [location.hash])
-  const addedTrendIds = useMemo(() => new Set(prompts.filter((prompt) => prompt.id.startsWith('social-')).map((prompt) => prompt.id.slice('social-'.length))), [prompts])
   const title = active === 'All' ? 'All prompts' : active === 'Saved' ? 'Your saved prompts' : active === 'Trending' ? 'Trending prompts' : active === 'Latest' ? 'Latest prompts' : `${active} prompts`
   return <div className={`app-layout ${sidebarVisible ? '' : 'no-sidebar'}`}><Header onMenu={() => setSidebarOpen(true)} onJump={jumpTo} onFilter={(filter) => { setActive(filter); setActiveUtility(null); jumpTo('explore') }} adminLoggedIn={adminLoggedIn} /><div className="page-body">{sidebarVisible && <Sidebar open={sidebarOpen} active={active} onHome={() => { setActive('All'); setQuery(''); setActiveUtility(null); setSidebarOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }} activeUtility={activeUtility} onOpenUtility={(id) => { setActiveUtility(id); setSidebarOpen(false); window.setTimeout(() => document.getElementById('home-utility-area')?.scrollIntoView({ behavior: 'smooth' }), 0) }} onSelect={(category) => { setActive(category); setActiveUtility(null); setSidebarOpen(false); document.getElementById('explore')?.scrollIntoView({ behavior: 'smooth' }) }} onClose={() => setSidebarOpen(false)} />}
-    <main className={`main-content ${utilityOpen ? 'recorder-main-wide' : ''}`}><div className={`content-inner ${utilityOpen ? 'recorder-content-wide' : ''}`}>{!utilityOpen && <HomeLanding onJump={jumpTo} onOpenTool={openTool} onNavigate={navigate} />}<div id="home-utility-area">{utilityTool?.overlay ? null : utilityTool && <ToolSurface tool={utilityTool} />}</div>{utilityTool?.overlay && <ToolSurface tool={utilityTool} onClose={() => setActiveUtility(null)} />}<FeatureHero prompts={prompts} /><HomeCategoryShowcase prompts={prompts} onViewAll={showHashtag} /><ProductScroller /><SocialTrendSection addedIds={addedTrendIds} onAdd={onAddTrend} />
+    <main className={`main-content ${utilityOpen ? 'recorder-main-wide' : ''}`}><div className={`content-inner ${utilityOpen ? 'recorder-content-wide' : ''}`}>{!utilityOpen && <HomeLanding onJump={jumpTo} onOpenTool={openTool} onNavigate={navigate} />}<div id="home-utility-area">{utilityTool?.overlay ? null : utilityTool && <ToolSurface tool={utilityTool} />}</div>{utilityTool?.overlay && <ToolSurface tool={utilityTool} onClose={() => setActiveUtility(null)} />}<FeatureHero prompts={prompts} /><HomeCategoryShowcase prompts={prompts} onViewAll={showHashtag} /><ProductScroller />
       <section className="browse-section" id="explore"><div className="section-topline"><div><span className="section-kicker">THE PROMPT LIBRARY</span><h2>Find your next <em>favorite.</em></h2></div><span className="collection-count">{prompts.length} IDEAS <span>↗</span></span></div>
         
         <div className="inline-search"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search prompts, styles, ideas" aria-label="Filter the prompt library" />{query && <button onClick={() => setQuery('')} aria-label="Clear search"><X size={15} /></button>}</div>
@@ -1598,7 +1542,7 @@ export default function App() {
   const [blogPrompts, setBlogPrompts] = useState<Prompt[] | null>(null)
   const [blogStatus, setBlogStatus] = useState<'idle' | 'loading' | 'connected' | 'error'>(() => appConfig.contentProvider === 'blogger' ? (hasBloggerSession() ? 'connected' : 'loading') : 'idle')
   const [menuSections, setMenuSections] = useState<SideMenuSection[]>(loadSideMenus)
-  const [localPrompts, setLocalPrompts] = useState<Prompt[]>(() => {
+  const [localPrompts] = useState<Prompt[]>(() => {
     try { return JSON.parse(window.localStorage.getItem(appConfig.storage.localPromptsKey) || '[]') as Prompt[] }
     catch { return [] }
   })
@@ -1655,12 +1599,6 @@ export default function App() {
     })
     return () => { cancelled = true }
   }, [bloggerConnected])
-  const publishPrompt = (prompt: Prompt) => {
-    if (localPrompts.some((item) => item.id === prompt.id)) return true
-    const updated = [prompt, ...localPrompts]
-    try { window.localStorage.setItem(appConfig.storage.localPromptsKey, JSON.stringify(updated)); setLocalPrompts(updated); return true }
-    catch { return false }
-  }
   const publishToBlogger = async (prompt: Prompt, target: { blogId: string; postId: string }) => {
     const result = await publishPromptToBlogger(prompt, target)
     const path = new URL(result.url).pathname.split('/').filter(Boolean)
@@ -1676,25 +1614,6 @@ export default function App() {
     setBlogStatus('connected')
     return result
   }
-  const addSocialTrend = (trend: SocialTrend): boolean => {
-    const text = trend.text.trim().replace(/\s+/g, ' ')
-    const title = (text.match(/^.{1,76}?(?:[.!?](?:\s|$)|$)/)?.[0] ?? text.slice(0, 76)).replace(/[.!?]+$/, '').trim() || 'Social prompt inspiration'
-    const postedDate = new Date(trend.createdAt)
-    return publishPrompt({
-      id: `social-${trend.platform.toLowerCase()}-${trend.id}`,
-      slug: `social-${trend.platform.toLowerCase()}-${trend.id}`,
-      title,
-      description: text.length > 180 ? `${text.slice(0, 177)}…` : text,
-      promptText: text,
-      category: 'Trending',
-      tool: trend.platform,
-      style: 'Social inspiration',
-      featured: true,
-      createdAt: Number.isNaN(postedDate.valueOf()) ? new Date().toISOString().slice(0, 10) : postedDate.toISOString().slice(0, 10),
-      image: trend.imageUrl,
-      sourceUrl: trend.permalink,
-    })
-  }
   const logout = () => {
     clearBloggerSession(); setBloggerConnected(false); setAdminAuthenticated(false)
     void fetch('/api/admin-auth', { method: 'DELETE' }).catch(() => undefined)
@@ -1706,6 +1625,6 @@ export default function App() {
     void loadCustomerSession()
   }, [])
   const adminAllowed = adminAuthenticated
-  return <Routes><Route path="/" element={<HomePage prompts={prompts} blogStatus={blogStatus} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /><Route path="/store" element={<StorePage />} />{pages.map((tool) => <Route key={tool.id} path={tool.path} element={<ToolPage tool={tool} />} />)}<Route path="/checkout/:productId" element={<CheckoutPage />} /><Route path="/prompt/:slug" element={<PromptPage prompts={prompts} />} /><Route path="/account" element={<AccountPage />} /><Route path="/login" element={<LoginPage onAdminLogin={() => { setAdminAuthenticated(true); setAdminAuthReady(true) }} />} /><Route path="/admin/upload-pdf" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} onConnectBlogger={handleConnectBlogger} onDisconnectBlogger={handleDisconnectBlogger} bloggerConnecting={bloggerConnecting} bloggerError={bloggerError} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="/admin/*" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} onConnectBlogger={handleConnectBlogger} onDisconnectBlogger={handleDisconnectBlogger} bloggerConnecting={bloggerConnecting} bloggerError={bloggerError} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="/about" element={<InfoRoute kind="about" />} /><Route path="/privacy" element={<InfoRoute kind="privacy" />} /><Route path="/terms" element={<InfoRoute kind="terms" />} /><Route path="/contact" element={<InfoRoute kind="contact" />} /><Route path="/report-bug" element={<InfoRoute kind="report-bug" />} /><Route path="/feature-request" element={<InfoRoute kind="feature-request" />} /><Route path="*" element={<HomePage prompts={prompts} blogStatus={blogStatus} onAddTrend={addSocialTrend} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /></Routes>
+  return <Routes><Route path="/" element={<HomePage prompts={prompts} blogStatus={blogStatus} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /><Route path="/store" element={<StorePage />} />{pages.map((tool) => <Route key={tool.id} path={tool.path} element={<ToolPage tool={tool} />} />)}<Route path="/checkout/:productId" element={<CheckoutPage />} /><Route path="/prompt/:slug" element={<PromptPage prompts={prompts} />} /><Route path="/account" element={<AccountPage />} /><Route path="/login" element={<LoginPage onAdminLogin={() => { setAdminAuthenticated(true); setAdminAuthReady(true) }} />} /><Route path="/admin/upload-pdf" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} onConnectBlogger={handleConnectBlogger} onDisconnectBlogger={handleDisconnectBlogger} bloggerConnecting={bloggerConnecting} bloggerError={bloggerError} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="/admin/*" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} onConnectBlogger={handleConnectBlogger} onDisconnectBlogger={handleDisconnectBlogger} bloggerConnecting={bloggerConnecting} bloggerError={bloggerError} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="/about" element={<InfoRoute kind="about" />} /><Route path="/privacy" element={<InfoRoute kind="privacy" />} /><Route path="/terms" element={<InfoRoute kind="terms" />} /><Route path="/contact" element={<InfoRoute kind="contact" />} /><Route path="/report-bug" element={<InfoRoute kind="report-bug" />} /><Route path="/feature-request" element={<InfoRoute kind="feature-request" />} /><Route path="*" element={<HomePage prompts={prompts} blogStatus={blogStatus} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /></Routes>
 }
 

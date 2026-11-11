@@ -1,7 +1,6 @@
 import { defineConfig, loadEnv, type ViteDevServer } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import { getSocialTrends } from './api/social-trends.js'
 import generatePromptHandler from './api/generate-prompt.js'
 import aiModelSettingsHandler from './api/ai-model-settings.js'
 import adminAuthHandler from './api/admin-auth.js'
@@ -15,10 +14,10 @@ import sendContactMailHandler from './api/contact.js'
 
 type ApiHandler = (request: any, response: any, env: Record<string, string>) => Promise<unknown>
 
-function localSocialTrendsApi() {
+function localApiMiddleware() {
   let serverEnv: Record<string, string> = {}
   return {
-    name: 'local-social-trends-api',
+    name: 'local-api-middleware',
     config(_config: unknown, { mode }: { mode: string }) {
       serverEnv = loadEnv(mode, '.', '')
     },
@@ -115,28 +114,12 @@ function localSocialTrendsApi() {
         })
         await generatePromptHandler(request, apiResponse, serverEnv)
       })
-      server.middlewares.use('/api/social-trends', async (request, response) => {
-        if ((request as unknown as { method?: string }).method !== 'GET') {
-          response.statusCode = 405
-          response.setHeader('Allow', 'GET')
-          response.end(JSON.stringify({ error: 'Method not allowed.' }))
-          return
-        }
-        try {
-          response.setHeader('Content-Type', 'application/json; charset=utf-8')
-          response.setHeader('Cache-Control', 'no-store')
-          response.end(JSON.stringify(await getSocialTrends(serverEnv)))
-        } catch {
-          response.statusCode = 500
-          response.end(JSON.stringify({ error: 'Could not load social trends.' }))
-        }
-      })
     },
   }
 }
 
 export default defineConfig({
-  plugins: [react(), tailwindcss(), localSocialTrendsApi()],
+  plugins: [react(), tailwindcss(), localApiMiddleware()],
   server: { port: 5174, strictPort: true },
   build: {
     rollupOptions: {
