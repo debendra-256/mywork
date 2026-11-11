@@ -30,6 +30,7 @@ export interface PosterSourcePost {
   title: string
   labels: string[]
   images: PosterSourceImage[]
+  content?: string
 }
 
 export interface PosterEditLink { id: string; url: string; title: string; imageUrl: string }
@@ -106,6 +107,7 @@ export async function readPosterSource(value: string): Promise<PosterSourcePost>
     title: result.title?.trim() || 'Untitled post',
     labels: result.labels ?? [],
     images: images.slice(0, MAX_POSTER_IMAGES),
+    content: result.content || '',
   }
 }
 
@@ -126,12 +128,44 @@ export function posterEditUrl(imageUrl: string, siteBase = posterSiteBase()): st
   return `${siteBase}/poster?photo=${encodeURIComponent(imageUrl)}`
 }
 
-/** Photo posts stay text-free: the image and one button, nothing else. */
-function posterPostHtml(image: PosterSourceImage, editUrl: string): string {
+export function extractTextSegments(content: string, imageCount: number): string[] {
+  if (!content) return Array(imageCount).fill('')
+  const parts = content
+    .split(/<div\b[^>]*class=["'][^"']*separator[^"']*["'][^>]*>[\s\S]*?<\/div>|<figure\b[^>]*>[\s\S]*?<\/figure>|<a\b[^>]*><img\b[^>]*><\/a>|<img\b[^>]*>/i)
+    .map((part) => part.trim())
+
+  const segments: string[] = []
+  for (let i = 0; i < imageCount; i++) {
+    const raw = parts[i + 1] || parts[i] || ''
+    segments.push(raw)
+  }
+  return segments
+}
+
+export function derivePostTitle(sourceTitle: string, image: PosterSourceImage, index: number, total: number): string {
+  const alt = image.alt?.trim()
+  if (alt && alt.length > 2 && !alt.startsWith('http')) return alt
+
+  const filename = image.url.split('/').pop()?.split('?')[0] || ''
+  const decoded = decodeURIComponent(filename).replace(/\.[a-zA-Z0-9]+$/, '').trim()
+  if (decoded && decoded.length > 2 && !/^\d+$/.test(decoded) && !decoded.startsWith('image')) {
+    return decoded
+  }
+
+  if (total > 1) {
+    return `${sourceTitle} - Part ${index + 1}`
+  }
+  return sourceTitle || `Creative Photo ${index + 1}`
+}
+
+/** Standard photo post content with image and prompt text (no button). */
+function posterPostHtml(image: PosterSourceImage, promptHtml = '', title = ''): string {
+  const cleanPrompt = promptHtml.replace(/<a\b[^>]*>[\s\S]*?<\/a>/gi, '').trim()
+  const imageAlt = escapeHtml(image.alt || title || '')
   return [
-    `<figure><img src="${escapeHtml(image.url)}" alt="${escapeHtml(image.alt)}" /></figure>`,
-    `<p><a href="${escapeHtml(editUrl)}" target="_blank" rel="noopener" style="display:inline-block;padding:12px 26px;border-radius:10px;background:#0a9f62;color:#ffffff !important;font-weight:700;letter-spacing:.02em;text-decoration:none;">${POSTER_BUTTON}</a></p>`,
-  ].join('')
+    `<div class="separator" style="clear: both; text-align: center;"><a href="${escapeHtml(image.url)}" style="margin-left: 1em; margin-right: 1em;"><img border="0" src="${escapeHtml(image.url)}" alt="${imageAlt}" /></a></div>`,
+    cleanPrompt ? `<div>${cleanPrompt}</div>` : '',
+  ].filter(Boolean).join('\n')
 }
 
 async function createPosterEditPost(
@@ -140,29 +174,29 @@ async function createPosterEditPost(
   index: number,
   total: number,
   accessToken: string,
-  asDraft: boolean
+  asDraft: boolean,
+  promptHtml = ''
 ): Promise<PosterEditLink> {
-  // Only used by the admin list — Blogger stores the post without a title.
-  const name = `Photo ${index + 1} of ${total}`
-  const editUrl = posterEditUrl(image.url)
-  // Blogger's insert endpoint only honours drafts through the query flag.
+  const title = derivePostTitle(source.title, image, index, total)
+  const labels = source.labels && source.labels.length ? source.labels : ['Creative']
   const response = await fetch(`${postEndpoint(source.blogId)}?isDraft=${asDraft ? 'true' : 'false'}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       kind: 'blogger#post',
-      content: posterPostHtml(image, editUrl),
-      labels: [POSTER_LABEL],
+      title,
+      content: posterPostHtml(image, promptHtml, title),
+      labels,
     }),
   })
   const result = await response.json().catch(() => ({})) as BloggerPostBody
   if (!response.ok || !result.id) {
-    throw new Error(result.error?.message || `Blogger could not create ${name} (${response.status}).`)
+    throw new Error(result.error?.message || `Blogger could not create ${title} (${response.status}).`)
   }
-  return { id: result.id, url: result.url || '', title: name, imageUrl: image.url }
+  return { id: result.id, url: result.url || '', title, imageUrl: image.url }
 }
 
-/** Creates one title-free Blogger post per image, each carrying only its "Create your poster" button. */
+/** Creates one Blogger post per image, carrying the image, title, and prompt copy like other posts. */
 export async function splitPostIntoPosterEdits(
   source: PosterSourcePost,
   images: PosterSourceImage[],
@@ -171,8 +205,9 @@ export async function splitPostIntoPosterEdits(
   if (!images.length) throw new Error('Tick at least one photo to create a post for it.')
   const accessToken = getBloggerAccessToken()
   const created: PosterEditLink[] = []
+  const prompts = extractTextSegments(source.content || '', images.length)
   for (let index = 0; index < images.length; index += 1) {
-    created.push(await createPosterEditPost(source, images[index], index, images.length, accessToken, Boolean(options.asDraft)))
+    created.push(await createPosterEditPost(source, images[index], index, images.length, accessToken, Boolean(options.asDraft), prompts[index]))
     options.onProgress?.(created, images.length - created.length)
   }
   return created

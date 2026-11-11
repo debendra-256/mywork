@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, ArrowUpRight, Check, Image as ImageIcon, Loader2, Layers, ShieldCheck, X } from 'lucide-react'
-import { POSTER_LABEL, posterEditUrl, readPosterSource, splitPostIntoPosterEdits } from '../../data/blogger-poster-split'
+import { readPosterSource, splitPostIntoPosterEdits } from '../../data/blogger-poster-split'
 import { connectBlogger, hasBloggerSession } from '../../data/blogger-auth'
 import './PosterSplitter.css'
 
@@ -92,9 +92,9 @@ export default function PosterSplitter() {
     <>
       <div className="admin-page-heading">
         <div>
-          <span className="admin-kicker">IMGMOJO / CREATIVE POSTER</span>
-          <h1>Split a post into poster edits</h1>
-          <p>One Blogger post holding many photos becomes one post per photo. Each post carries only the image and a <strong>Create your poster</strong> button that opens the poster editor with that photo — no titles, no instructions, no prompt text.</p>
+          <span className="admin-kicker">IMGMOJO / POST SPLITTER</span>
+          <h1>Split a post into separate posts</h1>
+          <p>One Blogger post holding many photos becomes one post per photo. Each post carries the image, title, prompt text, and categories just like other posts.</p>
         </div>
         <Link to="/admin" className="admin-secondary"><ArrowLeft size={15} /> Back to dashboard</Link>
       </div>
@@ -129,7 +129,7 @@ export default function PosterSplitter() {
             {loading ? <><Loader2 size={15} className="ps-spin" /> Reading…</> : <><ImageIcon size={15} /> Find photos</>}
           </button>
         </div>
-        <small className="ps-hint">Every image inside the post is listed below. Photos for editing carry the {POSTER_LABEL} label so they stay apart from prompt templates.</small>
+        <small className="ps-hint">Every image inside the post is listed below. Each will be published as an individual prompt post with its title, photo, and text.</small>
       </section>
 
       {source && (
@@ -163,10 +163,6 @@ export default function PosterSplitter() {
                 </button>
               )
             })}
-          </div>
-          <div className="ps-preview">
-            <span className="admin-kicker">EDIT BUTTON TARGET</span>
-            <code>{posterEditUrl(source.images[0].url)}</code>
           </div>
           <label className="ps-switch">
             <input type="checkbox" checked={asDraft} onChange={(event) => setAsDraft(event.target.checked)} />

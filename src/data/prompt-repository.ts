@@ -1,4 +1,4 @@
-import { isPosterPrompt, posterLabel, promptTags, type Prompt, type PromptQuery, type PromptRepository } from '../domain/prompt'
+import { promptTags, type Prompt, type PromptQuery, type PromptRepository } from '../domain/prompt'
 import { posterPhotoUrl } from './blogger-poster-split'
 import { getBloggerAccessTokenIfAvailable } from './blogger-auth'
 import { demoPrompts } from './demo-prompts'
@@ -49,34 +49,6 @@ function mapPost(post: WordPressPost): Prompt {
   }
 }
 
-const posterTag = `#${posterLabel}`
-
-/** Poster photo posts are listed as photo tiles, never as prompt cards. */
-function isPosterPost(post: BloggerPost): boolean {
-  return (post.labels ?? []).some((label) => label.toLowerCase() === posterTag.toLowerCase())
-}
-
-/** Poster photo posts map to photo tiles: no title, no prompt copy, no category. */
-function mapPosterPost(post: BloggerPost): Prompt {
-  const pathParts = new URL(post.url).pathname.split('/').filter(Boolean)
-  return {
-    id: post.id,
-    slug: pathParts.at(-1) || post.id,
-    title: '',
-    description: '',
-    promptText: '',
-    category: posterLabel,
-    tool: 'Blogger',
-    style: 'Poster',
-    featured: false,
-    createdAt: post.published,
-    // The post's own markup holds the large rendition the splitter wrote; Blogger's image list can return a thumbnail.
-    image: posterPhotoUrl(post.content, post.images?.[0]?.url ?? ''),
-    labels: [...(post.labels ?? []), posterTag],
-    sourceUrl: post.url,
-  }
-}
-
 function extractVideoUrl(html: string): string | undefined {
   if (!html) return undefined
   if (typeof DOMParser !== 'undefined') {
@@ -112,14 +84,16 @@ function mapBloggerPost(post: BloggerPost): Prompt {
   const content = stripHtml(post.content)
   const pathParts = new URL(post.url).pathname.split('/').filter(Boolean)
   const video = extractVideoUrl(post.content)
-  const image = post.images?.[0]?.url ?? post.content.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1] ?? extractVideoThumbnail(video)
+  const image = posterPhotoUrl(post.content, post.images?.[0]?.url ?? '') || extractVideoThumbnail(video)
+  const rawTitle = stripHtml(post.title).trim()
+  const derivedTitle = rawTitle || post.labels?.find((l) => !l.startsWith('#')) || post.labels?.[0]?.replace(/^#/, '') || 'Creative Photo'
   return {
     id: post.id,
     slug: pathParts.at(-1) || post.id,
-    title: stripHtml(post.title),
-    description: content.length > 180 ? `${content.slice(0, 177)}…` : content,
+    title: derivedTitle,
+    description: content.length > 180 ? `${content.slice(0, 177)}…` : (content || derivedTitle),
     promptText: extractBloggerPrompt(post.content),
-    category: post.labels?.[0] ?? (video ? 'AI Video' : 'Articles'),
+    category: post.labels?.find((l) => !l.startsWith('#')) ?? post.labels?.[0]?.replace(/^#/, '') ?? (video ? 'AI Video' : 'Articles'),
     tool: video ? 'Video AI' : 'Blogger',
     style: video ? 'Video' : 'Article',
     featured: post.labels?.some((label) => label.toLowerCase() === 'featured') ?? false,
@@ -263,10 +237,7 @@ class BloggerPromptRepository implements PromptRepository {
     if (!blogId) return []
     const data = await loadBloggerFeedJsonp(blogId, limit, query.search)
     const entries = data?.feed?.entry ?? []
-    const posts: Prompt[] = entries.map((entry: any) => {
-      const post = mapFeedEntryToBloggerPost(entry, blogId)
-      return isPosterPost(post) ? mapPosterPost(post) : mapBloggerPost(post)
-    })
+    const posts: Prompt[] = entries.map((entry: any) => mapBloggerPost(mapFeedEntryToBloggerPost(entry, blogId)))
     return query.category ? posts.filter((post) => promptTags(post).includes(query.category!.toLowerCase())) : posts
   }
 
@@ -290,7 +261,7 @@ class BloggerPromptRepository implements PromptRepository {
         const response = await fetch(`${this.endpoint(resource)}?${params}`, headers ? { headers } : undefined)
         if (response.ok) {
           const result = await response.json() as { items?: BloggerPost[] }
-          const posts = (result.items ?? []).map((post) => (isPosterPost(post) ? mapPosterPost(post) : mapBloggerPost(post)))
+          const posts = (result.items ?? []).map((post) => mapBloggerPost(post))
           return query.category ? posts.filter((post) => promptTags(post).includes(query.category!.toLowerCase())) : posts
         }
       } catch {
@@ -311,7 +282,7 @@ class BloggerPromptRepository implements PromptRepository {
 
   async categories() {
     const posts = await this.fetchPosts({}, 100)
-    return [...new Set(posts.filter((post) => !isPosterPrompt(post)).map((post) => post.category))]
+    return [...new Set(posts.map((post) => post.category).filter(Boolean))]
   }
 }
 

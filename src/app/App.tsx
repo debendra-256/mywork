@@ -22,7 +22,7 @@ import { loadCustomerSession, redeemLicenseCode, signIn, signInWithProvider, sig
 import { loadSocialProviders, mountGoogleSignInButton, requestFacebookToken, type SocialProviderFlags } from '../data/social-login'
 import { WATERMARK_BENEFIT, productPrice, type StoreFeature, type StoreProduct, type StoreSnapshot } from '../domain/store'
 import { createMenuItemId, defaultSideMenus, type SideMenuSection } from '../data/side-menus'
-import { isPosterPrompt, promptHashtags, promptLabels, promptTags, type Prompt } from '../domain/prompt'
+import { promptHashtags, promptLabels, promptTags, type Prompt } from '../domain/prompt'
 import { useInView, whenIdle } from './useInView'
 import { InfoPage, type InfoKind } from './InfoPage'
 import AboutUs from './Pages/AboutUs'
@@ -436,32 +436,23 @@ function PromptVideo({ src, title, className }: { src: string; title: string; cl
 
 function PromptCard({ prompt, index, saved, engagement, onToggleSave, onCopy, onHashtag }: { prompt: Prompt; index: number; saved: boolean; engagement: EngagementCounts; onToggleSave: () => void; onCopy: () => void; onHashtag: (tag: string) => void }) {
   const [copied, setCopied] = useState(false)
-  if (isPosterPrompt(prompt)) {
-    const target = prompt.image ? `/poster?photo=${encodeURIComponent(prompt.image)}` : '/poster'
-    return <article className="prompt-tile poster-tile">
-      <Link to={target} tabIndex={-1} className={`tile-image tile-image-${index % 6}`} aria-label="Open this photo in the poster editor">
-        {prompt.image ? <img {...responsiveImage(prompt.image, '(max-width: 700px) 45vw, 23vw')} alt="" loading="lazy" /> : <span className="tile-image-fallback"><ImagePlus size={28} /></span>}
-        <span className="tile-vignette" />
-        <span className="tile-tag">#creativeposter</span>
-      </Link>
-      <div className="tile-content poster-tile-content"><Link to={target} className="poster-create-button"><ImagePlus size={14} /> Create your poster</Link></div>
-    </article>
-  }
   const copy = async () => {
     try { await navigator.clipboard.writeText(prompt.promptText); setCopied(true); onCopy(); window.setTimeout(() => setCopied(false), 1500) } catch { setCopied(false) }
   }
   const tags = promptHashtags(prompt)
+  const cardTitle = prompt.title?.trim() || prompt.category || 'Creative Prompt'
+  const cardDesc = prompt.description?.trim() || prompt.promptText?.trim() || 'AI photo prompt.'
   return <article className="prompt-tile">
     {prompt.video ? (
       <div className={`tile-image tile-video-frame tile-image-${index % 6}`}>
-        <PromptVideo src={prompt.video} title={prompt.title} className="tile-video-iframe" />
+        <PromptVideo src={prompt.video} title={cardTitle} className="tile-video-iframe" />
         <span className="tile-tag tile-video-tag"><Video size={11} style={{ verticalAlign: 'middle', marginRight: 4 }} />{prompt.category}</span>
         {prompt.featured && <span className="tile-featured"><Sparkles size={12} /> EDITOR’S PICK</span>}
-        <Link to={`/prompt/${prompt.slug}`} className="tile-open" aria-label={`View ${prompt.title} details`}><ArrowUpRight size={17} /></Link>
+        <Link to={`/prompt/${prompt.slug}`} className="tile-open" aria-label={`View ${cardTitle} details`}><ArrowUpRight size={17} /></Link>
       </div>
     ) : (
       <Link to={`/prompt/${prompt.slug}`} className={`tile-image tile-image-${index % 6}`}>
-        {prompt.image ? <img {...responsiveImage(prompt.image, '(max-width: 700px) 45vw, 23vw')} alt={prompt.imageAlt || ''} loading="lazy" /> : <span className="tile-image-fallback"><Sparkles size={28} /></span>}
+        {prompt.image ? <img {...responsiveImage(prompt.image, '(max-width: 700px) 45vw, 23vw')} alt={prompt.imageAlt || cardTitle} loading="lazy" /> : <span className="tile-image-fallback"><Sparkles size={28} /></span>}
         <span className="tile-vignette" />
         <span className="tile-tag">{prompt.category}</span>
         {prompt.featured && <span className="tile-featured"><Sparkles size={12} /> EDITOR’S PICK</span>}
@@ -469,8 +460,8 @@ function PromptCard({ prompt, index, saved, engagement, onToggleSave, onCopy, on
       </Link>
     )}
     {tags.length > 0 && <div className="tile-hashtags">{tags.map((tag) => <button key={tag} className="tile-hashtag" title={`Show every ${tag} prompt`} onClick={() => onHashtag(tag)}>#{tag}</button>)}</div>}
-    <div className="tile-content"><div className="tile-heading"><Link to={`/prompt/${prompt.slug}`} className="tile-title">{prompt.title}</Link><button className={`tile-save ${saved ? 'is-saved' : ''}`} onClick={onToggleSave} aria-label={saved ? 'Remove from saved' : 'Save prompt'}><Heart size={17} fill={saved ? 'currentColor' : 'none'} /></button></div>
-      <p>{prompt.description}</p>
+    <div className="tile-content"><div className="tile-heading"><Link to={`/prompt/${prompt.slug}`} className="tile-title">{cardTitle}</Link><button className={`tile-save ${saved ? 'is-saved' : ''}`} onClick={onToggleSave} aria-label={saved ? 'Remove from saved' : 'Save prompt'}><Heart size={17} fill={saved ? 'currentColor' : 'none'} /></button></div>
+      <p>{cardDesc}</p>
       <div className="tile-stats"><span><Copy size={11} /> {formatCount(engagement.copy)} copies</span><span><Share2 size={11} /> {formatCount(engagement.share)} shares</span></div>
       <div className="tile-footer">{!prompt.sourceUrl && <span>{prompt.tool} <b>·</b> {prompt.style}</span>}<button className="tile-copy" onClick={copy}>{copied ? <Check size={13} /> : <Copy size={13} />}{copied ? 'Copied' : 'Copy prompt'}</button></div>
     </div>
@@ -478,8 +469,7 @@ function PromptCard({ prompt, index, saved, engagement, onToggleSave, onCopy, on
 }
 
 function FeatureHero({ prompts }: { prompts: Prompt[] }) {
-  const ideas = prompts.filter((prompt) => !isPosterPrompt(prompt))
-  const source = ideas.length >= 4 ? ideas : [...ideas, ...promptCatalog.filter((item) => !ideas.some((prompt) => prompt.id === item.id))]
+  const source = prompts.length >= 4 ? prompts : [...prompts, ...promptCatalog.filter((item) => !prompts.some((prompt) => prompt.id === item.id))]
   const trending = [...source].sort((a, b) => Number(b.featured) - Number(a.featured) || b.createdAt.localeCompare(a.createdAt)).slice(0, 4)
   return <section className="feature-hero trending-hero" id="trending">
     <div className="trending-hero-heading"><div><span className="feature-eyebrow"><Flame size={14} /> TRENDING NOW</span></div><span className="trending-hero-count">TOP 04</span></div>
@@ -492,40 +482,23 @@ function FeatureHero({ prompts }: { prompts: Prompt[] }) {
 
 const showcaseLimit = 4
 
-/** Home split: recent prompt posts and recent poster posts, kept apart by the CreativePoster hashtag. */
+/** Home showcase: fresh prompt posts from Blogger, ready to copy and remix. */
 function HomeCategoryShowcase({ prompts, onViewAll }: { prompts: Prompt[]; onViewAll: (filter: string) => void }) {
-  const { templates, posters } = useMemo(() => {
+  const templates = useMemo(() => {
     const ordered = [...prompts].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    return {
-      templates: ordered.filter((prompt) => !isPosterPrompt(prompt)).slice(0, showcaseLimit),
-      posters: ordered.filter(isPosterPrompt).slice(0, showcaseLimit),
-    }
+    return ordered.slice(0, showcaseLimit)
   }, [prompts])
-  if (!templates.length && !posters.length) return null
-  return <section className="home-showcase" aria-label="Latest prompt templates and posters from the blog">
-    {templates.length > 0 && <div className="showcase-block">
+  if (!templates.length) return null
+  return <section className="home-showcase" aria-label="Latest prompt templates from the blog">
+    <div className="showcase-block">
       <div className="showcase-head">
         <div className="showcase-title"><span className="feature-eyebrow"><Sparkles size={14} /> JUST PUBLISHED</span><h2>Latest prompt <em>templates</em></h2><p>Fresh prompts from the blog, ready to copy and remix.</p></div>
         <div className="showcase-actions"><span className="showcase-hashtag">{templates.length} NEW</span><button type="button" className="showcase-view-all" onClick={() => onViewAll('Latest')}>View all <ArrowRight size={14} /></button></div>
       </div>
       <div className="showcase-grid">{templates.map((prompt) => <Link className="showcase-card" to={`/prompt/${prompt.slug}`} key={prompt.id}>
         <div className="showcase-card-image">{prompt.image ? <img {...responsiveImage(prompt.image, '(max-width: 650px) 46vw, 22vw')} alt={prompt.imageAlt || prompt.title} loading="lazy" /> : <span className="showcase-card-fallback"><Sparkles size={26} /></span>}<span className="showcase-card-tag">{prompt.category}</span><span className="showcase-card-open"><ArrowUpRight size={16} /></span></div>
-        <div className="showcase-card-body"><h3>{prompt.title}</h3><p>{prompt.description}</p><span className="showcase-card-meta">{prompt.tool} <b>·</b> {prompt.style}</span></div>
+        <div className="showcase-card-body"><h3>{prompt.title || 'Creative Prompt'}</h3><p>{prompt.description || prompt.promptText}</p><span className="showcase-card-meta">{prompt.tool} <b>·</b> {prompt.style}</span></div>
       </Link>)}</div>
-    </div>}
-    <div className="showcase-block showcase-block-posters">
-      <div className="showcase-head">
-        <div className="showcase-title"><span className="feature-eyebrow"><ImagePlus size={14} /> MADE IN THE POSTER STUDIO</span><h2>Posters from <em>Blogger</em></h2><p>Photo posts carrying the creative poster hashtag.</p></div>
-        <div className="showcase-actions"><span className="showcase-hashtag showcase-hashtag-poster">#creativeposter</span>{posters.length > 0 && <button type="button" className="showcase-view-all" onClick={() => onViewAll('CreativePoster')}>View all <ArrowRight size={14} /></button>}</div>
-      </div>
-      {posters.length > 0 ? <div className="showcase-grid showcase-grid-posters">{posters.map((prompt) => {
-        const target = prompt.image ? `/poster?photo=${encodeURIComponent(prompt.image)}` : '/poster'
-        return <Link className="showcase-poster" to={target} key={prompt.id} aria-label="Create a poster from this Blogger photo">
-          {prompt.image ? <img {...responsiveImage(prompt.image, '(max-width: 650px) 46vw, 22vw')} alt="" loading="lazy" /> : <span className="showcase-poster-fallback"><ImagePlus size={28} /></span>}
-          <span className="showcase-poster-hashtag">#creativeposter</span>
-          <span className="showcase-poster-overlay"><ImagePlus size={15} /> Create your poster</span>
-        </Link>
-      })}</div> : <Link className="showcase-poster-empty" to="/poster"><span className="showcase-poster-empty-icon"><ImagePlus size={22} /></span><div><strong>No posters yet</strong><p>Split a Blogger photo post in the poster editor and publish it with #creativeposter.</p></div><ArrowRight size={15} /></Link>}
     </div>
   </section>
 }
