@@ -26,7 +26,7 @@ export const appConfig = Object.freeze({
   blogger: Object.freeze({
     apiUrl: normalizeBaseUrl(env.VITE_BLOGGER_API_URL) || 'https://www.googleapis.com/blogger/v3',
     blogId: env.VITE_BLOGGER_BLOG_ID?.trim() || '7320184749093787409',
-    clientId: env.VITE_BLOGGER_CLIENT_ID?.trim() || '',
+    clientId: env.VITE_BLOGGER_CLIENT_ID?.trim() || '422817864573-7dds0taiqk26f26r3u2dgiapggp4h9qc.apps.googleusercontent.com',
     // Browser-visible by design; restrict this key to Blogger API + approved origins in Google Cloud.
     apiKey: env.VITE_BLOGGER_API_KEY?.trim() || '',
   }),
