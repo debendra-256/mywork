@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360" width="100%" height="100%">
+  <defs>
+    <linearGradient id="scenery" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="60%" stop-color="#bae6fd"/>
+      <stop offset="100%" stop-color="#fef08a"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <rect width="600" height="360" fill="#0f172a"/>
+
+  <!-- Main Window -->
+  <g filter="url(#shadow)">
+    <rect x="40" y="25" width="520" height="310" rx="14" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+    <rect x="40" y="25" width="520" height="38" rx="14" fill="#0f172a"/>
+    <rect x="40" y="49" width="520" height="14" fill="#0f172a"/>
+    <circle cx="62" cy="44" r="5" fill="#ef4444"/>
+    <circle cx="78" cy="44" r="5" fill="#f59e0b"/>
+    <circle cx="94" cy="44" r="5" fill="#10b981"/>
+    <text x="300" y="48" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11" font-weight="600" text-anchor="middle">AI Magic Eraser · Object &amp; People Remover</text>
+  </g>
+
+  <!-- Photo Stage with AI Inpainting Mask -->
+  <g clip-path="url(#eraserClip)">
+    <clipPath id="eraserClip">
+      <rect x="65" y="80" width="470" height="235" rx="10"/>
+    </clipPath>
+    <!-- Background Scenic Art -->
+    <rect x="65" y="80" width="470" height="235" fill="url(#scenery)"/>
+    <circle cx="150" cy="140" r="45" fill="#fde047" fill-opacity="0.8"/>
+    <polygon points="65,315 220,180 370,315" fill="#15803d" fill-opacity="0.75"/>
+    <polygon points="200,315 360,195 535,315" fill="#166534" fill-opacity="0.9"/>
+
+    <!-- Subject staying in photo (person on left) -->
+    <circle cx="180" cy="220" r="14" fill="#ea580c"/>
+    <path d="M 165 260 C 165 240, 195 240, 195 260 Z" fill="#0369a1"/>
+
+    <!-- Photobomber / Unwanted object being erased with Neon Pink Mask -->
+    <g>
+      <!-- Glow & Mask area -->
+      <ellipse cx="390" cy="235" rx="36" ry="48" fill="#ec4899" fill-opacity="0.6" stroke="#f472b6" stroke-width="2" stroke-dasharray="4,4"/>
+      <!-- Faint shadow being replaced -->
+      <circle cx="390" cy="210" r="10" fill="#9d174d" fill-opacity="0.5"/>
+      <path d="M 380 245 C 380 228, 400 228, 400 245 Z" fill="#831843" fill-opacity="0.5"/>
+
+      <!-- Brush cursor -->
+      <circle cx="410" cy="210" r="15" fill="none" stroke="#ffffff" stroke-width="2"/>
+      <circle cx="410" cy="210" r="2" fill="#ffffff"/>
+    </g>
+  </g>
+
+  <!-- Magic Sparkles & Erasing Effect -->
+  <g>
+    <!-- Wand / Sparkles -->
+    <circle cx="435" cy="180" r="3" fill="#ffffff"/>
+    <circle cx="445" cy="165" r="4" fill="#f472b6"/>
+    <circle cx="355" cy="175" r="3" fill="#fde047"/>
+    <circle cx="370" cy="160" r="2" fill="#ffffff"/>
+  </g>
+
+  <!-- Pill Status & Toolbar -->
+  <g>
+    <rect x="85" y="98" width="140" height="28" rx="7" fill="#0f172a" fill-opacity="0.85"/>
+    <circle cx="102" cy="112" r="5" fill="#ec4899"/>
+    <text x="114" y="116" fill="#f1f5f9" font-family="system-ui, sans-serif" font-size="10" font-weight="700">Brush Selected</text>
+
+    <rect x="375" y="98" width="145" height="28" rx="7" fill="#10b981"/>
+    <text x="447" y="116" fill="#ffffff" font-family="system-ui, sans-serif" font-size="10" font-weight="bold" text-anchor="middle">Erase Object ✨</text>
+  </g>
+</svg>

@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360" width="100%" height="100%">
+  <defs>
+    <linearGradient id="headGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fdba74"/>
+      <stop offset="100%" stop-color="#fb923c"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <rect width="600" height="360" fill="#0f172a"/>
+
+  <!-- Main Window -->
+  <g filter="url(#shadow)">
+    <rect x="40" y="25" width="520" height="310" rx="14" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+    <rect x="40" y="25" width="520" height="38" rx="14" fill="#0f172a"/>
+    <rect x="40" y="49" width="520" height="14" fill="#0f172a"/>
+    <circle cx="62" cy="44" r="5" fill="#ef4444"/>
+    <circle cx="78" cy="44" r="5" fill="#f59e0b"/>
+    <circle cx="94" cy="44" r="5" fill="#10b981"/>
+    <text x="300" y="48" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11" font-weight="600" text-anchor="middle">Official Passport &amp; Visa Photo Maker</text>
+  </g>
+
+  <!-- Left Side: Size options -->
+  <g>
+    <rect x="65" y="80" width="190" height="235" rx="10" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="80" y="105" fill="#e2e8f0" font-family="system-ui, sans-serif" font-size="11" font-weight="700">Country &amp; Format</text>
+    
+    <rect x="80" y="118" width="160" height="32" rx="6" fill="#10b981" fill-opacity="0.2" stroke="#10b981" stroke-width="1"/>
+    <text x="92" y="137" fill="#34d399" font-family="system-ui, sans-serif" font-size="10" font-weight="bold">India / US Passport (2×2 in)</text>
+    
+    <rect x="80" y="158" width="160" height="30" rx="6" fill="#1e293b"/>
+    <text x="92" y="177" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="10">Schengen / EU (35×45 mm)</text>
+
+    <text x="80" y="214" fill="#94a3b8" font-family="sans-serif" font-size="10">Background Mode</text>
+    <rect x="80" y="224" width="75" height="24" rx="5" fill="#ffffff"/>
+    <text x="117" y="239" fill="#0f172a" font-family="sans-serif" font-size="9" font-weight="bold" text-anchor="middle">White</text>
+    <rect x="165" y="224" width="75" height="24" rx="5" fill="#3b82f6"/>
+    <text x="202" y="239" fill="#ffffff" font-family="sans-serif" font-size="9" font-weight="bold" text-anchor="middle">Light Blue</text>
+
+    <rect x="80" y="265" width="160" height="34" rx="7" fill="#10b981"/>
+    <text x="160" y="286" fill="#ffffff" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Print Sheet (6 Photos) 🖨️</text>
+  </g>
+
+  <!-- Right: 2x3 Printable Photo Sheet -->
+  <g filter="url(#shadow)">
+    <rect x="280" y="80" width="255" height="235" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
+    
+    <!-- Cut guidelines -->
+    <line x1="407" y1="80" x2="407" y2="315" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3,3"/>
+    <line x1="280" y1="197" x2="535" y2="197" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3,3"/>
+
+    <!-- Photo 1 -->
+    <g transform="translate(295, 90)">
+      <rect width="100" height="95" rx="4" fill="#f8fafc" stroke="#cbd5e1" stroke-width="0.5"/>
+      <circle cx="50" cy="40" r="16" fill="url(#headGrad)"/>
+      <path d="M 28 85 C 28 62, 72 62, 72 85 Z" fill="#1e293b"/>
+    </g>
+
+    <!-- Photo 2 -->
+    <g transform="translate(420, 90)">
+      <rect width="100" height="95" rx="4" fill="#f8fafc" stroke="#cbd5e1" stroke-width="0.5"/>
+      <circle cx="50" cy="40" r="16" fill="url(#headGrad)"/>
+      <path d="M 28 85 C 28 62, 72 62, 72 85 Z" fill="#1e293b"/>
+    </g>
+
+    <!-- Photo 3 -->
+    <g transform="translate(295, 208)">
+      <rect width="100" height="95" rx="4" fill="#f8fafc" stroke="#cbd5e1" stroke-width="0.5"/>
+      <circle cx="50" cy="40" r="16" fill="url(#headGrad)"/>
+      <path d="M 28 85 C 28 62, 72 62, 72 85 Z" fill="#1e293b"/>
+    </g>
+
+    <!-- Photo 4 -->
+    <g transform="translate(420, 208)">
+      <rect width="100" height="95" rx="4" fill="#f8fafc" stroke="#cbd5e1" stroke-width="0.5"/>
+      <circle cx="50" cy="40" r="16" fill="url(#headGrad)"/>
+      <path d="M 28 85 C 28 62, 72 62, 72 85 Z" fill="#1e293b"/>
+    </g>
+
+    <!-- Face Alignment Guide Box overlay on Photo 1 -->
+    <rect x="330" y="105" width="30" height="40" rx="15" fill="none" stroke="#10b981" stroke-width="1.5" stroke-dasharray="2,2"/>
+  </g>
+</svg>

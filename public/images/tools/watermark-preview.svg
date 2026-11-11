@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360" width="100%" height="100%">
+  <defs>
+    <linearGradient id="wmBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0c4a6e"/>
+      <stop offset="50%" stop-color="#0369a1"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+    <linearGradient id="photoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbcfe8"/>
+      <stop offset="50%" stop-color="#bae6fd"/>
+      <stop offset="100%" stop-color="#fed7aa"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="600" height="360" fill="#0f172a"/>
+
+  <!-- Main Window -->
+  <g filter="url(#shadow)">
+    <rect x="40" y="25" width="520" height="310" rx="14" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+    <!-- Title Bar -->
+    <rect x="40" y="25" width="520" height="38" rx="14" fill="#0f172a"/>
+    <rect x="40" y="49" width="520" height="14" fill="#0f172a"/>
+    <circle cx="62" cy="44" r="5" fill="#ef4444"/>
+    <circle cx="78" cy="44" r="5" fill="#f59e0b"/>
+    <circle cx="94" cy="44" r="5" fill="#10b981"/>
+    <text x="300" y="48" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11" font-weight="600" text-anchor="middle">AI Watermark Remover · Before &amp; After</text>
+  </g>
+
+  <!-- Split Comparison View Container -->
+  <g clip-path="url(#photoClip)">
+    <clipPath id="photoClip">
+      <rect x="65" y="80" width="470" height="230" rx="10"/>
+    </clipPath>
+    <!-- Background Photo Landscape/Portrait -->
+    <rect x="65" y="80" width="470" height="230" fill="url(#photoGrad)"/>
+    <circle cx="300" cy="195" r="75" fill="#f43f5e" fill-opacity="0.4"/>
+    <polygon points="120,290 230,170 340,290" fill="#0284c7" fill-opacity="0.5"/>
+    <polygon points="260,290 380,140 500,290" fill="#0369a1" fill-opacity="0.6"/>
+    <circle cx="440" cy="130" r="35" fill="#fbbf24" fill-opacity="0.85"/>
+
+    <!-- Left Side: Watermarked Area -->
+    <g transform="rotate(-25 180 180)">
+      <text x="110" y="150" fill="#ffffff" fill-opacity="0.45" font-family="sans-serif" font-size="18" font-weight="900" letter-spacing="2">CONFIDENTIAL</text>
+      <text x="90" y="190" fill="#ffffff" fill-opacity="0.4" font-family="sans-serif" font-size="18" font-weight="900" letter-spacing="2">DO NOT COPY</text>
+      <text x="120" y="230" fill="#ffffff" fill-opacity="0.45" font-family="sans-serif" font-size="18" font-weight="900" letter-spacing="2">WATERMARK</text>
+    </g>
+
+    <!-- Split Divider Line -->
+    <line x1="300" y1="80" x2="300" y2="310" stroke="#ffffff" stroke-width="3"/>
+    
+    <!-- Splitter Handle -->
+    <circle cx="300" cy="195" r="18" fill="#ffffff" filter="url(#shadow)"/>
+    <path d="M 294 195 L 298 190 L 298 200 Z" fill="#0f172a"/>
+    <path d="M 306 195 L 302 190 L 302 200 Z" fill="#0f172a"/>
+  </g>
+
+  <!-- Labels -->
+  <rect x="85" y="98" width="80" height="24" rx="6" fill="#0f172a" fill-opacity="0.8"/>
+  <text x="125" y="114" fill="#f87171" font-family="system-ui, sans-serif" font-size="10" font-weight="700" text-anchor="middle">BEFORE</text>
+
+  <rect x="435" y="98" width="80" height="24" rx="6" fill="#059669" fill-opacity="0.9"/>
+  <text x="475" y="114" fill="#ffffff" font-family="system-ui, sans-serif" font-size="10" font-weight="700" text-anchor="middle">AI CLEANED ✨</text>
+</svg>

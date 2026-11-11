@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ChevronDown, Clock3, Copy, DatabaseBackup, Download, Facebook, Video, Flame, Headphones, Heart, Home, ImagePlus, Images, Instagram, KeyRound, Layers, LayoutDashboard, LayoutGrid, Linkedin, Lock, LockOpen, LogOut, Mail, Menu, MessageCircle, Play, Plus, Search, Share2, ShieldCheck, SlidersHorizontal, Sparkles, Store, Sun, Trash2, Twitter, X, Zap } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ChevronDown, Clock3, Copy, DatabaseBackup, Download, Facebook, Video, Flame, Headphones, Heart, Home, ImagePlus, Images, Instagram, KeyRound, Layers, LayoutDashboard, LayoutGrid, Linkedin, Lock, LockOpen, LogOut, Mail, Menu, MessageCircle, Play, Plus, Search, ShieldCheck, SlidersHorizontal, Sparkles, Store, Sun, Trash2, Twitter, X, Zap } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { appConfig } from '../config/app.config'
 import { toolsConfig, type ToolDefinition, type ToolIcon } from '../config/ToolsConfig'
@@ -13,7 +13,7 @@ import { ToolSurface } from '../tools/toolRuntime'
 import { promptCatalog, promptCategories } from '../data/prompt-catalog'
 import { createPromptRepository } from '../data/prompt-repository'
 import { downloadImageFile, imageAtWidth, responsiveImage } from '../data/prompt-image'
-import { engagementFor, formatCount, useEngagement, type EngagementCounts } from '../data/prompt-engagement'
+import { engagementFor, useEngagement, type EngagementCounts } from '../data/prompt-engagement'
 import { clearBloggerSession, connectBlogger, getBloggerAccessTokenIfAvailable, hasBloggerSession } from '../data/blogger-auth'
 import { getPromptBloggerDraftMetadata, parseBloggerEditUrl, promptBloggerDraft, publishPromptToBlogger } from '../data/blogger-publisher'
 import { publishPdfProduct } from '../data/digital-products'
@@ -434,7 +434,7 @@ function PromptVideo({ src, title, className }: { src: string; title: string; cl
   )
 }
 
-function PromptCard({ prompt, index, saved, engagement, onToggleSave, onCopy, onHashtag }: { prompt: Prompt; index: number; saved: boolean; engagement: EngagementCounts; onToggleSave: () => void; onCopy: () => void; onHashtag: (tag: string) => void }) {
+function PromptCard({ prompt, index, saved, onToggleSave, onCopy, onHashtag }: { prompt: Prompt; index: number; saved: boolean; engagement?: EngagementCounts; onToggleSave: () => void; onCopy: () => void; onHashtag: (tag: string) => void }) {
   const [copied, setCopied] = useState(false)
   const [downloading, setDownloading] = useState(false)
   const copy = async () => {
@@ -488,7 +488,6 @@ function PromptCard({ prompt, index, saved, engagement, onToggleSave, onCopy, on
     {tags.length > 0 && <div className="tile-hashtags">{tags.map((tag) => <button key={tag} className="tile-hashtag" title={`Show every ${tag} prompt`} onClick={() => onHashtag(tag)}>#{tag}</button>)}</div>}
     <div className="tile-content"><div className="tile-heading"><Link to={`/prompt/${prompt.slug}`} className="tile-title">{cardTitle}</Link><button className={`tile-save ${saved ? 'is-saved' : ''}`} onClick={onToggleSave} aria-label={saved ? 'Remove from saved' : 'Save prompt'}><Heart size={17} fill={saved ? 'currentColor' : 'none'} /></button></div>
       <p>{cardDesc}</p>
-      <div className="tile-stats"><span><Copy size={11} /> {formatCount(engagement.copy)} copies</span><span><Share2 size={11} /> {formatCount(engagement.share)} shares</span></div>
       <div className="tile-footer">
         {!prompt.sourceUrl && <span>{prompt.tool} <b>·</b> {prompt.style}</span>}
         <div className="tile-footer-actions">
@@ -816,7 +815,24 @@ function HomePage({ prompts, blogStatus, adminLoggedIn = false }: { prompts: Pro
     <main className={`main-content ${utilityOpen ? 'recorder-main-wide' : ''}`}><div className={`content-inner ${utilityOpen ? 'recorder-content-wide' : ''}`}>{!utilityOpen && <HomeLanding onJump={jumpTo} onOpenTool={openTool} onNavigate={navigate} />}<div id="home-utility-area">{utilityTool?.overlay ? null : utilityTool && <ToolSurface tool={utilityTool} />}</div>{utilityTool?.overlay && <ToolSurface tool={utilityTool} onClose={() => setActiveUtility(null)} />}<FeatureHero prompts={deduplicatedPrompts} /><ProductScroller />
       <section className="browse-section" id="explore"><div className="section-topline"><div><span className="section-kicker">THE PROMPT LIBRARY</span><h2>Find your next <em>favorite.</em></h2></div><span className="collection-count">{deduplicatedPrompts.length} IDEAS <span>↗</span></span></div>
         
-        <div className="inline-search"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search prompts, styles, ideas" aria-label="Filter the prompt library" />{query && <button onClick={() => setQuery('')} aria-label="Clear search"><X size={15} /></button>}</div>
+        <div className="inline-search">
+          <Search size={20} className="inline-search-icon" />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search all prompts by style, keyword or hashtag..."
+            aria-label="Filter the prompt library"
+          />
+          {query ? (
+            <button type="button" onClick={() => setQuery('')} aria-label="Clear search" className="inline-search-clear">
+              <X size={16} />
+            </button>
+          ) : (
+            <span className="inline-search-hint">
+              <Sparkles size={13} /> {deduplicatedPrompts.length} Ideas
+            </span>
+          )}
+        </div>
         <FilterBar active={active} categories={categories} hashtags={hashtags} onSelect={setActive} />
         <div className="results-heading"><div><span className="results-label">BROWSE THE LIBRARY</span><h3>{title}</h3></div><span className="results-number">{String(shown.length).padStart(2, '0')} <span>prompts</span></span></div>
         {shown.length ? <><div className="prompt-grid">{pageItems.map((prompt, index) => <PromptCard key={prompt.id} prompt={prompt} index={(currentPage - 1) * libraryPageSize + index} saved={savedIds.includes(prompt.id)} engagement={engagementFor(counts, prompt.id)} onToggleSave={() => toggleSave(prompt.id)} onCopy={() => record(prompt.id, 'copy')} onHashtag={showHashtag} />)}</div>{totalPages > 1 && <nav className="library-pagination" aria-label="Prompt pages"><button className="pagination-edge" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1} aria-label="Previous page"><ArrowLeft size={15} /> Prev</button><div className="pagination-pages">{pageNumbers(currentPage, totalPages).map((entry, index) => entry === 'gap' ? <span className="pagination-gap" key={`gap-${index}`}>…</span> : <button key={entry} className={`pagination-page ${entry === currentPage ? 'is-current' : ''}`} onClick={() => goToPage(entry)} aria-current={entry === currentPage ? 'page' : undefined}>{entry}</button>)}</div><span className="pagination-range">{String((currentPage - 1) * libraryPageSize + 1).padStart(2, '0')}–{String((currentPage - 1) * libraryPageSize + pageItems.length).padStart(2, '0')} of {String(shown.length).padStart(2, '0')}</span><button className="pagination-edge" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages} aria-label="Next page">Next <ArrowRight size={15} /></button></nav>}</> : <div className="no-results"><span>✳</span><h3>{blogStatus === 'connected' && deduplicatedPrompts.length === 0 ? 'No published posts yet' : 'No prompts here yet'}</h3><p>{blogStatus === 'connected' && deduplicatedPrompts.length === 0 ? 'Your Blogger connection is working. Publish a post on the blog and it will appear here.' : 'Try another category or search term.'}</p>{!(blogStatus === 'connected' && deduplicatedPrompts.length === 0) && <button onClick={() => { setActive('All'); setQuery('') }}>Show all prompts <ArrowRight size={15} /></button>}</div>}
@@ -1043,13 +1059,73 @@ function ToolPage({ tool }: { tool: ToolDefinition }) {
   )
 }
 
-const detailFeaturedTools: Array<{ id: string; title: string; desc: string; icon: ToolIcon; href: string }> = [
-  { id: 'poster', title: 'Create Poster', desc: 'Design eye-catching posters, flyers & banners with custom typography.', icon: 'sparkles', href: '/poster' },
-  { id: 'watermark-remover', title: 'Watermark Remover', desc: 'Cleanly erase unwanted watermarks, logos & stamps with AI.', icon: 'droplets', href: '/watermark-remover' },
-  { id: 'compress-image', title: 'Compress Image', desc: 'Shrink image file size up to 80% without losing visual quality.', icon: 'file-archive', href: '/compress-image' },
-  { id: 'qr-code', title: 'QR Code Generator', desc: 'Generate customized high-resolution branded QR codes.', icon: 'qr-code', href: '/qr-code' },
-  { id: 'passport-photo', title: 'Passport Photo Maker', desc: 'Create official passport & visa photos in standard sizes with ease.', icon: 'id-card', href: '/passport-photo' },
-  { id: 'remove-object', title: 'Remove Object', desc: 'Magic eraser tool to wipe away photobombers and clutter.', icon: 'eraser', href: '/remove-object' },
+const detailFeaturedTools = [
+  {
+    id: 'poster',
+    title: 'Create Poster',
+    tagline: 'Design Studio',
+    desc: 'Turn any photo into print-ready social posters, banners & flyers with custom typography, elements and layout presets.',
+    icon: 'sparkles' as const,
+    href: '/poster',
+    preview: '/images/tools/poster-preview.svg',
+    badge: 'Free Tool',
+    chips: ['100+ Layouts', 'Print Ready', 'No Watermark'],
+  },
+  {
+    id: 'watermark-remover',
+    title: 'Watermark Remover',
+    tagline: 'AI Inpainting',
+    desc: 'Cleanly erase unwanted watermarks, logos, timestamps & stamps with neural image reconstruction.',
+    icon: 'droplets' as const,
+    href: '/watermark-remover',
+    preview: '/images/tools/watermark-preview.svg',
+    badge: 'Free AI Tool',
+    chips: ['100% Automatic', 'Texture Restore', 'Instant'],
+  },
+  {
+    id: 'compress-image',
+    title: 'Compress Image',
+    tagline: 'Batch Optimizer',
+    desc: 'Shrink high-resolution JPG & PNG file sizes by up to 90% without visible loss of sharpness.',
+    icon: 'file-archive' as const,
+    href: '/compress-image',
+    preview: '/images/tools/compress-preview.svg',
+    badge: 'Free Tool',
+    chips: ['Up to -90%', 'Bulk Zip Download', 'Lossless'],
+  },
+  {
+    id: 'qr-code',
+    title: 'QR Code Generator',
+    tagline: 'Vector Creator',
+    desc: 'Generate customized high-resolution branded QR codes with colors, custom dot patterns & logos.',
+    icon: 'qr-code' as const,
+    href: '/qr-code',
+    preview: '/images/tools/qrcode-preview.svg',
+    badge: 'Free Tool',
+    chips: ['High-Res PNG & SVG', 'Custom Logo', 'Wi-Fi & URL'],
+  },
+  {
+    id: 'passport-photo',
+    title: 'Passport Photo Maker',
+    tagline: 'Official Compliance',
+    desc: 'Create official compliant passport & visa photos in 2×2 in, 35×45 mm with auto background color.',
+    icon: 'id-card' as const,
+    href: '/passport-photo',
+    preview: '/images/tools/passport-preview.svg',
+    badge: 'Free Tool',
+    chips: ['Official Sizes', 'White & Blue BG', 'Print Sheets'],
+  },
+  {
+    id: 'remove-object',
+    title: 'Remove Object from Image',
+    tagline: 'Magic Eraser',
+    desc: 'Brush over unwanted photobombers, text, power lines or clutter to seamlessly wipe them from any photo.',
+    icon: 'eraser' as const,
+    href: '/remove-object',
+    preview: '/images/tools/eraser-preview.svg',
+    badge: 'Free AI Tool',
+    chips: ['AI Inpainting', 'Photobomber Wipe', 'Zero Sign Up'],
+  },
 ]
 
 function PromptPage({ prompts }: { prompts: Prompt[] }) {
@@ -1142,7 +1218,6 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
       setCopied(false)
     }
   }
-  const engagement = engagementFor(counts, prompt.id)
   const shareText = `${prompt.title}\n\n${prompt.promptText}${prompt.image ? `\n\nImage:\n${imageAtWidth(prompt.image, 1200)}` : ''}\n\n${pageUrl}`
   const copyForAiTool = (label: string) => {
     if (!navigator.clipboard?.writeText) {
@@ -1191,36 +1266,38 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
           <ArrowLeft size={16} /> Back to prompts
         </button>
         <div className="detail-columns">
-          <div className={`detail-cover ${prompt.video ? 'detail-cover-video' : ''}`}>
-            {prompt.video ? (
-              <PromptVideo src={prompt.video} title={prompt.title} className="detail-video-iframe" />
-            ) : prompt.image ? (
-              <img src={imageAtWidth(prompt.image, 1000)} alt={prompt.imageAlt || ''} />
-            ) : (
-              <span className="tile-image-fallback">
-                <Sparkles size={28} />
-              </span>
-            )}
-            <span>{prompt.category}</span>
+          <div className="detail-cover-wrapper">
+            <div className={`detail-cover ${prompt.video ? 'detail-cover-video' : ''}`}>
+              {prompt.video ? (
+                <PromptVideo src={prompt.video} title={prompt.title} className="detail-video-iframe" />
+              ) : prompt.image ? (
+                <img src={imageAtWidth(prompt.image, 1000)} alt={prompt.imageAlt || ''} />
+              ) : (
+                <span className="tile-image-fallback">
+                  <Sparkles size={28} />
+                </span>
+              )}
+              <span className="detail-cover-tag">{prompt.category}</span>
+            </div>
             {prompt.image && (
-              <div className="detail-cover-actions">
+              <div className="detail-cover-bar">
                 <button
                   type="button"
-                  className="detail-cover-action-btn"
+                  className="detail-cover-btn"
                   title="Download image"
                   onClick={handleDownload}
                   disabled={downloading}
                 >
-                  {downloadSuccess ? <Check size={13} /> : <Download size={13} />}
-                  <span>{downloading ? 'Saving…' : downloadSuccess ? 'Saved!' : 'Download'}</span>
+                  {downloadSuccess ? <Check size={14} /> : <Download size={14} />}
+                  <span>{downloading ? 'Downloading…' : downloadSuccess ? 'Downloaded!' : 'Download image'}</span>
                 </button>
                 <Link
                   to={customizePosterUrl}
-                  className="detail-cover-action-btn detail-cover-action-customize"
+                  className="detail-cover-btn detail-cover-btn-customize"
                   title="Customise this image in Poster Editor"
                 >
-                  <Sparkles size={13} />
-                  <span>Customise</span>
+                  <Sparkles size={14} />
+                  <span>Customise this image</span>
                 </Link>
               </div>
             )}
@@ -1274,14 +1351,6 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
               >
                 <Instagram size={16} /> Follow on Instagram <ArrowUpRight size={13} />
               </a>
-            </div>
-            <div className="detail-stats">
-              <span>
-                <Copy size={13} /> {formatCount(engagement.copy)} copies
-              </span>
-              <span>
-                <Share2 size={13} /> {formatCount(engagement.share)} shares
-              </span>
             </div>
             <a href={instagramUrl} target="_blank" rel="noreferrer" className="detail-instagram-card">
               <div className="instagram-card-badge">
@@ -1375,16 +1444,34 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
           <div className="detail-tools-grid">
             {detailFeaturedTools.map((tool) => (
               <Link key={tool.id} to={tool.href} className="detail-tool-card">
-                <div className={`detail-tool-icon icon-${tool.id}`}>
-                  <ToolGlyph icon={tool.icon} size={22} />
+                <div className="detail-tool-preview-wrap">
+                  <img src={tool.preview} alt={`${tool.title} screenshot`} className="detail-tool-preview-img" loading="lazy" />
+                  <span className="detail-tool-badge">
+                    <Sparkles size={11} /> {tool.badge}
+                  </span>
                 </div>
                 <div className="detail-tool-info">
-                  <h3>{tool.title}</h3>
+                  <div className="detail-tool-title-row">
+                    <div className={`detail-tool-icon icon-${tool.id}`}>
+                      <ToolGlyph icon={tool.icon} size={18} />
+                    </div>
+                    <div>
+                      <h3>{tool.title}</h3>
+                      <span className="detail-tool-tagline">{tool.tagline}</span>
+                    </div>
+                  </div>
                   <p>{tool.desc}</p>
+                  <div className="detail-tool-chips">
+                    {tool.chips.map((chip) => (
+                      <span key={chip} className="detail-tool-chip">{chip}</span>
+                    ))}
+                  </div>
                 </div>
-                <span className="detail-tool-action">
-                  Open tool <ArrowRight size={14} />
-                </span>
+                <div className="detail-tool-action-bar">
+                  <span className="detail-tool-cta">
+                    Try Tool Free <ArrowRight size={14} />
+                  </span>
+                </div>
               </Link>
             ))}
           </div>

@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#121824"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="posterArt" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff6b4a"/>
+      <stop offset="50%" stop-color="#ec4899"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="cardGlow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect width="600" height="360" fill="url(#bg)"/>
+  
+  <!-- Editor Window Frame -->
+  <g filter="url(#shadow)">
+    <rect x="40" y="25" width="520" height="310" rx="14" fill="#0f172a" stroke="#334155" stroke-width="1.5"/>
+    <!-- Window Title Bar -->
+    <rect x="40" y="25" width="520" height="34" rx="14" fill="#1e293b"/>
+    <rect x="40" y="45" width="520" height="14" fill="#1e293b"/>
+    <line x1="40" y1="59" x2="560" y2="59" stroke="#334155" stroke-width="1"/>
+    
+    <!-- Window Controls -->
+    <circle cx="62" cy="42" r="5" fill="#ef4444"/>
+    <circle cx="78" cy="42" r="5" fill="#f59e0b"/>
+    <circle cx="94" cy="42" r="5" fill="#10b981"/>
+    
+    <text x="300" y="46" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11" font-weight="600" text-anchor="middle">Poster Studio · Visual Editor</text>
+  </g>
+
+  <!-- Left Sidebar Toolbar -->
+  <rect x="42" y="60" width="52" height="273" fill="#0b1120"/>
+  <line x1="94" y1="60" x2="94" y2="333" stroke="#1e293b" stroke-width="1"/>
+  <!-- Tool Icons -->
+  <rect x="53" y="76" width="30" height="30" rx="7" fill="#3b82f6" fill-opacity="0.2"/>
+  <circle cx="68" cy="91" r="6" fill="#60a5fa"/>
+  <rect x="53" y="118" width="30" height="30" rx="7" fill="#334155"/>
+  <text x="68" y="138" fill="#94a3b8" font-family="sans-serif" font-size="13" font-weight="bold" text-anchor="middle">T</text>
+  <rect x="53" y="160" width="30" height="30" rx="7" fill="#334155"/>
+  <circle cx="68" cy="175" r="5" stroke="#94a3b8" stroke-width="2" fill="none"/>
+  <rect x="53" y="202" width="30" height="30" rx="7" fill="#334155"/>
+  <rect x="62" y="211" width="12" height="12" rx="2" fill="#94a3b8"/>
+
+  <!-- Canvas Stage Area -->
+  <rect x="95" y="60" width="463" height="273" fill="#0f172a"/>
+  
+  <!-- Poster Art on Canvas -->
+  <g filter="url(#shadow)">
+    <rect x="180" y="75" width="180" height="240" rx="10" fill="url(#posterArt)"/>
+    <rect x="180" y="75" width="180" height="240" rx="10" fill="url(#cardGlow)"/>
+    <!-- Decorative Poster Typography -->
+    <rect x="200" y="98" width="45" height="14" rx="4" fill="#ffffff" fill-opacity="0.3"/>
+    <text x="204" y="109" fill="#ffffff" font-family="system-ui, sans-serif" font-size="8" font-weight="800">SUMMER</text>
+    
+    <text x="200" y="142" fill="#ffffff" font-family="system-ui, sans-serif" font-size="24" font-weight="900" letter-spacing="-0.5">FESTIVAL</text>
+    <text x="200" y="162" fill="#fef08a" font-family="system-ui, sans-serif" font-size="12" font-weight="700">MUSIC &amp; ARTS 2026</text>
+
+    <!-- Graphic shapes inside poster -->
+    <circle cx="310" cy="195" r="28" fill="#ffffff" fill-opacity="0.25"/>
+    <polygon points="215,220 245,180 275,220" fill="#fde047" fill-opacity="0.9"/>
+    <rect x="200" y="260" width="140" height="6" rx="3" fill="#ffffff" fill-opacity="0.5"/>
+    <rect x="200" y="272" width="90" height="6" rx="3" fill="#ffffff" fill-opacity="0.4"/>
+    
+    <!-- Selection Bounding Box -->
+    <rect x="176" y="71" width="188" height="248" rx="12" fill="none" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="4,4"/>
+    <rect x="172" y="67" width="8" height="8" fill="#3b82f6" rx="2"/>
+    <rect x="360" y="67" width="8" height="8" fill="#3b82f6" rx="2"/>
+    <rect x="172" y="315" width="8" height="8" fill="#3b82f6" rx="2"/>
+    <rect x="360" y="315" width="8" height="8" fill="#3b82f6" rx="2"/>
+  </g>
+
+  <!-- Right Inspector Panel -->
+  <g>
+    <rect x="390" y="80" width="150" height="230" rx="10" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="405" y="105" fill="#f1f5f9" font-family="system-ui, sans-serif" font-size="11" font-weight="700">Typography</text>
+    <rect x="405" y="118" width="120" height="24" rx="5" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+    <text x="415" y="134" fill="#cbd5e1" font-family="sans-serif" font-size="10">Inter Bold</text>
+    
+    <text x="405" y="165" fill="#94a3b8" font-family="sans-serif" font-size="10">Font Size: 48px</text>
+    <rect x="405" y="174" width="120" height="5" rx="2.5" fill="#334155"/>
+    <rect x="405" y="174" width="70" height="5" rx="2.5" fill="#10b981"/>
+    <circle cx="475" cy="176.5" r="5" fill="#ffffff"/>
+
+    <text x="405" y="206" fill="#94a3b8" font-family="sans-serif" font-size="10">Color Palette</text>
+    <circle cx="415" cy="224" r="8" fill="#ff6b4a"/>
+    <circle cx="438" cy="224" r="8" fill="#ec4899"/>
+    <circle cx="461" cy="224" r="8" fill="#8b5cf6"/>
+    <circle cx="484" cy="224" r="8" fill="#facc15"/>
+    <circle cx="507" cy="224" r="8" fill="#10b981"/>
+
+    <!-- Export Button -->
+    <rect x="405" y="255" width="120" height="32" rx="7" fill="#10b981"/>
+    <text x="465" y="275" fill="#ffffff" font-family="system-ui, sans-serif" font-size="11" font-weight="700" text-anchor="middle">Export PNG ↗</text>
+  </g>
+</svg>
