@@ -18,3 +18,93 @@ export function responsiveImage(url: string | undefined, sizes: string): { src?:
     sizes,
   }
 }
+
+function triggerBlobDownload(blob: Blob, filename: string) {
+  const blobUrl = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = blobUrl
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  window.setTimeout(() => URL.revokeObjectURL(blobUrl), 10000)
+}
+
+export async function downloadImageFile(imageUrl: string, filename = 'image.jpg'): Promise<boolean> {
+  if (!imageUrl) return false
+  const cleanName = filename.replace(/[\\/:*?"<>|]+/g, '-').trim() || 'image.jpg'
+  const finalFilename = /\.(jpe?g|png|webp|gif)$/i.test(cleanName) ? cleanName : `${cleanName}.jpg`
+  const targetUrl = imageAtWidth(imageUrl, 1600) || imageUrl
+
+  // Strategy 1: Direct CORS fetch
+  try {
+    const res = await fetch(targetUrl, { mode: 'cors' })
+    if (res.ok) {
+      const blob = await res.blob()
+      triggerBlobDownload(blob, finalFilename)
+      return true
+    }
+  } catch {
+    // Continue to proxy strategy
+  }
+
+  // Strategy 2: Via local proxy if Google/Blogger image
+  try {
+    const res = await fetch(`/api/poster-photo?photo=${encodeURIComponent(targetUrl)}`)
+    if (res.ok) {
+      const blob = await res.blob()
+      triggerBlobDownload(blob, finalFilename)
+      return true
+    }
+  } catch {
+    // Continue to canvas strategy
+  }
+
+  // Strategy 3: Canvas drawing
+  try {
+    const blob = await new Promise<Blob | null>((resolve) => {
+      const img = new Image()
+      img.crossOrigin = 'anonymous'
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas')
+          canvas.width = img.naturalWidth || img.width
+          canvas.height = img.naturalHeight || img.height
+          const ctx = canvas.getContext('2d')
+          if (ctx) {
+            ctx.drawImage(img, 0, 0)
+            canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.95)
+            return
+          }
+        } catch {
+          // Canvas tainted
+        }
+        resolve(null)
+      }
+      img.onerror = () => resolve(null)
+      img.src = targetUrl
+    })
+    if (blob) {
+      triggerBlobDownload(blob, finalFilename)
+      return true
+    }
+  } catch {
+    // Continue to fallback
+  }
+
+  // Strategy 4: Fallback to anchor click or new tab
+  try {
+    const a = document.createElement('a')
+    a.href = targetUrl
+    a.download = finalFilename
+    a.target = '_blank'
+    a.rel = 'noreferrer'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    return true
+  } catch {
+    window.open(targetUrl, '_blank')
+    return false
+  }
+}

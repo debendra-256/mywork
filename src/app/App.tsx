@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ChevronDown, Clock3, Copy, DatabaseBackup, Facebook, Video, Flame, Headphones, Heart, Home, ImagePlus, Images, Instagram, KeyRound, Layers, LayoutDashboard, LayoutGrid, Linkedin, Lock, LockOpen, LogOut, Mail, Menu, MessageCircle, Play, Plus, Search, Share2, ShieldCheck, SlidersHorizontal, Sparkles, Store, Sun, Trash2, Twitter, X, Zap } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ChevronDown, Clock3, Copy, DatabaseBackup, Download, Facebook, Video, Flame, Headphones, Heart, Home, ImagePlus, Images, Instagram, KeyRound, Layers, LayoutDashboard, LayoutGrid, Linkedin, Lock, LockOpen, LogOut, Mail, Menu, MessageCircle, Play, Plus, Search, Share2, ShieldCheck, SlidersHorizontal, Sparkles, Store, Sun, Trash2, Twitter, X, Zap } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { appConfig } from '../config/app.config'
 import { toolsConfig, type ToolDefinition, type ToolIcon } from '../config/ToolsConfig'
@@ -12,7 +12,7 @@ import { HomeLanding } from '../landing/Landing'
 import { ToolSurface } from '../tools/toolRuntime'
 import { promptCatalog, promptCategories } from '../data/prompt-catalog'
 import { createPromptRepository } from '../data/prompt-repository'
-import { imageAtWidth, responsiveImage } from '../data/prompt-image'
+import { downloadImageFile, imageAtWidth, responsiveImage } from '../data/prompt-image'
 import { engagementFor, formatCount, useEngagement, type EngagementCounts } from '../data/prompt-engagement'
 import { clearBloggerSession, connectBlogger, getBloggerAccessTokenIfAvailable, hasBloggerSession } from '../data/blogger-auth'
 import { getPromptBloggerDraftMetadata, parseBloggerEditUrl, promptBloggerDraft, publishPromptToBlogger } from '../data/blogger-publisher'
@@ -436,8 +436,20 @@ function PromptVideo({ src, title, className }: { src: string; title: string; cl
 
 function PromptCard({ prompt, index, saved, engagement, onToggleSave, onCopy, onHashtag }: { prompt: Prompt; index: number; saved: boolean; engagement: EngagementCounts; onToggleSave: () => void; onCopy: () => void; onHashtag: (tag: string) => void }) {
   const [copied, setCopied] = useState(false)
+  const [downloading, setDownloading] = useState(false)
   const copy = async () => {
     try { await navigator.clipboard.writeText(prompt.promptText); setCopied(true); onCopy(); window.setTimeout(() => setCopied(false), 1500) } catch { setCopied(false) }
+  }
+  const handleDownload = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!prompt.image || downloading) return
+    setDownloading(true)
+    try {
+      await downloadImageFile(prompt.image, `${prompt.slug || prompt.id}.jpg`)
+    } finally {
+      window.setTimeout(() => setDownloading(false), 1200)
+    }
   }
   const tags = promptHashtags(prompt)
   const cardTitle = prompt.title?.trim() || prompt.category || 'Creative Prompt'
@@ -451,19 +463,50 @@ function PromptCard({ prompt, index, saved, engagement, onToggleSave, onCopy, on
         <Link to={`/prompt/${prompt.slug}`} className="tile-open" aria-label={`View ${cardTitle} details`}><ArrowUpRight size={17} /></Link>
       </div>
     ) : (
-      <Link to={`/prompt/${prompt.slug}`} className={`tile-image tile-image-${index % 6}`}>
-        {prompt.image ? <img {...responsiveImage(prompt.image, '(max-width: 700px) 45vw, 23vw')} alt={prompt.imageAlt || cardTitle} loading="lazy" /> : <span className="tile-image-fallback"><Sparkles size={28} /></span>}
-        <span className="tile-vignette" />
-        <span className="tile-tag">{prompt.category}</span>
-        {prompt.featured && <span className="tile-featured"><Sparkles size={12} /> EDITOR’S PICK</span>}
-        <span className="tile-open"><ArrowUpRight size={17} /></span>
-      </Link>
+      <div className={`tile-image tile-image-${index % 6}`}>
+        <Link to={`/prompt/${prompt.slug}`} className="tile-image-link" aria-label={`View ${cardTitle} details`}>
+          {prompt.image ? <img {...responsiveImage(prompt.image, '(max-width: 700px) 45vw, 23vw')} alt={prompt.imageAlt || cardTitle} loading="lazy" /> : <span className="tile-image-fallback"><Sparkles size={28} /></span>}
+          <span className="tile-vignette" />
+          <span className="tile-tag">{prompt.category}</span>
+          {prompt.featured && <span className="tile-featured"><Sparkles size={12} /> EDITOR’S PICK</span>}
+          <span className="tile-open"><ArrowUpRight size={17} /></span>
+        </Link>
+        {prompt.image && (
+          <button
+            type="button"
+            className="tile-image-download"
+            title="Download image"
+            aria-label={`Download ${cardTitle} image`}
+            onClick={handleDownload}
+            disabled={downloading}
+          >
+            <Download size={13} />
+          </button>
+        )}
+      </div>
     )}
     {tags.length > 0 && <div className="tile-hashtags">{tags.map((tag) => <button key={tag} className="tile-hashtag" title={`Show every ${tag} prompt`} onClick={() => onHashtag(tag)}>#{tag}</button>)}</div>}
     <div className="tile-content"><div className="tile-heading"><Link to={`/prompt/${prompt.slug}`} className="tile-title">{cardTitle}</Link><button className={`tile-save ${saved ? 'is-saved' : ''}`} onClick={onToggleSave} aria-label={saved ? 'Remove from saved' : 'Save prompt'}><Heart size={17} fill={saved ? 'currentColor' : 'none'} /></button></div>
       <p>{cardDesc}</p>
       <div className="tile-stats"><span><Copy size={11} /> {formatCount(engagement.copy)} copies</span><span><Share2 size={11} /> {formatCount(engagement.share)} shares</span></div>
-      <div className="tile-footer">{!prompt.sourceUrl && <span>{prompt.tool} <b>·</b> {prompt.style}</span>}<button className="tile-copy" onClick={copy}>{copied ? <Check size={13} /> : <Copy size={13} />}{copied ? 'Copied' : 'Copy prompt'}</button></div>
+      <div className="tile-footer">
+        {!prompt.sourceUrl && <span>{prompt.tool} <b>·</b> {prompt.style}</span>}
+        <div className="tile-footer-actions">
+          {prompt.image && (
+            <button
+              type="button"
+              className="tile-download"
+              title="Download image"
+              aria-label={`Download ${cardTitle} image`}
+              onClick={handleDownload}
+              disabled={downloading}
+            >
+              <Download size={13} />
+            </button>
+          )}
+          <button className="tile-copy" onClick={copy}>{copied ? <Check size={13} /> : <Copy size={13} />}{copied ? 'Copied' : 'Copy prompt'}</button>
+        </div>
+      </div>
     </div>
   </article>
 }
@@ -1016,6 +1059,8 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
   const [shareMenuOpen, setShareMenuOpen] = useState(false)
   const [shareMessage, setShareMessage] = useState('')
   const [savedIds, setSavedIds] = useState<string[]>([])
+  const [downloading, setDownloading] = useState(false)
+  const [downloadSuccess, setDownloadSuccess] = useState(false)
   const { counts, record } = useEngagement()
 
   const toggleSave = (id: string) =>
@@ -1029,6 +1074,26 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
   const prompt = prompts.find(
     (item) => item.slug === slug || item.id === slug || normalizeSlug(item.slug) === normalizeSlug(slug || '')
   )
+
+  const handleDownload = async () => {
+    if (!prompt?.image || downloading) return
+    setDownloading(true)
+    try {
+      const ok = await downloadImageFile(prompt.image, `${prompt.slug || prompt.id}.jpg`)
+      if (ok) {
+        setDownloadSuccess(true)
+        window.setTimeout(() => setDownloadSuccess(false), 2000)
+      }
+    } catch (err) {
+      console.error('Image download error:', err)
+    } finally {
+      setDownloading(false)
+    }
+  }
+
+  const customizePosterUrl = prompt?.image
+    ? `/poster/upload?photo=${encodeURIComponent(imageAtWidth(prompt.image, 1600) || prompt.image)}`
+    : '/poster/upload'
 
   const otherPrompts = useMemo(() => {
     if (!prompt) return []
@@ -1137,6 +1202,28 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
               </span>
             )}
             <span>{prompt.category}</span>
+            {prompt.image && (
+              <div className="detail-cover-actions">
+                <button
+                  type="button"
+                  className="detail-cover-action-btn"
+                  title="Download image"
+                  onClick={handleDownload}
+                  disabled={downloading}
+                >
+                  {downloadSuccess ? <Check size={13} /> : <Download size={13} />}
+                  <span>{downloading ? 'Saving…' : downloadSuccess ? 'Saved!' : 'Download'}</span>
+                </button>
+                <Link
+                  to={customizePosterUrl}
+                  className="detail-cover-action-btn detail-cover-action-customize"
+                  title="Customise this image in Poster Editor"
+                >
+                  <Sparkles size={13} />
+                  <span>Customise</span>
+                </Link>
+              </div>
+            )}
           </div>
           <div className="detail-info">
             {!prompt.sourceUrl && (
@@ -1155,6 +1242,29 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
                 {copied ? <Check size={17} /> : <Copy size={17} />}
                 {copied ? 'Copied to clipboard' : 'Copy prompt'} <ArrowRight size={16} />
               </button>
+              {prompt.image && (
+                <>
+                  <button
+                    type="button"
+                    className={`detail-download-btn ${downloadSuccess ? 'is-success' : ''}`}
+                    onClick={handleDownload}
+                    disabled={downloading}
+                    aria-label="Download image"
+                  >
+                    {downloadSuccess ? <Check size={16} /> : <Download size={16} />}
+                    {downloading ? 'Downloading…' : downloadSuccess ? 'Downloaded!' : 'Download image'}
+                  </button>
+                  <Link
+                    to={customizePosterUrl}
+                    className="detail-customize-btn"
+                    aria-label="Customise this image in Poster Editor"
+                  >
+                    <Sparkles size={16} />
+                    Customise this image
+                    <ArrowRight size={14} />
+                  </Link>
+                </>
+              )}
               <a
                 href={instagramUrl}
                 target="_blank"

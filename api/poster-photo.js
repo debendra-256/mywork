@@ -8,7 +8,9 @@ function allowedPhoto(raw) {
   let url
   try { url = new URL(raw) } catch { return null }
   if (url.protocol !== 'https:') return null
-  if (url.hostname !== 'googleusercontent.com' && !ALLOWED_HOSTS.has(url.hostname)) return null
+  const host = url.hostname.toLowerCase()
+  const isGoogle = host === 'googleusercontent.com' || host.endsWith('.googleusercontent.com') || host.endsWith('.bp.blogspot.com') || host.endsWith('.blogspot.com') || ALLOWED_HOSTS.has(host)
+  if (!isGoogle) return null
   return url.toString()
 }
 
