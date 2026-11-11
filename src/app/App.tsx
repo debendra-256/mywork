@@ -1000,20 +1000,83 @@ function ToolPage({ tool }: { tool: ToolDefinition }) {
   )
 }
 
+const detailFeaturedTools: Array<{ id: string; title: string; desc: string; icon: ToolIcon; href: string }> = [
+  { id: 'poster', title: 'Create Poster', desc: 'Design eye-catching posters, flyers & banners with custom typography.', icon: 'sparkles', href: '/poster' },
+  { id: 'watermark-remover', title: 'Watermark Remover', desc: 'Cleanly erase unwanted watermarks, logos & stamps with AI.', icon: 'droplets', href: '/watermark-remover' },
+  { id: 'compress-image', title: 'Compress Image', desc: 'Shrink image file size up to 80% without losing visual quality.', icon: 'file-archive', href: '/compress-image' },
+  { id: 'qr-code', title: 'QR Code Generator', desc: 'Generate customized high-resolution branded QR codes.', icon: 'qr-code', href: '/qr-code' },
+  { id: 'passport-photo', title: 'Passport Photo Maker', desc: 'Create official passport & visa photos in standard sizes with ease.', icon: 'id-card', href: '/passport-photo' },
+  { id: 'remove-object', title: 'Remove Object', desc: 'Magic eraser tool to wipe away photobombers and clutter.', icon: 'eraser', href: '/remove-object' },
+]
+
 function PromptPage({ prompts }: { prompts: Prompt[] }) {
   const { slug = '' } = useParams()
   const navigate = useNavigate()
   const [copied, setCopied] = useState(false)
   const [shareMenuOpen, setShareMenuOpen] = useState(false)
   const [shareMessage, setShareMessage] = useState('')
+  const [savedIds, setSavedIds] = useState<string[]>([])
   const { counts, record } = useEngagement()
+
+  const toggleSave = (id: string) =>
+    setSavedIds((ids) => (ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id]))
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [slug])
+
   const normalizeSlug = (s: string) => (s || '').replace(/\.html$/i, '').toLowerCase()
-  const prompt = prompts.find((item) => item.slug === slug || item.id === slug || normalizeSlug(item.slug) === normalizeSlug(slug || ''))
-  if (!prompt) return <main className="not-found"><Sparkles size={25} /><h1>This prompt is still a blank canvas.</h1><Link to="/">Back to the library <ArrowRight size={15} /></Link></main>
+  const prompt = prompts.find(
+    (item) => item.slug === slug || item.id === slug || normalizeSlug(item.slug) === normalizeSlug(slug || '')
+  )
+
+  const otherPrompts = useMemo(() => {
+    if (!prompt) return []
+    const currentKey = normalizeSlug(prompt.slug)
+    const currentTags = promptTags(prompt).map((t) => t.toLowerCase())
+    const others = deduplicatePrompts(prompts).filter(
+      (p) => p.id !== prompt.id && normalizeSlug(p.slug) !== currentKey
+    )
+    return others
+      .sort((a, b) => {
+        const aTags = promptTags(a).map((t) => t.toLowerCase())
+        const bTags = promptTags(b).map((t) => t.toLowerCase())
+        const aMatch =
+          (a.category && a.category.toLowerCase() === (prompt.category || '').toLowerCase() ? 2 : 0) +
+          (aTags.some((t) => currentTags.includes(t)) ? 1 : 0)
+        const bMatch =
+          (b.category && b.category.toLowerCase() === (prompt.category || '').toLowerCase() ? 2 : 0) +
+          (bTags.some((t) => currentTags.includes(t)) ? 1 : 0)
+        return bMatch - aMatch || (b.createdAt || '').localeCompare(a.createdAt || '')
+      })
+      .slice(0, 8)
+  }, [prompt, prompts])
+
+  if (!prompt) {
+    return (
+      <main className="not-found">
+        <Sparkles size={25} />
+        <h1>This prompt is still a blank canvas.</h1>
+        <Link to="/">
+          Back to the library <ArrowRight size={15} />
+        </Link>
+      </main>
+    )
+  }
+
   const hashtags = (prompt.hashtags ?? []).map((tag) => tag.replace(/^#/, '')).filter(Boolean)
   const pageUrl = `${window.location.origin}/prompt/${encodeURIComponent(prompt.slug)}`
   const promptImage = prompt.image ? (imageAtWidth(prompt.image, 1200) ?? undefined) : undefined
-  const copy = async () => { try { await navigator.clipboard.writeText(prompt.promptText); setCopied(true); record(prompt.id, 'copy'); window.setTimeout(() => setCopied(false), 1600) } catch { setCopied(false) } }
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(prompt.promptText)
+      setCopied(true)
+      record(prompt.id, 'copy')
+      window.setTimeout(() => setCopied(false), 1600)
+    } catch {
+      setCopied(false)
+    }
+  }
   const engagement = engagementFor(counts, prompt.id)
   const shareText = `${prompt.title}\n\n${prompt.promptText}${prompt.image ? `\n\nImage:\n${imageAtWidth(prompt.image, 1200)}` : ''}\n\n${pageUrl}`
   const copyForAiTool = (label: string) => {
@@ -1032,12 +1095,224 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
   }
   const instagramUsername = appConfig.community.instagramUsername || 'imgmojo'
   const instagramUrl = `https://www.instagram.com/${instagramUsername}/`
-  return <div className="detail-shell"><SeoHead title={`${prompt.title} | ${appConfig.appName}`} description={prompt.description} keywords={hashtags.join(', ')} canonical={pageUrl} ogTitle={prompt.title} ogDescription={prompt.description} ogImage={promptImage} twitterTitle={prompt.title} twitterDescription={prompt.description} twitterImage={promptImage} robots="index, follow, max-image-preview:large" schema={{ '@context': 'https://schema.org', '@type': 'Article', headline: prompt.title, description: prompt.description, image: promptImage, mainEntityOfPage: pageUrl, author: { '@type': 'Organization', name: 'ImgMojo' } }} /><Header onMenu={() => navigate('/')} /><main className="prompt-detail"><button className="detail-back" onClick={() => navigate(-1)}><ArrowLeft size={16} /> Back to prompts</button><div className="detail-columns"><div className={`detail-cover ${prompt.video ? 'detail-cover-video' : ''}`}>{prompt.video ? <PromptVideo src={prompt.video} title={prompt.title} className="detail-video-iframe" /> : prompt.image ? <img src={imageAtWidth(prompt.image, 1000)} alt={prompt.imageAlt || ''} /> : <span className="tile-image-fallback"><Sparkles size={28} /></span>}<span>{prompt.category}</span></div><div className="detail-info">{!prompt.sourceUrl && <span className="section-kicker">{prompt.tool} · {prompt.style}</span>}<h1>{prompt.title}</h1><p>{prompt.description}</p><div className="detail-prompt-label">THE PROMPT <span>READY TO COPY</span></div><div className="detail-prompt-text">{prompt.promptText}</div><div className="detail-action-buttons"><button className="copy-large" onClick={copy}>{copied ? <Check size={17} /> : <Copy size={17} />}{copied ? 'Copied to clipboard' : 'Copy prompt'} <ArrowRight size={16} /></button><a href={instagramUrl} target="_blank" rel="noreferrer" className="detail-instagram-action" aria-label="Follow us on Instagram"><Instagram size={16} /> Follow on Instagram <ArrowUpRight size={13} /></a></div><div className="detail-stats"><span><Copy size={13} /> {formatCount(engagement.copy)} copies</span><span><Share2 size={13} /> {formatCount(engagement.share)} shares</span></div><a href={instagramUrl} target="_blank" rel="noreferrer" className="detail-instagram-card"><div className="instagram-card-badge"><Instagram size={22} /></div><div className="instagram-card-content"><strong>Follow us on Instagram</strong><span>Get new daily AI prompts, trends & tutorials <b>@{instagramUsername}</b></span></div><span className="instagram-card-arrow">Follow <ArrowUpRight size={14} /></span></a><section className="prompt-share-panel"><button type="button" className="prompt-share-toggle" aria-expanded={shareMenuOpen} onClick={() => setShareMenuOpen((open) => !open)}><Copy size={17} /> Share prompt <span>{shareMenuOpen ? '−' : '+'}</span></button>{shareMenuOpen && <div className="prompt-share-options"><div className="share-group"><strong>Send to someone</strong><div className="share-target-list">{appConfig.promptSharing.messaging.map((target) => {
-        const url = target.id === 'whatsapp'
-          ? `${target.baseUrl}?text=${encodeURIComponent(shareText)}`
-          : `${target.baseUrl}?url=${encodeURIComponent(prompt.image || pageUrl)}&text=${encodeURIComponent(`${prompt.title}\n\n${prompt.promptText}${prompt.image ? `\n\n${pageUrl}` : ''}`)}`
-        return <a key={target.id} className={`share-target share-${target.id}`} href={url} target="_blank" rel="noreferrer" onClick={() => record(prompt.id, 'share')}><ArrowUpRight size={15} /> {target.label}</a>
-      })}</div></div><div className="share-group"><strong>Open with prompt copied</strong><div className="share-target-list">{appConfig.promptSharing.aiTools.map((target) => <a key={target.id} className="share-target" href={target.url} target="_blank" rel="noreferrer" onClick={() => copyForAiTool(target.label)}>{target.label}<ArrowUpRight size={13} /></a>)}</div><p className="share-helper">The prompt is copied to your clipboard. Paste it into the tool after it opens.</p></div></div>}</section>{shareMessage && <p className="share-status" role="status">{shareMessage}</p>}</div></div></main><SiteFooter /></div>
+
+  return (
+    <div className="detail-shell">
+      <SeoHead
+        title={`${prompt.title} | ${appConfig.appName}`}
+        description={prompt.description}
+        keywords={hashtags.join(', ')}
+        canonical={pageUrl}
+        ogTitle={prompt.title}
+        ogDescription={prompt.description}
+        ogImage={promptImage}
+        twitterTitle={prompt.title}
+        twitterDescription={prompt.description}
+        twitterImage={promptImage}
+        robots="index, follow, max-image-preview:large"
+        schema={{
+          '@context': 'https://schema.org',
+          '@type': 'Article',
+          headline: prompt.title,
+          description: prompt.description,
+          image: promptImage,
+          mainEntityOfPage: pageUrl,
+          author: { '@type': 'Organization', name: 'ImgMojo' },
+        }}
+      />
+      <Header onMenu={() => navigate('/')} />
+      <main className="prompt-detail">
+        <button className="detail-back" onClick={() => navigate(-1)}>
+          <ArrowLeft size={16} /> Back to prompts
+        </button>
+        <div className="detail-columns">
+          <div className={`detail-cover ${prompt.video ? 'detail-cover-video' : ''}`}>
+            {prompt.video ? (
+              <PromptVideo src={prompt.video} title={prompt.title} className="detail-video-iframe" />
+            ) : prompt.image ? (
+              <img src={imageAtWidth(prompt.image, 1000)} alt={prompt.imageAlt || ''} />
+            ) : (
+              <span className="tile-image-fallback">
+                <Sparkles size={28} />
+              </span>
+            )}
+            <span>{prompt.category}</span>
+          </div>
+          <div className="detail-info">
+            {!prompt.sourceUrl && (
+              <span className="section-kicker">
+                {prompt.tool} · {prompt.style}
+              </span>
+            )}
+            <h1>{prompt.title}</h1>
+            <p>{prompt.description}</p>
+            <div className="detail-prompt-label">
+              THE PROMPT <span>READY TO COPY</span>
+            </div>
+            <div className="detail-prompt-text">{prompt.promptText}</div>
+            <div className="detail-action-buttons">
+              <button className="copy-large" onClick={copy}>
+                {copied ? <Check size={17} /> : <Copy size={17} />}
+                {copied ? 'Copied to clipboard' : 'Copy prompt'} <ArrowRight size={16} />
+              </button>
+              <a
+                href={instagramUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="detail-instagram-action"
+                aria-label="Follow us on Instagram"
+              >
+                <Instagram size={16} /> Follow on Instagram <ArrowUpRight size={13} />
+              </a>
+            </div>
+            <div className="detail-stats">
+              <span>
+                <Copy size={13} /> {formatCount(engagement.copy)} copies
+              </span>
+              <span>
+                <Share2 size={13} /> {formatCount(engagement.share)} shares
+              </span>
+            </div>
+            <a href={instagramUrl} target="_blank" rel="noreferrer" className="detail-instagram-card">
+              <div className="instagram-card-badge">
+                <Instagram size={22} />
+              </div>
+              <div className="instagram-card-content">
+                <strong>Follow us on Instagram</strong>
+                <span>
+                  Get new daily AI prompts, trends & tutorials <b>@{instagramUsername}</b>
+                </span>
+              </div>
+              <span className="instagram-card-arrow">
+                Follow <ArrowUpRight size={14} />
+              </span>
+            </a>
+            <section className="prompt-share-panel">
+              <button
+                type="button"
+                className="prompt-share-toggle"
+                aria-expanded={shareMenuOpen}
+                onClick={() => setShareMenuOpen((open) => !open)}
+              >
+                <Copy size={17} /> Share prompt <span>{shareMenuOpen ? '−' : '+'}</span>
+              </button>
+              {shareMenuOpen && (
+                <div className="prompt-share-options">
+                  <div className="share-group">
+                    <strong>Send to someone</strong>
+                    <div className="share-target-list">
+                      {appConfig.promptSharing.messaging.map((target) => {
+                        const url =
+                          target.id === 'whatsapp'
+                            ? `${target.baseUrl}?text=${encodeURIComponent(shareText)}`
+                            : `${target.baseUrl}?url=${encodeURIComponent(prompt.image || pageUrl)}&text=${encodeURIComponent(`${prompt.title}\n\n${prompt.promptText}${prompt.image ? `\n\n${pageUrl}` : ''}`)}`
+                        return (
+                          <a
+                            key={target.id}
+                            className={`share-target share-${target.id}`}
+                            href={url}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={() => record(prompt.id, 'share')}
+                          >
+                            <ArrowUpRight size={15} /> {target.label}
+                          </a>
+                        )
+                      })}
+                    </div>
+                  </div>
+                  <div className="share-group">
+                    <strong>Open with prompt copied</strong>
+                    <div className="share-target-list">
+                      {appConfig.promptSharing.aiTools.map((target) => (
+                        <a
+                          key={target.id}
+                          className="share-target"
+                          href={target.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={() => copyForAiTool(target.label)}
+                        >
+                          {target.label}
+                          <ArrowUpRight size={13} />
+                        </a>
+                      ))}
+                    </div>
+                    <p className="share-helper">
+                      The prompt is copied to your clipboard. Paste it into the tool after it opens.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </section>
+            {shareMessage && (
+              <p className="share-status" role="status">
+                {shareMessage}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Other creative tools showcase */}
+        <section className="detail-tools-showcase" aria-label="Free creative tools">
+          <div className="detail-section-head">
+            <div>
+              <span className="section-kicker">IMGMOJO CREATIVE SUITE</span>
+              <h2>Supercharge Your Photos With Free Tools</h2>
+              <p>Enhance, edit, and transform images with our fast, in-browser creative tools — 100% free.</p>
+            </div>
+          </div>
+          <div className="detail-tools-grid">
+            {detailFeaturedTools.map((tool) => (
+              <Link key={tool.id} to={tool.href} className="detail-tool-card">
+                <div className={`detail-tool-icon icon-${tool.id}`}>
+                  <ToolGlyph icon={tool.icon} size={22} />
+                </div>
+                <div className="detail-tool-info">
+                  <h3>{tool.title}</h3>
+                  <p>{tool.desc}</p>
+                </div>
+                <span className="detail-tool-action">
+                  Open tool <ArrowRight size={14} />
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {/* Other prompts recommendations */}
+        {otherPrompts.length > 0 && (
+          <section className="detail-other-prompts" aria-label="Other prompts you may like">
+            <div className="detail-section-head">
+              <div>
+                <span className="section-kicker">MORE INSPIRATION</span>
+                <h2>Other Prompts You May Like</h2>
+                <p>Explore related trending prompts, ready to copy and remix.</p>
+              </div>
+              <Link to="/" className="detail-view-all-btn">
+                View all prompts <ArrowRight size={14} />
+              </Link>
+            </div>
+            <div className="prompt-grid">
+              {otherPrompts.map((item, index) => (
+                <PromptCard
+                  key={item.id}
+                  prompt={item}
+                  index={index}
+                  saved={savedIds.includes(item.id)}
+                  engagement={engagementFor(counts, item.id)}
+                  onToggleSave={() => toggleSave(item.id)}
+                  onCopy={() => record(item.id, 'copy')}
+                  onHashtag={(tag) => navigate(`/?filter=${encodeURIComponent(tag)}`)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+      </main>
+      <SiteFooter />
+    </div>
+  )
 }
 
 function LoginPage({ onAdminLogin }: { onAdminLogin: () => void }) {
