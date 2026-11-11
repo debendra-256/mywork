@@ -5,11 +5,12 @@ import { readPosterSource, splitPostIntoPosterEdits } from '../../data/blogger-p
 import { connectBlogger, hasBloggerSession } from '../../data/blogger-auth'
 import './PosterSplitter.css'
 
-const SOURCE_LINK = 'https://www.blogger.com/blog/post/edit/7320184749093787409/5541102165640297788'
+const SOURCE_LINK = 'https://www.blogger.com/blog/post/edit/7320184749093787409/1981281416180194204'
 
 export default function PosterSplitter() {
   const [link, setLink] = useState(SOURCE_LINK)
   const [source, setSource] = useState(null)
+  const [items, setItems] = useState([])
   const [picked, setPicked] = useState([])
   const [asDraft, setAsDraft] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -39,12 +40,15 @@ export default function PosterSplitter() {
     setError('')
     setNotice('')
     setSource(null)
+    setItems([])
     setProgress([])
     try {
       const post = await readPosterSource(link)
+      const postItems = post.items || []
       setSource(post)
-      setPicked(post.images.map((image) => image.url))
-      setNotice(`${post.images.length} photos found in “${post.title}” — each one becomes its own post.`)
+      setItems(postItems)
+      setPicked(postItems.map((item) => item.id))
+      setNotice(`${postItems.length} photos and prompts found in “${post.title}”. You can review and edit each title & prompt before publishing.`)
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Could not read that Blogger post.')
     } finally {
@@ -52,13 +56,21 @@ export default function PosterSplitter() {
     }
   }
 
-  const toggle = (url) => setPicked((prev) => (prev.includes(url) ? prev.filter((item) => item !== url) : [...prev, url]))
+  const toggle = (id) => setPicked((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]))
+
+  const updateItemTitle = (id, title) => {
+    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, title } : item)))
+  }
+
+  const updateItemPrompt = (id, prompt) => {
+    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, prompt } : item)))
+  }
 
   const create = async () => {
     if (!source) return
-    const images = source.images.filter((image) => picked.includes(image.url))
-    if (!images.length) {
-      setError('Tick at least one photo to create a post for it.')
+    const selected = items.filter((item) => picked.includes(item.id))
+    if (!selected.length) {
+      setError('Select at least one photo to create a post for it.')
       return
     }
     if (!hasBloggerSession()) {
@@ -76,11 +88,11 @@ export default function PosterSplitter() {
     setNotice('')
     setProgress([])
     try {
-      const created = await splitPostIntoPosterEdits(source, images, {
+      const created = await splitPostIntoPosterEdits(source, selected, {
         asDraft,
         onProgress: (list) => setProgress(list),
       })
-      setNotice(`${created.length} post${created.length > 1 ? 's' : ''} created with the ${POSTER_LABEL} label.`)
+      setNotice(`${created.length} post${created.length > 1 ? 's' : ''} published to Blogger with individual title, photo, and prompt.`)
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Blogger could not create those posts.')
     } finally {
@@ -137,33 +149,69 @@ export default function PosterSplitter() {
           <div className="ps-source-head">
             <div>
               <span className="admin-kicker">PHOTOS IN “{source.title}”</span>
-              <strong>{picked.length} of {source.images.length} selected</strong>
+              <strong>{picked.length} of {items.length} selected for split</strong>
             </div>
-            <button type="button" className="admin-secondary" onClick={() => setPicked(picked.length === source.images.length ? [] : source.images.map((image) => image.url))}>
-              {picked.length === source.images.length ? <><X size={14} /> Clear</> : <><Check size={14} /> Select all</>}
+            <button type="button" className="admin-secondary" onClick={() => setPicked(picked.length === items.length ? [] : items.map((image) => image.id))}>
+              {picked.length === items.length ? <><X size={14} /> Clear</> : <><Check size={14} /> Select all</>}
             </button>
           </div>
-          <div className="ps-photo-grid">
-            {source.images.map((image, index) => {
-              const on = picked.includes(image.url)
+
+          <div className="ps-items-list">
+            {items.map((item, index) => {
+              const on = picked.includes(item.id)
               return (
-                <button
-                  type="button"
-                  key={image.url}
-                  className={`ps-photo${on ? ' is-on' : ''}`}
-                  onClick={() => toggle(image.url)}
-                  aria-pressed={on}
-                >
-                  <span className="ps-photo-stage"><img src={image.url} alt={image.alt || ''} loading="lazy" /></span>
-                  <span className="ps-photo-foot">
-                    <b>Photo {index + 1}</b>
-                    <span>{on ? 'Will create a post' : 'Skipped'}</span>
-                  </span>
-                  {on && <span className="ps-photo-tick"><Check size={11} /></span>}
-                </button>
+                <div key={item.id} className={`ps-split-card${on ? ' is-on' : ''}`}>
+                  <div className="ps-card-aside">
+                    <button
+                      type="button"
+                      className="ps-card-img-btn"
+                      onClick={() => toggle(item.id)}
+                      aria-pressed={on}
+                      title={on ? 'Click to deselect' : 'Click to select'}
+                    >
+                      <img src={item.url} alt={item.alt || item.title} loading="lazy" />
+                      <span className={`ps-card-tick${on ? ' is-active' : ''}`}>
+                        {on ? <Check size={13} /> : null}
+                      </span>
+                    </button>
+                    <span className="ps-card-badge">Photo #{index + 1}</span>
+                    <button
+                      type="button"
+                      className={`ps-toggle-btn${on ? ' is-selected' : ''}`}
+                      onClick={() => toggle(item.id)}
+                    >
+                      {on ? 'Included' : 'Excluded'}
+                    </button>
+                  </div>
+
+                  <div className="ps-card-fields">
+                    <div className="ps-field">
+                      <label htmlFor={`title-${item.id}`}>Post Title</label>
+                      <input
+                        id={`title-${item.id}`}
+                        className="ps-item-input"
+                        value={item.title}
+                        onChange={(e) => updateItemTitle(item.id, e.target.value)}
+                        placeholder="Define title for this post"
+                      />
+                    </div>
+                    <div className="ps-field">
+                      <label htmlFor={`prompt-${item.id}`}>Prompt Copy</label>
+                      <textarea
+                        id={`prompt-${item.id}`}
+                        className="ps-item-textarea"
+                        rows={5}
+                        value={item.prompt}
+                        onChange={(e) => updateItemPrompt(item.id, e.target.value)}
+                        placeholder="Define AI prompt text for this photo"
+                      />
+                    </div>
+                  </div>
+                </div>
               )
             })}
           </div>
+
           <label className="ps-switch">
             <input type="checkbox" checked={asDraft} onChange={(event) => setAsDraft(event.target.checked)} />
             <span>
