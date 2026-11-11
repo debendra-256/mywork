@@ -121,12 +121,31 @@ function localApiMiddleware() {
 export default defineConfig({
   plugins: [react(), tailwindcss(), localApiMiddleware()],
   server: { port: 5174, strictPort: true },
+  esbuild: {
+    legalComments: 'none',
+    minifyIdentifiers: true,
+    minifySyntax: true,
+    minifyWhitespace: true,
+  },
   build: {
+    target: 'es2020',
+    minify: 'esbuild',
+    cssMinify: true,
+    reportCompressedSize: true,
+    chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
-        // Framework code changes rarely; keeping it in its own chunk lets repeat
-        // visits reuse it while the app chunk is replaced on deploy.
-        manualChunks: { 'react-vendor': ['react', 'react-dom', 'react-router-dom'] },
+        manualChunks(id) {
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom') || id.includes('node_modules/react-router-dom')) {
+            return 'react-vendor'
+          }
+          if (id.includes('node_modules/lucide-react')) {
+            return 'lucide-vendor'
+          }
+          if (id.includes('src/data/prompt-catalog')) {
+            return 'prompt-catalog'
+          }
+        },
       },
     },
   },
