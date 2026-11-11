@@ -11,6 +11,7 @@ import youtubeStreamHandler from './api/youtube-stream.js'
 import toolsConfigHandler from './api/tools-config.js'
 import siteThemeHandler from './api/site-theme.js'
 import sidebarSettingsHandler from './api/sidebar-settings.js'
+import sendContactMailHandler from './api/contact.js'
 
 type ApiHandler = (request: any, response: any, env: Record<string, string>) => Promise<unknown>
 
@@ -45,6 +46,7 @@ function localSocialTrendsApi() {
       server.middlewares.use('/api/tools-config', jsonApi(toolsConfigHandler))
       server.middlewares.use('/api/site-theme', jsonApi(siteThemeHandler))
       server.middlewares.use('/api/sidebar-settings', jsonApi(sidebarSettingsHandler))
+      server.middlewares.use('/api/contact', jsonApi(sendContactMailHandler))
       server.middlewares.use('/api/social-auth', jsonApi(socialAuthHandler))
       server.middlewares.use('/api/poster-photo', posterPhotoHandler)
       server.middlewares.use('/api/youtube-stream', async (req, res) => {

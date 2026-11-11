@@ -284,7 +284,9 @@ function Header({ onMenu, onJump, onFilter, adminLoggedIn = false }: { onMenu: (
   }
   return <header className="topbar">
     <button className="menu-toggle" onClick={onMenu} aria-label="Open navigation"><Menu size={21} /></button>
-    <Link to="/" className="brand" aria-label="ImgMojo"><img className="brand-full-logo" src="/images/imgmojo-logo.png" alt="ImgMojo" /></Link>
+    <Link to="/" className="brand" aria-label="ImgMojo">
+      <img className="brand-header-logo" src="/images/imgmojo-logo.png" alt="ImgMojo" />
+    </Link>
     <TopMenu onJump={onJump} onFilter={onFilter} signedIn={signedIn} />
     <div className="top-actions">
       <form className={`top-search ${searchOpen ? 'is-open' : ''}`} onSubmit={submit}>
@@ -759,43 +761,45 @@ function HomePage({ prompts, blogStatus, onAddTrend, adminLoggedIn = false }: { 
 }
 
 function SiteFooter() {
+  const currentYear = new Date().getFullYear()
   return (
     <footer className="page-footer" role="contentinfo">
       <div className="footer-container">
         <div className="footer-columns">
           <div className="footer-brand-col">
             <Link to="/" className="footer-brand" aria-label="ImgMojo">
-              <img className="brand-full-logo" src="/images/imgmojo-logo.png" alt="ImgMojo" />
+              <img className="footer-logo-full" src="/images/imgmojo-logo.png" alt="ImgMojo" />
             </Link>
             <p className="footer-brand-desc">
-              A comprehensive library of free tools designed to make your life easier. From text processing to image editing, we've got you covered.
+              Your all-in-one creative suite for fast, free and powerful media tools. Reframing, compressing, removing backgrounds, and crafting captivating visual content seamlessly.
             </p>
             <div className="footer-social-row" aria-label="Social media">
               <a href="https://instagram.com/imgmojo" target="_blank" rel="noreferrer" className="footer-social-link" aria-label="Instagram">
-                <Instagram size={19} />
+                <Instagram size={18} />
               </a>
               <a href="https://linkedin.com/company/imgmojo" target="_blank" rel="noreferrer" className="footer-social-link" aria-label="LinkedIn">
-                <Linkedin size={19} />
+                <Linkedin size={18} />
               </a>
-              <a href="https://facebook.com/imgmojo" target="_blank" rel="noreferrer" className="footer-social-link" aria-label="Facebook">
-                <Facebook size={19} />
+              <a href="https://www.facebook.com/imgmojo" target="_blank" rel="noreferrer" className="footer-social-link" aria-label="Facebook">
+                <Facebook size={18} />
               </a>
               <a href="https://twitter.com/imgmojo" target="_blank" rel="noreferrer" className="footer-social-link" aria-label="Twitter">
-                <Twitter size={19} />
+                <Twitter size={18} />
               </a>
               <a href={`mailto:${appConfig.supportEmail || 'support@imgmojo.com'}`} className="footer-social-link" aria-label="Email Support">
-                <Mail size={19} />
+                <Mail size={18} />
               </a>
             </div>
           </div>
 
-          <nav className="footer-col" aria-label="Popular Tools">
+          <nav className="footer-col" aria-label="Creative Tools">
             <strong>Popular Tools</strong>
-            <Link to="/emoji-text">Text Tools</Link>
-            <Link to="/collage">Image Tools</Link>
-            <Link to="/qr-code">Code Tools</Link>
-            <Link to="/watermark-remover">Security Tools</Link>
-            <Link to="/prompt-generator">AI Tools</Link>
+            <Link to="/shorts">YouTube Shorts</Link>
+            <Link to="/poster">Poster Maker</Link>
+            <Link to="/collage">Collage Studio</Link>
+            <Link to="/compress-image">Compress Image</Link>
+            <Link to="/watermark-remover">Watermark Remover</Link>
+            <Link to="/remove-object">Remove Object</Link>
           </nav>
 
           <nav className="footer-col" aria-label="Company">
@@ -803,6 +807,7 @@ function SiteFooter() {
             <Link to="/about">About Us</Link>
             <Link to="/privacy">Privacy Policy</Link>
             <Link to="/terms">Terms of Service</Link>
+            <Link to="/store">Digital Store</Link>
           </nav>
 
           <nav className="footer-col" aria-label="Support">
@@ -810,7 +815,21 @@ function SiteFooter() {
             <Link to="/contact">Contact Us</Link>
             <Link to="/report-bug">Report a Bug</Link>
             <Link to="/feature-request">Feature Request</Link>
+            <a href="mailto:support@imgmojo.com">support@imgmojo.com</a>
           </nav>
+        </div>
+
+        <div className="footer-bottom-bar">
+          <p className="footer-copyright">
+            &copy; {currentYear} ImgMojo. All rights reserved. Free &amp; privacy-first media tools.
+          </p>
+          <div className="footer-bottom-links">
+            <Link to="/privacy">Privacy</Link>
+            <span className="footer-dot" aria-hidden="true">&bull;</span>
+            <Link to="/terms">Terms</Link>
+            <span className="footer-dot" aria-hidden="true">&bull;</span>
+            <Link to="/contact">Contact</Link>
+          </div>
         </div>
       </div>
     </footer>
@@ -876,7 +895,7 @@ function CheckoutPage() {
     }).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : 'Store is unavailable.'))
       .finally(() => setLoading(false))
   }, [productId])
-  return <div className="detail-shell store-shell"><Header onMenu={() => {}} /><main className="checkout-page"><Link className="store-back-link" to="/store"><ArrowLeft size={14} /> Back to products</Link><section className="checkout-card"><div className="checkout-icon"><ShieldCheck size={24} /></div><span className="section-kicker">PAYMENT</span><h1>{loading ? 'Loading checkout…' : product?.title || 'Product unavailable'}</h1>{product && <><p className="checkout-description">{product.description}</p><div className="checkout-summary"><span>{product.type === 'pdf' ? 'PDF download' : 'Software access'}</span><strong>{productPrice(product)}</strong></div><div className="checkout-feature-panel"><span className="admin-kicker">WHAT YOU GET</span><StoreFeatureList features={product.features} benefits={customer.benefits} /></div><ol className="checkout-steps"><li><span>1</span><div><strong>Pay the listed price</strong><p>Payment is handled by the store owner. Open the store page or reply to the link you were sent to arrange it.</p></div></li><li><span>2</span><div><strong>Receive your license code</strong><p>After the payment is confirmed you are sent a code, for example PS-A1B2-C3D4-E5F6.</p></div></li><li><span>3</span><div><strong>Redeem it in your account</strong><p>Signing in and redeeming unlocks every premium feature on this product, such as watermark-free recording.</p></div></li></ol><div className="checkout-redeem-row">{customer.user ? <><BadgeCheck size={16} /> <span>Signed in as {customer.user.email}</span><Link to="/account">Manage license <ArrowRight size={14} /></Link></> : <><KeyRound size={16} /> <span>Already paid? Sign in and redeem your code.</span><Link to="/account">Go to my account <ArrowRight size={14} /></Link></>}</div></>}{error && <p className="checkout-error" role="alert">{error}</p>}{!loading && !product && !error && <p className="checkout-error">This product is no longer available.</p>}</section></main></div>
+  return <div className="detail-shell store-shell"><Header onMenu={() => {}} /><main className="checkout-page"><Link className="store-back-link" to="/store"><ArrowLeft size={14} /> Back to products</Link><section className="checkout-card"><div className="checkout-icon"><ShieldCheck size={24} /></div><span className="section-kicker">PAYMENT</span><h1>{loading ? 'Loading checkout…' : product?.title || 'Product unavailable'}</h1>{product && <><p className="checkout-description">{product.description}</p><div className="checkout-summary"><span>{product.type === 'pdf' ? 'PDF download' : 'Software access'}</span><strong>{productPrice(product)}</strong></div><div className="checkout-feature-panel"><span className="admin-kicker">WHAT YOU GET</span><StoreFeatureList features={product.features} benefits={customer.benefits} /></div><ol className="checkout-steps"><li><span>1</span><div><strong>Pay the listed price</strong><p>Payment is handled by the store owner. Open the store page or reply to the link you were sent to arrange it.</p></div></li><li><span>2</span><div><strong>Receive your license code</strong><p>After the payment is confirmed you are sent a code, for example PS-A1B2-C3D4-E5F6.</p></div></li><li><span>3</span><div><strong>Redeem it in your account</strong><p>Signing in and redeeming unlocks every premium feature on this product, such as watermark-free recording.</p></div></li></ol><div className="checkout-redeem-row">{customer.user ? <><BadgeCheck size={16} /> <span>Signed in as {customer.user.email}</span><Link to="/account">Manage license <ArrowRight size={14} /></Link></> : <><KeyRound size={16} /> <span>Already paid? Sign in and redeem your code.</span><Link to="/account">Go to my account <ArrowRight size={14} /></Link></>}</div></>}{error && <p className="checkout-error" role="alert">{error}</p>}{!loading && !product && !error && <p className="checkout-error">This product is no longer available.</p>}</section></main><SiteFooter /></div>
 }
 
 function benefitLabels(products: StoreProduct[], benefitKey: string) {
@@ -945,11 +964,11 @@ function AccountPage() {
     finally { setBusy(false) }
   }
   const logout = () => { void signOut(); setError(''); setNotice('Signed out.') }
-  return <div className="detail-shell store-shell"><Header onMenu={() => {}} /><main className="account-page"><Link className="store-back-link" to="/"><ArrowLeft size={14} /> Back to the library</Link>{customer.user ? <section className="account-card"><div className="account-card-head"><span className="section-kicker">MY ACCOUNT</span><h1>{customer.user.displayName || customer.user.email}</h1><p>{customer.user.signupSource === 'password' ? customer.user.email : `Signed in with ${customer.user.signupSource === 'google' ? 'Google' : 'Facebook'}`}</p></div><div className="account-unlocks"><span className="admin-kicker">UNLOCKED PREMIUM FEATURES</span>{customer.entitlements.length ? <ul>{customer.entitlements.map((entitlement) => <li key={`${entitlement.productId}-${entitlement.benefitKey}`}><LockOpen size={15} /><div><strong>{benefitLabels(products, entitlement.benefitKey).join(', ') || entitlement.benefitKey}</strong>{entitlement.expiresAt && <small>Valid until {new Date(entitlement.expiresAt).toLocaleDateString()}</small>}</div></li>)}</ul> : <p className="account-empty">No premium features unlocked yet. Pay for a product, then redeem its license code below.</p>}</div><form className="account-redeem" onSubmit={redeem}><label>License code<input value={code} onChange={(event) => setCode(event.target.value)} placeholder="PS-XXXX-XXXX-XXXX" autoComplete="off" required /></label><button className="admin-primary" type="submit" disabled={busy || !code.trim()}>{busy ? 'Checking…' : 'Redeem code'} <KeyRound size={15} /></button></form><div className="account-foot"><Link to="/store">Browse products <ArrowRight size={14} /></Link><button className="admin-secondary" type="button" onClick={logout}><LogOut size={15} /> Sign out</button></div>{notice && <p className="menu-manager-message" role="status">{notice}</p>}{error && <p className="editor-error" role="alert">{error}</p>}</section> : <section className="account-card"><div className="account-card-head"><span className="section-kicker">CUSTOMER SIGN IN</span><h1>Your licenses, one account</h1><p>Sign in to redeem a license code and unlock the premium features of every product you own.</p></div><div className="account-mode-tabs"><button type="button" className={mode === 'signin' ? 'active' : ''} onClick={() => { setMode('signin'); setError('') }}>Sign in</button><button type="button" className={mode === 'signup' ? 'active' : ''} onClick={() => { setMode('signup'); setError('') }}>Create account</button></div><form className="account-form" onSubmit={authenticate}>{mode === 'signup' && <label className="editor-field">Name <span className="field-optional">OPTIONAL</span><input value={displayName} onChange={(event) => setDisplayName(event.target.value)} maxLength={60} placeholder="How should we greet you?" /></label>}<label className="editor-field">Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="username" required /></label><label className="editor-field">Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} minLength={8} required /></label><button className="publish-button" type="submit" disabled={busy}>{busy ? 'Working…' : mode === 'signup' ? 'Create account' : 'Sign in'} <ArrowRight size={16} /></button></form>{socialRow}{notice && <p className="menu-manager-message" role="status">{notice}</p>}{error && <p className="editor-error" role="alert">{error}</p>}<p className="account-privacy"><ShieldCheck size={15} /> Passwords are stored hashed on the server. This account is only used for product licenses.</p></section>}</main></div>
+  return <div className="detail-shell store-shell"><Header onMenu={() => {}} /><main className="account-page"><Link className="store-back-link" to="/"><ArrowLeft size={14} /> Back to the library</Link>{customer.user ? <section className="account-card"><div className="account-card-head"><span className="section-kicker">MY ACCOUNT</span><h1>{customer.user.displayName || customer.user.email}</h1><p>{customer.user.signupSource === 'password' ? customer.user.email : `Signed in with ${customer.user.signupSource === 'google' ? 'Google' : 'Facebook'}`}</p></div><div className="account-unlocks"><span className="admin-kicker">UNLOCKED PREMIUM FEATURES</span>{customer.entitlements.length ? <ul>{customer.entitlements.map((entitlement) => <li key={`${entitlement.productId}-${entitlement.benefitKey}`}><LockOpen size={15} /><div><strong>{benefitLabels(products, entitlement.benefitKey).join(', ') || entitlement.benefitKey}</strong>{entitlement.expiresAt && <small>Valid until {new Date(entitlement.expiresAt).toLocaleDateString()}</small>}</div></li>)}</ul> : <p className="account-empty">No premium features unlocked yet. Pay for a product, then redeem its license code below.</p>}</div><form className="account-redeem" onSubmit={redeem}><label>License code<input value={code} onChange={(event) => setCode(event.target.value)} placeholder="PS-XXXX-XXXX-XXXX" autoComplete="off" required /></label><button className="admin-primary" type="submit" disabled={busy || !code.trim()}>{busy ? 'Checking…' : 'Redeem code'} <KeyRound size={15} /></button></form><div className="account-foot"><Link to="/store">Browse products <ArrowRight size={14} /></Link><button className="admin-secondary" type="button" onClick={logout}><LogOut size={15} /> Sign out</button></div>{notice && <p className="menu-manager-message" role="status">{notice}</p>}{error && <p className="editor-error" role="alert">{error}</p>}</section> : <section className="account-card"><div className="account-card-head"><span className="section-kicker">CUSTOMER SIGN IN</span><h1>Your licenses, one account</h1><p>Sign in to redeem a license code and unlock the premium features of every product you own.</p></div><div className="account-mode-tabs"><button type="button" className={mode === 'signin' ? 'active' : ''} onClick={() => { setMode('signin'); setError('') }}>Sign in</button><button type="button" className={mode === 'signup' ? 'active' : ''} onClick={() => { setMode('signup'); setError('') }}>Create account</button></div><form className="account-form" onSubmit={authenticate}>{mode === 'signup' && <label className="editor-field">Name <span className="field-optional">OPTIONAL</span><input value={displayName} onChange={(event) => setDisplayName(event.target.value)} maxLength={60} placeholder="How should we greet you?" /></label>}<label className="editor-field">Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="username" required /></label><label className="editor-field">Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} minLength={8} required /></label><button className="publish-button" type="submit" disabled={busy}>{busy ? 'Working…' : mode === 'signup' ? 'Create account' : 'Sign in'} <ArrowRight size={16} /></button></form>{socialRow}{notice && <p className="menu-manager-message" role="status">{notice}</p>}{error && <p className="editor-error" role="alert">{error}</p>}<p className="account-privacy"><ShieldCheck size={15} /> Passwords are stored hashed on the server. This account is only used for product licenses.</p></section>}</main><SiteFooter /></div>
 }
 
 function ToolPage({ tool }: { tool: ToolDefinition }) {
-  return <div className="detail-shell tool-page"><Header onMenu={() => {}} /><ToolSurface tool={tool} /></div>
+  return <div className="detail-shell tool-page"><Header onMenu={() => {}} /><ToolSurface tool={tool} /><SiteFooter /></div>
 }
 
 function PromptPage({ prompts }: { prompts: Prompt[] }) {
@@ -1023,7 +1042,7 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
           ? `${target.baseUrl}?text=${encodeURIComponent(shareText)}`
           : `${target.baseUrl}?url=${encodeURIComponent(prompt.image || pageUrl)}&text=${encodeURIComponent(`${prompt.title}\n\n${prompt.promptText}${prompt.image ? `\n\n${pageUrl}` : ''}`)}`
         return <a key={target.id} className={`share-target share-${target.id}`} href={url} target="_blank" rel="noreferrer" onClick={() => record(prompt.id, 'share')}><ArrowUpRight size={15} /> {target.label}</a>
-      })}</div></div><div className="share-group"><strong>Open with prompt copied</strong><div className="share-target-list">{appConfig.promptSharing.aiTools.map((target) => <a key={target.id} className="share-target" href={target.url} target="_blank" rel="noreferrer" onClick={() => copyForAiTool(target.label)}>{target.label}<ArrowUpRight size={13} /></a>)}</div><p className="share-helper">The prompt is copied to your clipboard. Paste it into the tool after it opens.</p></div></div>}</section>{shareMessage && <p className="share-status" role="status">{shareMessage}</p>}</div></div></main></div>
+      })}</div></div><div className="share-group"><strong>Open with prompt copied</strong><div className="share-target-list">{appConfig.promptSharing.aiTools.map((target) => <a key={target.id} className="share-target" href={target.url} target="_blank" rel="noreferrer" onClick={() => copyForAiTool(target.label)}>{target.label}<ArrowUpRight size={13} /></a>)}</div><p className="share-helper">The prompt is copied to your clipboard. Paste it into the tool after it opens.</p></div></div>}</section>{shareMessage && <p className="share-status" role="status">{shareMessage}</p>}</div></div></main><SiteFooter /></div>
 }
 
 function LoginPage({ onAdminLogin }: { onAdminLogin: () => void }) {
@@ -1055,46 +1074,49 @@ function LoginPage({ onAdminLogin }: { onAdminLogin: () => void }) {
   }
 
   return (
-    <main className="auth-page simple-login-page">
-      <Link to="/" className="auth-back">
-        <ArrowLeft size={15} /> Back to {appConfig.appName}
-      </Link>
-      <div className="simple-login-card">
-        <div className="simple-login-brand">
-          <img className="brand-symbol brand-logo" src="/images/imgmojo-mark.png" alt="ImgMojo" width={56} height={56} />
-          <h1>{appConfig.appName}</h1>
-          <p>Creator Studio Admin Sign In</p>
+    <div className="detail-shell auth-shell">
+      <main className="auth-page simple-login-page">
+        <Link to="/" className="auth-back">
+          <ArrowLeft size={15} /> Back to {appConfig.appName}
+        </Link>
+        <div className="simple-login-card">
+          <div className="simple-login-brand">
+            <img className="brand-symbol brand-logo" src="/images/imgmojo-mark.png" alt="ImgMojo" width={56} height={56} />
+            <h1>{appConfig.appName}</h1>
+            <p>Creator Studio Admin Sign In</p>
+          </div>
+          <form className="admin-password-login" onSubmit={handlePasswordLogin}>
+            <label>
+              User ID
+              <input
+                value={userId}
+                onChange={(event) => setUserId(event.target.value)}
+                placeholder="Imgmojo"
+                autoComplete="username"
+                autoFocus
+                required
+              />
+            </label>
+            <label>
+              Password
+              <input
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="••••••••"
+                autoComplete="current-password"
+                required
+              />
+            </label>
+            <button className="auth-submit" type="submit" disabled={passwordLoginBusy}>
+              {passwordLoginBusy ? 'Signing in…' : 'Sign in'} <ArrowRight size={16} />
+            </button>
+          </form>
+          {error && <p className="editor-error" role="alert" style={{ marginTop: '12px' }}>{error}</p>}
         </div>
-        <form className="admin-password-login" onSubmit={handlePasswordLogin}>
-          <label>
-            User ID
-            <input
-              value={userId}
-              onChange={(event) => setUserId(event.target.value)}
-              placeholder="Imgmojo"
-              autoComplete="username"
-              autoFocus
-              required
-            />
-          </label>
-          <label>
-            Password
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="••••••••"
-              autoComplete="current-password"
-              required
-            />
-          </label>
-          <button className="auth-submit" type="submit" disabled={passwordLoginBusy}>
-            {passwordLoginBusy ? 'Signing in…' : 'Sign in'} <ArrowRight size={16} />
-          </button>
-        </form>
-        {error && <p className="editor-error" role="alert" style={{ marginTop: '12px' }}>{error}</p>}
-      </div>
-    </main>
+      </main>
+      <SiteFooter />
+    </div>
   )
 }
 

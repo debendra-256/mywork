@@ -7,6 +7,7 @@ dist
 *.local
 /data/ai-model-settings.json
 /data/ai-model-settings.json.*.tmp
+/data/contact-inbox.json
 .local-db
 .local-db/
 
