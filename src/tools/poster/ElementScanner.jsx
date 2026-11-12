@@ -1,7 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowUpRight, Check, Image as ImageIcon, ImagePlus, Loader2, Plus, ShieldCheck, Trash2, Type } from 'lucide-react'
-import { addElement, deleteElement, detectScript, elementNameFromFile, loadElements, maxElements, normalizeSlot, scanElementImage, SLOT_SCRIPTS } from './elements.js'
+import { ArrowUpRight, Check, Image as ImageIcon, ImagePlus, Loader2, Plus, ShieldCheck, Tag, Trash2, Type } from 'lucide-react'
+import {
+  addElement,
+  DEFAULT_TAGS,
+  deleteElement,
+  detectScript,
+  elementNameFromFile,
+  fetchServerElements,
+  loadElements,
+  maxElements,
+  normalizeSlot,
+  saveElementToServer,
+  scanElementImage,
+  SLOT_SCRIPTS,
+} from './elements.js'
 import './ElementScanner.css'
 
 export default function ElementScanner() {
@@ -9,6 +22,8 @@ export default function ElementScanner() {
   const [file, setFile] = useState(null)
   const [preview, setPreview] = useState(null)
   const [name, setName] = useState('')
+  const [tag, setTag] = useState('Birthday')
+  const [customTag, setCustomTag] = useState('')
   const [removeBackground, setRemoveBackground] = useState(true)
   const [tolerance, setTolerance] = useState(26)
   const [busy, setBusy] = useState(false)
@@ -22,6 +37,17 @@ export default function ElementScanner() {
   const runRef = useRef(0)
   const stageRef = useRef(null)
   const dragRef = useRef(null)
+
+  useEffect(() => {
+    fetchServerElements().then((list) => {
+      if (Array.isArray(list) && list.length) setElements(list)
+    })
+    const onSync = (e) => {
+      if (Array.isArray(e?.detail)) setElements(e.detail)
+    }
+    window.addEventListener('imgmojo:scanned-elements-updated', onSync)
+    return () => window.removeEventListener('imgmojo:scanned-elements-updated', onSync)
+  }, [])
 
   useEffect(() => {
     if (!file) return undefined
@@ -184,28 +210,37 @@ export default function ElementScanner() {
     setActiveSlotId((current) => (current === id ? null : current))
   }
 
-  const save = (event) => {
+  const save = async (event) => {
     event.preventDefault()
     if (!preview || !name.trim()) return
+    setBusy(true)
+    setError('')
     try {
-      setElements(addElement({
+      const selectedTag = customTag.trim() || tag || 'Other'
+      const res = await saveElementToServer({
         name,
+        tag: selectedTag,
         src: preview.src,
         aspect: preview.aspect,
         width: preview.width,
         height: preview.height,
         slots,
-      }))
+      })
+      if (res && Array.isArray(res.elements)) {
+        setElements(res.elements)
+      }
       runRef.current += 1
       setFile(null)
       setPreview(null)
       setSlots([])
       setActiveSlotId(null)
       setName('')
+      setCustomTag('')
       setBusy(false)
-      setMessage('Saved — it now appears under Add elements in the poster editor.')
+      setMessage(`Saved “${name}” under [${selectedTag}] — it will now appear for all users under ScannedElement!`)
     } catch (err) {
       setError(err?.message || 'Could not save that element')
+      setBusy(false)
     }
   }
 
@@ -226,13 +261,13 @@ export default function ElementScanner() {
         <div>
           <span className="admin-kicker">IMGMOJO / POSTER ELEMENTS</span>
           <h1>Element scanner</h1>
-          <p>Upload an image of an element, then mark which parts can be edited later — text areas and image areas.</p>
+          <p>Upload an image of an element, select a tag, and mark editable areas. Saved elements are stored under ScannedElement for all users.</p>
         </div>
         <Link to="/poster" className="admin-secondary"><ArrowUpRight size={15} /> Open Create Poster</Link>
       </div>
       <div className="menu-manager-notice">
         <ShieldCheck size={16} />
-        <span>Scanned elements are saved in this browser and appear under <strong>Add elements</strong> in the Create Poster editor. Up to {maxElements} elements can be stored.</span>
+        <span>Scanned elements are saved under <strong>ScannedElement</strong> and appear for all users in the Create Poster editor.</span>
       </div>
 
       <div className="es-workbench">
@@ -441,12 +476,38 @@ export default function ElementScanner() {
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 maxLength={40}
-                placeholder="e.g. Golden laurel"
+                placeholder="e.g. Birthday Ribbon, Tricolour Plate"
                 required
               />
             </label>
+
+            <div className="editor-field">
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: '#374151' }}>
+                <Tag size={12} /> Tag / Category (Birthday, Text, NamePlate...)
+              </span>
+              <div className="es-tag-chips">
+                {DEFAULT_TAGS.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    className={`es-tag-chip${tag === t && !customTag ? ' is-active' : ''}`}
+                    onClick={() => { setTag(t); setCustomTag('') }}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+              <input
+                value={customTag}
+                onChange={(e) => setCustomTag(e.target.value)}
+                placeholder="Or type custom tag (e.g. Birthday, NamePlate, Text)"
+                style={{ marginTop: 6 }}
+                maxLength={30}
+              />
+            </div>
+
             <button className="admin-primary" type="submit" disabled={!preview || busy || !name.trim() || full}>
-              <Plus size={15} /> Save to Add elements
+              <Plus size={15} /> Save to ScannedElement for all users
             </button>
             {full && <p className="es-note">The library is full. Delete an element below to scan another.</p>}
           </form>
@@ -458,7 +519,7 @@ export default function ElementScanner() {
         <section className="admin-table-card">
           <div className="admin-table-head">
             <div>
-              <span className="admin-kicker">SAVED ELEMENTS</span>
+              <span className="admin-kicker">SAVED ELEMENTS (ScannedElement)</span>
               <h2>{elements.length} of {maxElements}</h2>
             </div>
           </div>
@@ -468,7 +529,10 @@ export default function ElementScanner() {
                 <div className="es-item" key={item.id}>
                   <span className="es-thumb"><img src={item.src} alt="" /></span>
                   <span className="es-item-copy">
-                    <strong>{item.name}</strong>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span className="es-tag-badge">{item.tag || 'Other'}</span>
+                      <strong>{item.name}</strong>
+                    </div>
                     <small>
                       {item.width} × {item.height} px
                       {item.slots?.length ? ` · ${item.slots.length} editable ${item.slots.length === 1 ? 'area' : 'areas'}` : ' · fixed image'}

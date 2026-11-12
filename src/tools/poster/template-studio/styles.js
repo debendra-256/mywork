@@ -2154,9 +2154,78 @@ export const css = `
 .ts-arch-glyph { width: 14px; height: 16px; border: 1.4px solid currentColor; border-radius: 50% 50% 0 0 / 55% 55% 0 0; }
 .ts-ornament-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
 .ts-scanned-head { display: flex; align-items: center; justify-content: space-between; margin: 14px 0 6px; }
+.ts-scanned-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 2px 0 8px;
+  margin-bottom: 6px;
+  scrollbar-width: none;
+}
+.ts-scanned-filter-bar::-webkit-scrollbar { display: none; }
+.ts-scanned-tag-pill {
+  flex: none;
+  padding: 3px 8px;
+  border: 1px solid var(--ts-line);
+  border-radius: 999px;
+  background: #fff;
+  color: #64748b;
+  font-size: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.ts-scanned-tag-pill:hover { border-color: var(--ts-accent); color: var(--ts-ink); }
+.ts-scanned-tag-pill.is-active {
+  background: var(--ts-ink, #0f172a);
+  border-color: var(--ts-ink, #0f172a);
+  color: #fff;
+}
+.ts-scanned-tag-badge {
+  display: inline-block;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: #e2f4ea;
+  color: #0b7a4a;
+  font-size: 6.5px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  margin-bottom: 2px;
+}
+.ts-scanned-chip-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.ts-scanned-delete-btn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 16px;
+  height: 16px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: none;
+  background: rgba(220, 38, 38, 0.9);
+  color: #fff;
+  font-size: 9px;
+  cursor: pointer;
+  z-index: 2;
+  transition: transform 0.15s;
+}
+.ts-scanned-chip-wrapper:hover .ts-scanned-delete-btn {
+  display: flex;
+}
+.ts-scanned-delete-btn:hover {
+  transform: scale(1.15);
+  background: #b91c1c;
+}
 .ts-scanned-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
 .ts-scanned-chip {
-  display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; width: 100%;
   padding: 5px; border: 1px solid var(--ts-line); border-radius: 9px; background: #fffefb;
   color: #7c7565; font-size: 7.5px; letter-spacing: 0.04em; text-transform: uppercase;
   cursor: pointer; transition: all 0.18s ease;
@@ -2175,6 +2244,118 @@ export const css = `
   background-position: 0 0, 0 4px, 4px -4px, -4px 0;
 }
 .ts-scanned-thumb img { max-width: 100%; max-height: 38px; object-fit: contain; display: block; }
+
+.ts-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  padding: 16px;
+}
+.ts-scan-modal {
+  width: 100%;
+  max-width: 440px;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.25);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  animation: ts-modal-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes ts-modal-in {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.ts-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.ts-modal-head h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+.ts-modal-close {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+}
+.ts-modal-close:hover { color: #0f172a; background: #f1f5f9; }
+.ts-modal-body {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.ts-modal-preview {
+  height: 120px;
+  display: grid;
+  place-items: center;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background-color: #fff;
+  background-image:
+    linear-gradient(45deg, #f1eee6 25%, transparent 25%),
+    linear-gradient(-45deg, #f1eee6 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #f1eee6 75%),
+    linear-gradient(-45deg, transparent 75%, #f1eee6 75%);
+  background-size: 10px 10px;
+  background-position: 0 0, 0 5px, 5px -5px, -5px 0;
+}
+.ts-modal-preview img {
+  max-height: 100px;
+  max-width: 100%;
+  object-fit: contain;
+}
+.ts-modal-foot {
+  padding: 12px 18px;
+  background: #f8fafc;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.ts-modal-btn-cancel {
+  padding: 7px 14px;
+  border-radius: 7px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ts-modal-btn-save {
+  padding: 7px 16px;
+  border-radius: 7px;
+  border: none;
+  background: #059669;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.25);
+}
+.ts-modal-btn-save:hover { background: #047857; }
+.ts-modal-btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
 .ts-template-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
 .ts-template-chip {
   display: flex; flex-direction: column; gap: 5px; min-width: 0;

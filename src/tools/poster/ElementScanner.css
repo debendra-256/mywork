@@ -142,3 +142,20 @@
   .es-preview-stage { height: 84px; }
   .es-preview-stage img { max-height: 70px; }
 }
+
+.es-tag-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+.es-tag-chip {
+  padding: 4px 9px; border: 1px solid #dce5df; border-radius: 999px;
+  background: #f7faf8; color: #586860; font-size: 10px; font-weight: 650;
+  cursor: pointer; transition: all .15s;
+}
+.es-tag-chip:hover { border-color: #0a9f62; color: #0a9f62; }
+.es-tag-chip.is-active {
+  border-color: #0a9f62; background: #0a9f62; color: #fff; box-shadow: 0 1px 3px rgba(10, 159, 98, 0.25);
+}
+.es-tag-badge {
+  display: inline-block; padding: 1px 6px; border-radius: 4px;
+  background: #eaf6ee; color: #0b7a4a; font-size: 9px; font-weight: 700;
+  letter-spacing: .02em; margin-right: 5px;
+}
+

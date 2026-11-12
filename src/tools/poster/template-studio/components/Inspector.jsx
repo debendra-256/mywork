@@ -5,7 +5,16 @@ import { SOCIALS, socialMarkup } from '../data/socials.js'
 import { FOOTER_PRESETS } from '../data/footers.js'
 import { CONTACT_KINDS } from '../data/namecards.js'
 import { aspectOf, layerLabel, makeFooterItem, uid } from '../model.js'
-import { filterTextToScript, scriptLabel } from '../../elements.js'
+import {
+  DEFAULT_TAGS,
+  deleteElement,
+  filterTextToScript,
+  loadElements,
+  normalizeTag,
+  saveElementToServer,
+  scanElementImage,
+  scriptLabel,
+} from '../../elements.js'
 import {
   ArrowDown, ArrowUp, Copy, Grid, Layers, Photo, Plus, Sparkle, Trash, Type,
 } from './Icons.jsx'
@@ -251,6 +260,104 @@ export default function Inspector({
     img.src = doc.bg.src
     return () => { alive = false }
   }, [doc.bg?.type, doc.bg?.src])
+
+  const [activeTag, setActiveTag] = useState('All')
+  const [scanModalFile, setScanModalFile] = useState(null)
+  const [scanModalPreview, setScanModalPreview] = useState(null)
+  const [scanModalName, setScanModalName] = useState('')
+  const [scanModalTag, setScanModalTag] = useState('Birthday')
+  const [scanModalCustomTag, setScanModalCustomTag] = useState('')
+  const [scanModalRemoveBg, setScanModalRemoveBg] = useState(true)
+  const [scanModalBusy, setScanModalBusy] = useState(false)
+  const [scanModalError, setScanModalError] = useState('')
+
+  const openScanModal = (file) => {
+    if (!file) return
+    const cleanName = file.name.replace(/\.[^/.]+$/, '').slice(0, 40) || 'Scanned Element'
+    setScanModalFile(file)
+    setScanModalName(cleanName)
+    setScanModalTag('Birthday')
+    setScanModalCustomTag('')
+    setScanModalRemoveBg(true)
+    setScanModalError('')
+    setScanModalBusy(true)
+
+    const rawUrl = URL.createObjectURL(file)
+    const img = new Image()
+    img.onload = () => {
+      scanElementImage(file, { removeBackground: true, tolerance: 26 })
+        .then((result) => {
+          setScanModalPreview(result)
+        })
+        .catch(() => {
+          setScanModalPreview({
+            src: rawUrl,
+            width: img.naturalWidth,
+            height: img.naturalHeight,
+            aspect: img.naturalWidth / img.naturalHeight,
+          })
+        })
+        .finally(() => {
+          setScanModalBusy(false)
+        })
+    }
+    img.src = rawUrl
+  }
+
+  const handleToggleRemoveBg = async (checked) => {
+    setScanModalRemoveBg(checked)
+    if (!scanModalFile) return
+    setScanModalBusy(true)
+    try {
+      if (checked) {
+        const result = await scanElementImage(scanModalFile, { removeBackground: true, tolerance: 26 })
+        setScanModalPreview(result)
+      } else {
+        const rawUrl = URL.createObjectURL(scanModalFile)
+        const img = new Image()
+        img.onload = () => {
+          setScanModalPreview({
+            src: rawUrl,
+            width: img.naturalWidth,
+            height: img.naturalHeight,
+            aspect: img.naturalWidth / img.naturalHeight,
+          })
+        }
+        img.src = rawUrl
+      }
+    } catch (err) {
+      setScanModalError(err?.message || 'Could not process image')
+    } finally {
+      setScanModalBusy(false)
+    }
+  }
+
+  const handleSaveScanModal = async () => {
+    if (!scanModalPreview || !scanModalName.trim()) return
+    setScanModalBusy(true)
+    setScanModalError('')
+    try {
+      const selectedTag = scanModalCustomTag.trim() || scanModalTag || 'Other'
+      const res = await saveElementToServer({
+        name: scanModalName.trim(),
+        tag: selectedTag,
+        src: scanModalPreview.src,
+        aspect: scanModalPreview.aspect,
+        width: scanModalPreview.width,
+        height: scanModalPreview.height,
+        slots: [],
+      })
+      if (res?.saved) {
+        onAddSticker(res.saved)
+      }
+      setScanModalFile(null)
+      setScanModalPreview(null)
+    } catch (err) {
+      setScanModalError(err?.message || 'Failed to save scanned element')
+    } finally {
+      setScanModalBusy(false)
+    }
+  }
 
   const chooseCanvasSize = (value) => {
     const custom = Number(value) > 0 && !ASPECTS[value]
@@ -1815,21 +1922,8 @@ export default function Inspector({
                     onChange={(e) => {
                       const file = e.target.files?.[0]
                       if (file) {
-                        const url = URL.createObjectURL(file)
-                        const img = new Image()
-                        img.onload = () => {
-                          const aspect = img.naturalWidth / img.naturalHeight
-                          const newEl = {
-                            id: `scanned_${Date.now()}`,
-                            name: file.name.replace(/\.[^/.]+$/, '').slice(0, 30) || 'Scanned Element',
-                            src: url,
-                            width: img.naturalWidth,
-                            height: img.naturalHeight,
-                            aspect,
-                          }
-                          onAddSticker(newEl)
-                        }
-                        img.src = url
+                        openScanModal(file)
+                        e.target.value = ''
                       }
                     }}
                   />
@@ -1837,26 +1931,59 @@ export default function Inspector({
               </div>
             }
           >
-            {scannedElements.length > 0 ? (
+            {/* Tag Filter Pills */}
+            <div className="ts-scanned-filter-bar">
+              {['All', ...new Set([...DEFAULT_TAGS, ...scannedElements.map((el) => el.tag).filter(Boolean)])].map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  className={`ts-scanned-tag-pill${activeTag.toLowerCase() === t.toLowerCase() ? ' is-active' : ''}`}
+                  onClick={() => setActiveTag(t)}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+
+            {scannedElements.filter((item) => activeTag === 'All' || (item.tag || 'Other').toLowerCase() === activeTag.toLowerCase()).length > 0 ? (
               <div className="ts-scanned-grid">
-                {scannedElements.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className="ts-scanned-chip"
-                    title={`Add ${item.name}`}
-                    onClick={() => onAddSticker(item)}
-                    {...elementDrag({ kind: 'sticker', id: item.id })}
-                  >
-                    <span className="ts-scanned-thumb">
-                      <img src={item.src} alt="" />
-                    </span>
-                    <span>{item.name}</span>
-                  </button>
-                ))}
+                {scannedElements
+                  .filter((item) => activeTag === 'All' || (item.tag || 'Other').toLowerCase() === activeTag.toLowerCase())
+                  .map((item) => (
+                    <div key={item.id} className="ts-scanned-chip-wrapper">
+                      <button
+                        type="button"
+                        className="ts-scanned-chip"
+                        title={`Add ${item.name} (${item.tag || 'Other'})`}
+                        onClick={() => onAddSticker(item)}
+                        {...elementDrag({ kind: 'sticker', id: item.id })}
+                      >
+                        <span className="ts-scanned-thumb">
+                          <img src={item.src} alt="" />
+                        </span>
+                        <span className="ts-scanned-tag-badge">{item.tag || 'Other'}</span>
+                        <span>{item.name}</span>
+                      </button>
+                      {item.id !== 'el_tricolour_nameplate' && (
+                        <button
+                          type="button"
+                          className="ts-scanned-delete-btn"
+                          title="Delete element"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (window.confirm(`Delete "${item.name}"?`)) {
+                              deleteElement(item.id)
+                            }
+                          }}
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  ))}
               </div>
             ) : (
-              <p className="ts-hint">Click "+ Scan" above or visit Admin → Element scanner to add cutouts and party badges.</p>
+              <p className="ts-hint">No elements found under "{activeTag}". Click "+ Scan" above or visit Admin → Element scanner to add cutouts.</p>
             )}
           </Section>
 
@@ -2008,6 +2135,109 @@ export default function Inspector({
       <div className="ts-inspector-foot">
         <Plus size={13} /> Double-click text on the canvas to edit it
       </div>
+
+      {scanModalFile && (
+        <div className="ts-modal-backdrop" onClick={() => !scanModalBusy && setScanModalFile(null)}>
+          <div className="ts-scan-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="ts-modal-head">
+              <h3>Upload & Scan Element</h3>
+              <button
+                type="button"
+                className="ts-modal-close"
+                onClick={() => !scanModalBusy && setScanModalFile(null)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="ts-modal-body">
+              <div className="ts-modal-preview">
+                {scanModalBusy && !scanModalPreview ? (
+                  <span style={{ fontSize: 11, color: '#64748b' }}>Scanning & cutting background...</span>
+                ) : scanModalPreview ? (
+                  <img src={scanModalPreview.src} alt="Preview" />
+                ) : null}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: '#334155' }}>Element Name</label>
+                <input
+                  style={{
+                    padding: '7px 10px',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: 7,
+                    fontSize: 12,
+                    color: '#0f172a',
+                  }}
+                  value={scanModalName}
+                  onChange={(e) => setScanModalName(e.target.value)}
+                  placeholder="e.g. Birthday Ribbon, Badge, Header"
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: '#334155' }}>Tag / Category (Birthday, Text, NamePlate...)</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                  {DEFAULT_TAGS.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      className={`ts-scanned-tag-pill${scanModalTag === t && !scanModalCustomTag ? ' is-active' : ''}`}
+                      onClick={() => { setScanModalTag(t); setScanModalCustomTag('') }}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  style={{
+                    padding: '6px 10px',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: 7,
+                    fontSize: 11,
+                    color: '#0f172a',
+                    marginTop: 2,
+                  }}
+                  value={scanModalCustomTag}
+                  onChange={(e) => setScanModalCustomTag(e.target.value)}
+                  placeholder="Or type custom tag (e.g. Birthday, NamePlate, Text)"
+                />
+              </div>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 11.5, color: '#334155' }}>
+                <input
+                  type="checkbox"
+                  checked={scanModalRemoveBg}
+                  onChange={(e) => handleToggleRemoveBg(e.target.checked)}
+                  disabled={scanModalBusy}
+                />
+                <span>Automatically remove background (make transparent cutout)</span>
+              </label>
+
+              {scanModalError && (
+                <div style={{ color: '#dc2626', fontSize: 11 }}>{scanModalError}</div>
+              )}
+            </div>
+            <div className="ts-modal-foot">
+              <button
+                type="button"
+                className="ts-modal-btn-cancel"
+                disabled={scanModalBusy}
+                onClick={() => setScanModalFile(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="ts-modal-btn-save"
+                disabled={scanModalBusy || !scanModalName.trim() || !scanModalPreview}
+                onClick={handleSaveScanModal}
+              >
+                {scanModalBusy ? 'Saving to ScannedElement...' : 'Save for All Users & Insert'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   )
 }

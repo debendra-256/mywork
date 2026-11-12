@@ -1,9 +1,16 @@
 const STORAGE_KEY = 'promptseen.poster.elements.v1'
-const MAX_ELEMENTS = 16
+const MAX_ELEMENTS = 100
 const MAX_FILE_BYTES = 20 * 1024 * 1024
 const MAX_EDGE = 1000
 const SCAN_EDGE = 1200
 const ACCEPTED = ['image/png', 'image/jpeg', 'image/webp', 'image/gif']
+
+export const DEFAULT_TAGS = ['Birthday', 'Text', 'NamePlate', 'Festival', 'Badge', 'Political', 'Other']
+
+export function normalizeTag(tag) {
+  const clean = String(tag || '').trim()
+  return clean ? clean.slice(0, 30) : 'Other'
+}
 
 const storageAvailable = () => {
   try {
@@ -106,6 +113,7 @@ export const BUILTIN_SCANNED_ELEMENTS = [
   {
     id: 'el_tricolour_nameplate',
     name: 'Tricolour Name Plate',
+    tag: 'NamePlate',
     src: '/templates/tricolour-card.png',
     aspect: 3.003,
     width: 1024,
@@ -171,6 +179,7 @@ export function loadElements() {
             .map((item) => ({
               id: String(item.id || ''),
               name: String(item.name || 'Element').slice(0, 40),
+              tag: normalizeTag(item.tag || 'Other'),
               src: item.src,
               aspect: Number(item.aspect) > 0 ? Number(item.aspect) : 1,
               width: Number(item.width) > 0 ? Number(item.width) : 1,
@@ -188,6 +197,36 @@ export function loadElements() {
   return [...custom, ...builtins].sort((a, b) => b.createdAt - a.createdAt)
 }
 
+export async function fetchServerElements() {
+  try {
+    const res = await fetch('/api/scanned-elements')
+    if (!res.ok) return loadElements()
+    const data = await res.json()
+    if (data && Array.isArray(data.elements) && data.elements.length > 0) {
+      const serverElements = data.elements.map((item) => ({
+        id: String(item.id || ''),
+        name: String(item.name || 'Element').slice(0, 40),
+        tag: normalizeTag(item.tag || 'Other'),
+        src: item.src,
+        aspect: Number(item.aspect) > 0 ? Number(item.aspect) : 1,
+        width: Number(item.width) > 0 ? Number(item.width) : 1,
+        height: Number(item.height) > 0 ? Number(item.height) : 1,
+        w: Number(item.w) > 0 ? Number(item.w) : undefined,
+        slots: normalizeSlots(item.slots),
+        createdAt: Number(item.createdAt) || Date.now(),
+      }))
+      persist(serverElements)
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('imgmojo:scanned-elements-updated', { detail: serverElements }))
+      }
+      return serverElements
+    }
+  } catch (err) {
+    console.warn('Failed to fetch scanned elements from server:', err)
+  }
+  return loadElements()
+}
+
 function persist(elements) {
   if (!storageAvailable()) {
     throw new Error('This browser cannot store elements — keep the image file instead.')
@@ -199,14 +238,12 @@ function persist(elements) {
   }
 }
 
-export function addElement(entry) {
+export async function saveElementToServer(entry) {
   const elements = loadElements()
-  if (elements.length >= MAX_ELEMENTS) {
-    throw new Error(`You can save up to ${MAX_ELEMENTS} scanned elements. Delete one first.`)
-  }
   const saved = {
-    id: `el_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
+    id: entry.id || `el_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
     name: String(entry.name || 'Element').trim().slice(0, 40) || 'Element',
+    tag: normalizeTag(entry.tag || 'Other'),
     src: entry.src,
     aspect: Number(entry.aspect) > 0 ? Number(entry.aspect) : 1,
     width: Number(entry.width) || 1,
@@ -214,14 +251,95 @@ export function addElement(entry) {
     slots: normalizeSlots(entry.slots),
     createdAt: Date.now(),
   }
-  const next = [saved, ...elements]
+
+  // Optimistically store in localStorage
+  const optimistic = [saved, ...elements.filter((el) => el.id !== saved.id)]
+  persist(optimistic)
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('imgmojo:scanned-elements-updated', { detail: optimistic }))
+  }
+
+  // Post to /api/scanned-elements
+  try {
+    const res = await fetch('/api/scanned-elements', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(saved),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      if (data && data.element) {
+        const serverSaved = {
+          ...saved,
+          src: data.element.src || saved.src,
+        }
+        const updated = (data.elements || optimistic).map((el) => el.id === serverSaved.id ? serverSaved : el)
+        persist(updated)
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('imgmojo:scanned-elements-updated', { detail: updated }))
+        }
+        return { saved: serverSaved, elements: updated }
+      }
+    }
+  } catch (err) {
+    console.warn('Could not persist scanned element to server:', err)
+  }
+  return { saved, elements: optimistic }
+}
+
+export function addElement(entry) {
+  const elements = loadElements()
+  if (elements.length >= MAX_ELEMENTS) {
+    throw new Error(`You can save up to ${MAX_ELEMENTS} scanned elements. Delete one first.`)
+  }
+  const saved = {
+    id: entry.id || `el_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
+    name: String(entry.name || 'Element').trim().slice(0, 40) || 'Element',
+    tag: normalizeTag(entry.tag || 'Other'),
+    src: entry.src,
+    aspect: Number(entry.aspect) > 0 ? Number(entry.aspect) : 1,
+    width: Number(entry.width) || 1,
+    height: Number(entry.height) || 1,
+    slots: normalizeSlots(entry.slots),
+    createdAt: Date.now(),
+  }
+  const next = [saved, ...elements.filter((el) => el.id !== saved.id)]
   persist(next)
+  // Background sync to server
+  fetch('/api/scanned-elements', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(saved),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data && data.elements) {
+        persist(data.elements)
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('imgmojo:scanned-elements-updated', { detail: data.elements }))
+        }
+      }
+    })
+    .catch(() => {})
   return next
 }
 
 export function deleteElement(id) {
   const next = loadElements().filter((item) => item.id !== id)
   persist(next)
+  fetch(`/api/scanned-elements?id=${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data && data.elements) {
+        persist(data.elements)
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('imgmojo:scanned-elements-updated', { detail: data.elements }))
+        }
+      }
+    })
+    .catch(() => {})
   return next
 }
 

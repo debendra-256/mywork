@@ -9,7 +9,7 @@ import {
 } from '../model.js'
 import { SHAPE_DEFAULTS } from '../data/shapes.js'
 import { POSTER_LOGOS } from '../data/poster-templates.js'
-import { BUILTIN_SCANNED_ELEMENTS, loadElements } from '../../elements.js'
+import { BUILTIN_SCANNED_ELEMENTS, fetchServerElements, loadElements } from '../../elements.js'
 import { downloadPng, downloadSlices, renderToCanvas } from '../export.js'
 import { preparePhotoFile, removePhotoBackground } from '../photo.js'
 import {
@@ -800,9 +800,19 @@ export default function Editor({
   }
 
   useEffect(() => {
+    fetchServerElements().then((list) => {
+      if (Array.isArray(list) && list.length) setLibrary(list)
+    })
     const sync = () => setLibrary(loadElements())
+    const onCustomUpdate = (e) => {
+      if (Array.isArray(e?.detail)) setLibrary(e.detail)
+    }
     window.addEventListener('focus', sync)
-    return () => window.removeEventListener('focus', sync)
+    window.addEventListener('imgmojo:scanned-elements-updated', onCustomUpdate)
+    return () => {
+      window.removeEventListener('focus', sync)
+      window.removeEventListener('imgmojo:scanned-elements-updated', onCustomUpdate)
+    }
   }, [])
 
   useEffect(() => {
