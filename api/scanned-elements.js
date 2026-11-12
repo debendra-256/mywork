@@ -13,6 +13,17 @@ function getUploadDir() {
 
 const DEFAULT_BUILTIN = [
   {
+    id: 'el_mwd32wmn_t1wqn',
+    name: '03 Birthday Headline',
+    tag: 'Birthday',
+    src: '/ScannedElement/el_mwd32wmn_t1wqn.webp',
+    aspect: 2.223021582733813,
+    width: 309,
+    height: 139,
+    slots: [],
+    createdAt: 1794459879599,
+  },
+  {
     id: 'el_tricolour_nameplate',
     name: 'Tricolour Name Plate',
     tag: 'NamePlate',

@@ -111,6 +111,17 @@ export function normalizeSlots(slots) {
 
 export const BUILTIN_SCANNED_ELEMENTS = [
   {
+    id: 'el_mwd32wmn_t1wqn',
+    name: '03 Birthday Headline',
+    tag: 'Birthday',
+    src: '/ScannedElement/el_mwd32wmn_t1wqn.webp',
+    aspect: 2.223021582733813,
+    width: 309,
+    height: 139,
+    slots: [],
+    createdAt: 1794459879599,
+  },
+  {
     id: 'el_tricolour_nameplate',
     name: 'Tricolour Name Plate',
     tag: 'NamePlate',
@@ -215,11 +226,29 @@ export async function fetchServerElements() {
         slots: normalizeSlots(item.slots),
         createdAt: Number(item.createdAt) || Date.now(),
       }))
-      persist(serverElements)
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('imgmojo:scanned-elements-updated', { detail: serverElements }))
+
+      // Merge server elements with locally stored elements so local elements are NEVER lost
+      const local = loadElements()
+      const mergedMap = new Map()
+      // Local elements first
+      for (const el of local) {
+        if (el && el.id) mergedMap.set(el.id, el)
       }
-      return serverElements
+      // Server elements update or add
+      for (const el of serverElements) {
+        if (el && el.id) mergedMap.set(el.id, el)
+      }
+      // Ensure all builtins are present
+      for (const b of BUILTIN_SCANNED_ELEMENTS) {
+        if (!mergedMap.has(b.id)) mergedMap.set(b.id, b)
+      }
+
+      const merged = Array.from(mergedMap.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+      persist(merged)
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('imgmojo:scanned-elements-updated', { detail: merged }))
+      }
+      return merged
     }
   } catch (err) {
     console.warn('Failed to fetch scanned elements from server:', err)
