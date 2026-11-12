@@ -4,12 +4,23 @@ function normalizeBaseUrl(value: string | undefined): string {
   return (value ?? '').trim().replace(/\/+$/, '')
 }
 
-const communitySettings: { whatsappPhone: string; instagramUsername: string; facebookPageId: string; telegramUsername: string } = {
+const communitySettings: {
+  whatsappPhone: string
+  instagramUsername: string
+  instagramUrl: string
+  facebookPageId: string
+  facebookUrl: string
+  telegramUsername: string
+  telegramUrl: string
+} = {
   // Add the community IDs here. WhatsApp must include the country code, digits only.
   whatsappPhone: '',
   instagramUsername: 'imgmojo',
-  facebookPageId: '',
+  instagramUrl: 'https://instagram.com/imgmojo',
+  facebookPageId: 'imgmojo',
+  facebookUrl: 'https://www.facebook.com/imgmojo',
   telegramUsername: '',
+  telegramUrl: 'https://web.telegram.org/a/#-1004392723031',
 }
 
 const CURRENT_BLOG_ID = '7320184749093787409'

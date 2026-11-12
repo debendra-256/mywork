@@ -42,6 +42,14 @@ function openNewBloggerPost() {
   window.open(`https://www.blogger.com/blog/posts/${encodeURIComponent(blogId)}`, '_blank', 'noopener,noreferrer')
 }
 
+export function TelegramIcon({ size = 18, className = '' }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+    </svg>
+  )
+}
+
 const navGlyphs = { library: Images, trending: Flame, latest: Clock3, saved: Bookmark, categories: LayoutGrid, store: Store, how: Play, dashboard: LayoutDashboard }
 
 interface NavItem {
@@ -843,6 +851,9 @@ function HomePage({ prompts, blogStatus, adminLoggedIn = false }: { prompts: Pro
 
 function SiteFooter() {
   const currentYear = new Date().getFullYear()
+  const telegramUrl = appConfig.community.telegramUrl || 'https://web.telegram.org/a/#-1004392723031'
+  const instagramUrl = appConfig.community.instagramUrl || 'https://instagram.com/imgmojo'
+  const facebookUrl = appConfig.community.facebookUrl || 'https://www.facebook.com/imgmojo'
   return (
     <footer className="page-footer" role="contentinfo">
       <div className="footer-container">
@@ -855,19 +866,22 @@ function SiteFooter() {
               Your all-in-one creative suite for fast, free and powerful media tools. Reframing, compressing, removing backgrounds, and crafting captivating visual content seamlessly.
             </p>
             <div className="footer-social-row" aria-label="Social media">
-              <a href="https://instagram.com/imgmojo" target="_blank" rel="noreferrer" className="footer-social-link" aria-label="Instagram">
+              <a href={instagramUrl} target="_blank" rel="noreferrer" className="footer-social-link footer-social-instagram" aria-label="Instagram" title="Follow us on Instagram">
                 <Instagram size={18} />
               </a>
-              <a href="https://linkedin.com/company/imgmojo" target="_blank" rel="noreferrer" className="footer-social-link" aria-label="LinkedIn">
-                <Linkedin size={18} />
+              <a href={telegramUrl} target="_blank" rel="noreferrer" className="footer-social-link footer-social-telegram" aria-label="Telegram" title="Join our Telegram Channel">
+                <TelegramIcon size={18} />
               </a>
-              <a href="https://www.facebook.com/imgmojo" target="_blank" rel="noreferrer" className="footer-social-link" aria-label="Facebook">
+              <a href={facebookUrl} target="_blank" rel="noreferrer" className="footer-social-link footer-social-facebook" aria-label="Facebook" title="Follow us on Facebook">
                 <Facebook size={18} />
               </a>
-              <a href="https://twitter.com/imgmojo" target="_blank" rel="noreferrer" className="footer-social-link" aria-label="Twitter">
+              <a href="https://linkedin.com/company/imgmojo" target="_blank" rel="noreferrer" className="footer-social-link" aria-label="LinkedIn" title="Connect on LinkedIn">
+                <Linkedin size={18} />
+              </a>
+              <a href="https://twitter.com/imgmojo" target="_blank" rel="noreferrer" className="footer-social-link" aria-label="Twitter" title="Follow us on X (Twitter)">
                 <Twitter size={18} />
               </a>
-              <a href={`mailto:${appConfig.supportEmail || 'support@imgmojo.com'}`} className="footer-social-link" aria-label="Email Support">
+              <a href={`mailto:${appConfig.supportEmail || 'support@imgmojo.com'}`} className="footer-social-link" aria-label="Email Support" title="Email Support">
                 <Mail size={18} />
               </a>
             </div>
@@ -1048,12 +1062,114 @@ function AccountPage() {
   return <div className="detail-shell store-shell"><SeoHead title={`My Account | ${appConfig.appName}`} robots="noindex, nofollow" /><Header onMenu={() => {}} /><main className="account-page"><Link className="store-back-link" to="/"><ArrowLeft size={14} /> Back to the library</Link>{customer.user ? <section className="account-card"><div className="account-card-head"><span className="section-kicker">MY ACCOUNT</span><h1>{customer.user.displayName || customer.user.email}</h1><p>{customer.user.signupSource === 'password' ? customer.user.email : `Signed in with ${customer.user.signupSource === 'google' ? 'Google' : 'Facebook'}`}</p></div><div className="account-unlocks"><span className="admin-kicker">UNLOCKED PREMIUM FEATURES</span>{customer.entitlements.length ? <ul>{customer.entitlements.map((entitlement) => <li key={`${entitlement.productId}-${entitlement.benefitKey}`}><LockOpen size={15} /><div><strong>{benefitLabels(products, entitlement.benefitKey).join(', ') || entitlement.benefitKey}</strong>{entitlement.expiresAt && <small>Valid until {new Date(entitlement.expiresAt).toLocaleDateString()}</small>}</div></li>)}</ul> : <p className="account-empty">No premium features unlocked yet. Pay for a product, then redeem its license code below.</p>}</div><form className="account-redeem" onSubmit={redeem}><label>License code<input value={code} onChange={(event) => setCode(event.target.value)} placeholder="PS-XXXX-XXXX-XXXX" autoComplete="off" required /></label><button className="admin-primary" type="submit" disabled={busy || !code.trim()}>{busy ? 'Checking…' : 'Redeem code'} <KeyRound size={15} /></button></form><div className="account-foot"><Link to="/store">Browse products <ArrowRight size={14} /></Link><button className="admin-secondary" type="button" onClick={logout}><LogOut size={15} /> Sign out</button></div>{notice && <p className="menu-manager-message" role="status">{notice}</p>}{error && <p className="editor-error" role="alert">{error}</p>}</section> : <section className="account-card"><div className="account-card-head"><span className="section-kicker">CUSTOMER SIGN IN</span><h1>Your licenses, one account</h1><p>Sign in to redeem a license code and unlock the premium features of every product you own.</p></div><div className="account-mode-tabs"><button type="button" className={mode === 'signin' ? 'active' : ''} onClick={() => { setMode('signin'); setError('') }}>Sign in</button><button type="button" className={mode === 'signup' ? 'active' : ''} onClick={() => { setMode('signup'); setError('') }}>Create account</button></div><form className="account-form" onSubmit={authenticate}>{mode === 'signup' && <label className="editor-field">Name <span className="field-optional">OPTIONAL</span><input value={displayName} onChange={(event) => setDisplayName(event.target.value)} maxLength={60} placeholder="How should we greet you?" /></label>}<label className="editor-field">Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="username" required /></label><label className="editor-field">Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} minLength={8} required /></label><button className="publish-button" type="submit" disabled={busy}>{busy ? 'Working…' : mode === 'signup' ? 'Create account' : 'Sign in'} <ArrowRight size={16} /></button></form>{socialRow}{notice && <p className="menu-manager-message" role="status">{notice}</p>}{error && <p className="editor-error" role="alert">{error}</p>}<p className="account-privacy"><ShieldCheck size={15} /> Passwords are stored hashed on the server. This account is only used for product licenses.</p></section>}</main><SiteFooter /></div>
 }
 
-function ToolPage({ tool }: { tool: ToolDefinition }) {
+function ToolPage({ tool, prompts = [] }: { tool: ToolDefinition; prompts?: Prompt[] }) {
+  const navigate = useNavigate()
+  const [savedIds, setSavedIds] = useState<string[]>([])
+  const { counts, record } = useEngagement()
+
+  const toggleSave = (id: string) =>
+    setSavedIds((ids) => (ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id]))
+
+  const instagramUsername = appConfig.community.instagramUsername || 'imgmojo'
+  const instagramUrl = appConfig.community.instagramUrl || `https://www.instagram.com/${instagramUsername}/`
+  const telegramUrl = appConfig.community.telegramUrl || 'https://web.telegram.org/a/#-1004392723031'
+  const facebookUrl = appConfig.community.facebookUrl || 'https://www.facebook.com/imgmojo'
+
+  const blogPosts = useMemo(() => {
+    return deduplicatePrompts(prompts).slice(0, 8)
+  }, [prompts])
+
   return (
     <div className="detail-shell tool-page">
       <SeoHead toolId={tool.id} />
       <Header onMenu={() => {}} />
       <ToolSurface tool={tool} />
+
+      {/* Community Section after FAQ */}
+      <section className="tool-community-wrap" aria-label="Join our community">
+        <div className="tool-section-container">
+          <div className="tool-section-head">
+            <div>
+              <span className="section-kicker">COMMUNITY &amp; CHANNELS</span>
+              <h2>Join Our Creative Community</h2>
+              <p>Follow our channels on Instagram, Telegram, and Facebook for daily prompts, tutorials, and new tools.</p>
+            </div>
+          </div>
+          <div className="tool-community-grid">
+            <a href={instagramUrl} target="_blank" rel="noreferrer" className="tool-community-card card-instagram">
+              <div className="tool-community-icon badge-instagram">
+                <Instagram size={22} />
+              </div>
+              <div className="tool-community-body">
+                <strong>Follow on Instagram</strong>
+                <span>Daily visual prompts, reels &amp; tutorials <b>@{instagramUsername}</b></span>
+              </div>
+              <span className="tool-community-btn btn-instagram">
+                Follow <ArrowUpRight size={14} />
+              </span>
+            </a>
+
+            <a href={telegramUrl} target="_blank" rel="noreferrer" className="tool-community-card card-telegram">
+              <div className="tool-community-icon badge-telegram">
+                <TelegramIcon size={22} />
+              </div>
+              <div className="tool-community-body">
+                <strong>Join Telegram Channel</strong>
+                <span>Instant prompt drops, exclusive creative tools &amp; community discussions</span>
+              </div>
+              <span className="tool-community-btn btn-telegram">
+                Join Channel <ArrowUpRight size={14} />
+              </span>
+            </a>
+
+            <a href={facebookUrl} target="_blank" rel="noreferrer" className="tool-community-card card-facebook">
+              <div className="tool-community-icon badge-facebook">
+                <Facebook size={22} />
+              </div>
+              <div className="tool-community-body">
+                <strong>Follow on Facebook</strong>
+                <span>Latest announcements, tutorials &amp; creative community updates</span>
+              </div>
+              <span className="tool-community-btn btn-facebook">
+                Follow Page <ArrowUpRight size={14} />
+              </span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* Blog Posts Section after FAQ */}
+      {blogPosts.length > 0 && (
+        <section className="tool-blog-wrap" aria-label="Latest blog posts and prompts">
+          <div className="tool-section-container">
+            <div className="tool-section-head">
+              <div>
+                <span className="section-kicker">LATEST FROM OUR BLOG</span>
+                <h2>Explore Popular Blog Posts &amp; AI Prompts</h2>
+                <p>Trending ready-to-copy prompts, creative guides, and community showcases.</p>
+              </div>
+              <Link to="/" className="detail-view-all-btn">
+                View all blog posts <ArrowRight size={14} />
+              </Link>
+            </div>
+            <div className="prompt-grid">
+              {blogPosts.map((prompt, index) => (
+                <PromptCard
+                  key={prompt.id}
+                  prompt={prompt}
+                  index={index}
+                  saved={savedIds.includes(prompt.id)}
+                  engagement={engagementFor(counts, prompt.id)}
+                  onToggleSave={() => toggleSave(prompt.id)}
+                  onCopy={() => record(prompt.id, 'copy')}
+                  onHashtag={(tag) => navigate(`/?filter=${encodeURIComponent(tag)}`)}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       <SiteFooter />
     </div>
   )
@@ -1234,7 +1350,9 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
     })
   }
   const instagramUsername = appConfig.community.instagramUsername || 'imgmojo'
-  const instagramUrl = `https://www.instagram.com/${instagramUsername}/`
+  const instagramUrl = appConfig.community.instagramUrl || `https://www.instagram.com/${instagramUsername}/`
+  const telegramUrl = appConfig.community.telegramUrl || 'https://web.telegram.org/a/#-1004392723031'
+  const facebookUrl = appConfig.community.facebookUrl || 'https://www.facebook.com/imgmojo'
 
   return (
     <div className="detail-shell">
@@ -1343,6 +1461,15 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
                 </>
               )}
               <a
+                href={telegramUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="detail-telegram-action"
+                aria-label="Join our Telegram Channel"
+              >
+                <TelegramIcon size={16} /> Join Telegram <ArrowUpRight size={13} />
+              </a>
+              <a
                 href={instagramUrl}
                 target="_blank"
                 rel="noreferrer"
@@ -1351,21 +1478,56 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
               >
                 <Instagram size={16} /> Follow on Instagram <ArrowUpRight size={13} />
               </a>
+              <a
+                href={facebookUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="detail-facebook-action"
+                aria-label="Follow us on Facebook"
+              >
+                <Facebook size={16} /> Follow on Facebook <ArrowUpRight size={13} />
+              </a>
             </div>
-            <a href={instagramUrl} target="_blank" rel="noreferrer" className="detail-instagram-card">
-              <div className="instagram-card-badge">
-                <Instagram size={22} />
-              </div>
-              <div className="instagram-card-content">
-                <strong>Follow us on Instagram</strong>
-                <span>
-                  Get new daily AI prompts, trends & tutorials <b>@{instagramUsername}</b>
+            <div className="detail-community-cards">
+              <a href={telegramUrl} target="_blank" rel="noreferrer" className="detail-social-card card-telegram">
+                <div className="social-card-badge badge-telegram">
+                  <TelegramIcon size={20} />
+                </div>
+                <div className="social-card-content">
+                  <strong>Join our Telegram Channel</strong>
+                  <span>Instant prompt drops, exclusive creator resources &amp; discussions</span>
+                </div>
+                <span className="social-card-arrow arrow-telegram">
+                  Join <ArrowUpRight size={13} />
                 </span>
-              </div>
-              <span className="instagram-card-arrow">
-                Follow <ArrowUpRight size={14} />
-              </span>
-            </a>
+              </a>
+
+              <a href={instagramUrl} target="_blank" rel="noreferrer" className="detail-social-card card-instagram">
+                <div className="social-card-badge badge-instagram">
+                  <Instagram size={20} />
+                </div>
+                <div className="social-card-content">
+                  <strong>Follow on Instagram</strong>
+                  <span>Get new daily AI prompts, trends &amp; tutorials <b>@{instagramUsername}</b></span>
+                </div>
+                <span className="social-card-arrow arrow-instagram">
+                  Follow <ArrowUpRight size={13} />
+                </span>
+              </a>
+
+              <a href={facebookUrl} target="_blank" rel="noreferrer" className="detail-social-card card-facebook">
+                <div className="social-card-badge badge-facebook">
+                  <Facebook size={20} />
+                </div>
+                <div className="social-card-content">
+                  <strong>Follow on Facebook</strong>
+                  <span>Latest guides, community highlights &amp; tips</span>
+                </div>
+                <span className="social-card-arrow arrow-facebook">
+                  Follow <ArrowUpRight size={13} />
+                </span>
+              </a>
+            </div>
             <section className="prompt-share-panel">
               <button
                 type="button"
@@ -2155,6 +2317,6 @@ export default function App() {
     void loadCustomerSession()
   }, [])
   const adminAllowed = adminAuthenticated
-  return <Routes><Route path="/" element={<HomePage prompts={prompts} blogStatus={blogStatus} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /><Route path="/store" element={<StorePage />} />{pages.map((tool) => <Route key={tool.id} path={tool.path} element={<ToolPage tool={tool} />} />)}<Route path="/checkout/:productId" element={<CheckoutPage />} /><Route path="/prompt/:slug" element={<PromptPage prompts={prompts} />} /><Route path="/account" element={<AccountPage />} /><Route path="/login" element={<LoginPage onAdminLogin={() => { setAdminAuthenticated(true); setAdminAuthReady(true) }} />} /><Route path="/admin/upload-pdf" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} onConnectBlogger={handleConnectBlogger} onDisconnectBlogger={handleDisconnectBlogger} bloggerConnecting={bloggerConnecting} bloggerError={bloggerError} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="/admin/*" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} onConnectBlogger={handleConnectBlogger} onDisconnectBlogger={handleDisconnectBlogger} bloggerConnecting={bloggerConnecting} bloggerError={bloggerError} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="/about" element={<InfoRoute kind="about" />} /><Route path="/privacy" element={<InfoRoute kind="privacy" />} /><Route path="/terms" element={<InfoRoute kind="terms" />} /><Route path="/contact" element={<InfoRoute kind="contact" />} /><Route path="/report-bug" element={<InfoRoute kind="report-bug" />} /><Route path="/feature-request" element={<InfoRoute kind="feature-request" />} /><Route path="*" element={<HomePage prompts={prompts} blogStatus={blogStatus} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /></Routes>
+  return <Routes><Route path="/" element={<HomePage prompts={prompts} blogStatus={blogStatus} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /><Route path="/store" element={<StorePage />} />{pages.map((tool) => <Route key={tool.id} path={tool.path} element={<ToolPage tool={tool} prompts={prompts} />} />)}<Route path="/checkout/:productId" element={<CheckoutPage />} /><Route path="/prompt/:slug" element={<PromptPage prompts={prompts} />} /><Route path="/account" element={<AccountPage />} /><Route path="/login" element={<LoginPage onAdminLogin={() => { setAdminAuthenticated(true); setAdminAuthReady(true) }} />} /><Route path="/admin/upload-pdf" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} onConnectBlogger={handleConnectBlogger} onDisconnectBlogger={handleDisconnectBlogger} bloggerConnecting={bloggerConnecting} bloggerError={bloggerError} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="/admin/*" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} onConnectBlogger={handleConnectBlogger} onDisconnectBlogger={handleDisconnectBlogger} bloggerConnecting={bloggerConnecting} bloggerError={bloggerError} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="/about" element={<InfoRoute kind="about" />} /><Route path="/privacy" element={<InfoRoute kind="privacy" />} /><Route path="/terms" element={<InfoRoute kind="terms" />} /><Route path="/contact" element={<InfoRoute kind="contact" />} /><Route path="/report-bug" element={<InfoRoute kind="report-bug" />} /><Route path="/feature-request" element={<InfoRoute kind="feature-request" />} /><Route path="*" element={<HomePage prompts={prompts} blogStatus={blogStatus} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /></Routes>
 }
 
