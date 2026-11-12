@@ -7,7 +7,6 @@ import { CONTACT_KINDS } from '../data/namecards.js'
 import { aspectOf, layerLabel, makeFooterItem, uid } from '../model.js'
 import {
   DEFAULT_TAGS,
-  deleteElement,
   filterTextToScript,
   loadElements,
   normalizeTag,
@@ -1964,21 +1963,6 @@ export default function Inspector({
                         <span className="ts-scanned-tag-badge">{item.tag || 'Other'}</span>
                         <span>{item.name}</span>
                       </button>
-                      {item.id !== 'el_tricolour_nameplate' && (
-                        <button
-                          type="button"
-                          className="ts-scanned-delete-btn"
-                          title="Delete element"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            if (window.confirm(`Delete "${item.name}"?`)) {
-                              deleteElement(item.id)
-                            }
-                          }}
-                        >
-                          ×
-                        </button>
-                      )}
                     </div>
                   ))}
               </div>

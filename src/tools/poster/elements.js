@@ -382,26 +382,23 @@ export function addElement(entry) {
   return next
 }
 
-export function deleteElement(id) {
-  const next = loadElements().filter((item) => item.id !== id)
-  persist(next)
-  fetch(`/api/scanned-elements?id=${encodeURIComponent(id)}`, {
+export async function deleteElement(id) {
+  const res = await fetch(`/api/scanned-elements?id=${encodeURIComponent(id)}`, {
     method: 'DELETE',
   })
-    .then((res) => res.json())
-    .then((data) => {
-      if (data && data.elements) {
-        const filteredServer = data.elements.filter((el) => el.id !== id)
-        const currentLocal = loadElements().filter((el) => el.id !== id)
-        const merged = mergeElements(filteredServer, currentLocal)
-        persist(merged)
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('imgmojo:scanned-elements-updated', { detail: merged }))
-        }
-      }
-    })
-    .catch(() => {})
-  return next
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data?.error || 'Only admins can delete scanned elements from the Admin Panel.')
+  }
+  const data = await res.json().catch(() => ({}))
+  const filteredServer = (data && Array.isArray(data.elements) ? data.elements : []).filter((el) => el.id !== id)
+  const currentLocal = loadElements().filter((el) => el.id !== id)
+  const merged = mergeElements(filteredServer, currentLocal)
+  persist(merged)
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('imgmojo:scanned-elements-updated', { detail: merged }))
+  }
+  return merged
 }
 
 export const maxElements = MAX_ELEMENTS

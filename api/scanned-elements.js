@@ -4,6 +4,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { safeWriteJson, safeReadJson } from './config-writer.js'
+import { isValidAdminSession } from './admin-auth.js'
+import { hasBloggerAuthorization } from './tools-config.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT_DIR = path.resolve(__dirname, '..')
@@ -241,8 +243,13 @@ export default async function handler(request, response, env = process.env) {
     return
   }
 
-  // DELETE: Remove a scanned element
+  // DELETE: Remove a scanned element (Admin only from Admin Panel)
   if (method === 'DELETE') {
+    if (!isValidAdminSession(request, env) && !(await hasBloggerAuthorization(request))) {
+      response.status(401).json({ success: false, error: 'Only admins can delete scanned elements from the Admin Panel.' })
+      return
+    }
+
     try {
       const url = new URL(request.url || '', 'http://localhost')
       const id = String(url.searchParams.get('id') || request.body?.id || '').trim()

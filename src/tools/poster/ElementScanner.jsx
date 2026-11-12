@@ -244,9 +244,11 @@ export default function ElementScanner() {
     }
   }
 
-  const remove = (item) => {
+  const remove = async (item) => {
+    if (!window.confirm(`Delete "${item.name}"? This removes it for all users.`)) return
     try {
-      setElements(deleteElement(item.id))
+      const next = await deleteElement(item.id)
+      setElements(next)
       setMessage(`“${item.name}” removed from the poster editor.`)
     } catch (err) {
       setError(err?.message || 'Could not delete that element')
