@@ -1384,7 +1384,7 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
               {prompt.video ? (
                 <PromptVideo src={prompt.video} title={prompt.title} className="detail-video-iframe" />
               ) : prompt.image ? (
-                <img src={imageAtWidth(prompt.image, 1000)} alt={prompt.imageAlt || ''} />
+                <img src={imageAtWidth(prompt.image, 1600) || prompt.image} alt={prompt.imageAlt || prompt.title} />
               ) : (
                 <span className="tile-image-fallback">
                   <Sparkles size={28} />

@@ -1,8 +1,20 @@
-/** Google's image proxy re-renders a Blogger cover at any width on request, so each surface can take the size it actually draws. */
 const sizeDirective = /([/=])[swh]\d+(?![\w-])/i
 
-export function imageAtWidth(url: string | undefined, width: number): string | undefined {
-  return url?.replace(sizeDirective, `$1s${width}`)
+/** Google's image proxy re-renders a Blogger cover at any width on request, so each surface can take the size it actually draws. */
+export function imageAtWidth(url: string | undefined, width = 1600): string | undefined {
+  if (!url) return undefined
+  if (!/^https?:\/\//i.test(url)) return url
+  // Handle Blogger /s320/ or /s320-c/ or /w640-h400-c/
+  const pathRegex = /\/(?:s|w)\d+(?:-[a-zA-Z0-9_-]+)*\/([^/]+)$/i
+  if (pathRegex.test(url)) {
+    return url.replace(pathRegex, (_m, filename) => `/s${width}/${filename}`)
+  }
+  // Handle query/param format like =s320 or =w640-h400-c
+  const paramRegex = /=(?:s|w)\d+(?:-[a-zA-Z0-9_-]+)*$/i
+  if (paramRegex.test(url)) {
+    return url.replace(paramRegex, `=s${width}`)
+  }
+  return url.replace(sizeDirective, `$1s${width}`)
 }
 
 const renditions = [320, 480, 640, 960, 1200]
