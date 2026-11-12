@@ -889,8 +889,7 @@ function SiteFooter() {
             <Link to="/poster">Poster Maker</Link>
             <Link to="/collage">Collage Studio</Link>
             <Link to="/compress-image">Compress Image</Link>
-            <Link to="/watermark-remover">Watermark Remover</Link>
-            <Link to="/remove-object">Remove Object</Link>
+            <Link to="/watermark-remover">Watermark Remover</Link>          
           </nav>
 
           <nav className="footer-col" aria-label="Company">

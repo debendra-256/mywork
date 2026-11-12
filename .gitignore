@@ -13,3 +13,5 @@ dist
 
 # Local-only experiment, not wired into the app
 /src/videodownloader/
+
+.vscode/
