@@ -7,7 +7,7 @@ import { CONTACT_KINDS } from '../data/namecards.js'
 import { aspectOf, layerLabel, makeFooterItem, uid } from '../model.js'
 import { filterTextToScript, scriptLabel } from '../../elements.js'
 import {
-  ArrowDown, ArrowUp, Copy, Layers, Photo, Plus, Sparkle, Trash, Type,
+  ArrowDown, ArrowUp, Copy, Grid, Layers, Photo, Plus, Sparkle, Trash, Type,
 } from './Icons.jsx'
 import AddElementsPanel, { elementDrag } from './AddElementsPanel.jsx'
 
@@ -203,6 +203,23 @@ export default function Inspector({
   const setEl = (patch, opts) => selected && onPatchEl(selected.id, patch, opts)
   const live = (patch) => setEl(patch, { history: false })
   const sizeOptions = FONTS.map((f) => ({ value: f.id, label: f.name }))
+  const [panelTab, setPanelTab] = useState(selected ? 'properties' : 'political')
+  const [politicalCategory, setPoliticalCategory] = useState('All')
+
+  useEffect(() => {
+    if (selected) setPanelTab('properties')
+  }, [selected?.id])
+
+  const filteredTemplates = (templateElements || []).filter((item) => {
+    if (politicalCategory === 'All') return true
+    const n = (item.name || '').toLowerCase()
+    if (politicalCategory === 'BJP / Lotus') return n.includes('lotus')
+    if (politicalCategory === 'Congress / Hand') return n.includes('hand')
+    if (politicalCategory === 'AAP / Broom') return n.includes('broom')
+    if (politicalCategory === 'Other Parties') return n.includes('clock') || n.includes('hammer') || (!n.includes('lotus') && !n.includes('hand') && !n.includes('broom'))
+    return true
+  })
+
   const [cutTolerance, setCutTolerance] = useState(30)
   const [cuttingSlot, setCuttingSlot] = useState(null)
   const footerItems = selected?.type === 'footer' ? selected.items || [] : []
@@ -333,8 +350,41 @@ export default function Inspector({
 
   return (
     <aside className="ts-inspector">
+      <div className="ts-panel-nav">
+        <button
+          type="button"
+          className={`ts-panel-tab${panelTab === 'political' ? ' is-active' : ''}`}
+          onClick={() => setPanelTab('political')}
+          title="Political templates, party logos and scanned elements"
+        >
+          <Sparkle size={13} />
+          <span>Political & Assets</span>
+          <span className="ts-tab-pill">{templateElements.length + logoElements.length + scannedElements.length}</span>
+        </button>
+        <button
+          type="button"
+          className={`ts-panel-tab${panelTab === 'properties' ? ' is-active' : ''}`}
+          onClick={() => setPanelTab('properties')}
+          title="Design properties and canvas adjustments"
+        >
+          <Grid size={13} />
+          <span>{selected ? 'Properties' : 'Canvas'}</span>
+        </button>
+        <button
+          type="button"
+          className={`ts-panel-tab${panelTab === 'layers' ? ' is-active' : ''}`}
+          onClick={() => setPanelTab('layers')}
+          title="Layer ordering and stack"
+        >
+          <Layers size={13} />
+          <span>Layers ({doc.elements.length})</span>
+        </button>
+      </div>
+
       <div className="ts-inspector-scroll">
-        {selected ? (
+        {panelTab === 'properties' && (
+          <>
+            {selected ? (
           <Section
             title={
               selected.type === 'text' ? 'Text'
@@ -1313,25 +1363,85 @@ export default function Inspector({
                   label="Width"
                   value={selected.w}
                   display={`${selected.w.toFixed(1)}%`}
-                  min={6}
+                  min={4}
                   max={100}
                   step={0.5}
                   onStart={onBegin}
                   onEnd={onEnd}
-                  onChange={(v) => live({ w: v })}
+                  onChange={(v) => {
+                    const w = v
+                    const h = selected.h ?? stickerHeight
+                    live({ w, h, aspect: Math.max(0.05, Math.round((w / h) * 1000) / 1000) })
+                  }}
                 />
                 <Range
                   label="Height"
-                  value={stickerHeight}
-                  display={`${stickerHeight.toFixed(1)}%`}
-                  min={3}
+                  value={selected.h ?? stickerHeight}
+                  display={`${(selected.h ?? stickerHeight).toFixed(1)}%`}
+                  min={2}
                   max={Math.max(100, pageHeightUnits)}
                   step={0.5}
                   onStart={onBegin}
                   onEnd={onEnd}
-                  onChange={(v) => live({ aspect: Math.max(0.1, selected.w / Math.max(3, v)) })}
+                  onChange={(v) => {
+                    const h = v
+                    const w = selected.w
+                    live({ h, aspect: Math.max(0.05, Math.round((w / h) * 1000) / 1000) })
+                  }}
                 />
-                <p className="ts-hint">Drag the corner handle to scale it freely, or use Width and Height to stretch the scanned element to fit the template. Added from Admin → Element scanner.</p>
+                <p className="ts-hint">Drag any edge or corner handle on canvas to resize height & width freely, or adjust values here.</p>
+
+                <ColorRow
+                  label="Background colour"
+                  doc={doc}
+                  value={selected.bgColor || 'none'}
+                  allowNone
+                  onChange={(color) => setEl({ bgColor: color })}
+                />
+
+                <ColorRow
+                  label="Foreground / Tint colour"
+                  doc={doc}
+                  value={selected.fgColor || 'none'}
+                  allowNone
+                  onChange={(color) => setEl({ fgColor: color })}
+                />
+
+                {selected.fgColor && selected.fgColor !== 'none' && (
+                  <Range
+                    label="Tint strength"
+                    value={Math.round((selected.fgOpacity ?? 0.85) * 100)}
+                    display={`${Math.round((selected.fgOpacity ?? 0.85) * 100)}%`}
+                    min={10}
+                    max={100}
+                    step={5}
+                    onChange={(v) => live({ fgOpacity: v / 100 })}
+                  />
+                )}
+
+                <Range
+                  label="Corner roundness"
+                  value={selected.borderRadius || 0}
+                  display={`${selected.borderRadius || 0}px`}
+                  min={0}
+                  max={48}
+                  step={1}
+                  onStart={onBegin}
+                  onEnd={onEnd}
+                  onChange={(v) => live({ borderRadius: v })}
+                />
+
+                <Range
+                  label="Padding"
+                  value={selected.padding || 0}
+                  display={`${selected.padding || 0}px`}
+                  min={0}
+                  max={32}
+                  step={1}
+                  onStart={onBegin}
+                  onEnd={onEnd}
+                  onChange={(v) => live({ padding: v })}
+                />
                 <div className="ts-field ts-field--inline">
                   <span className="ts-label">Blend</span>
                   <select
@@ -1649,131 +1759,120 @@ export default function Inspector({
             </select>
           </div>
         </Section>
+        </>
+      )}
 
-        <Section title="Add elements">
-          <AddElementsPanel
-            onAdd={(kind, id) => {
-              if (kind === 'text') return onAddText()
-              if (kind === 'banner') return onAddBanner()
-              if (kind === 'namecard') return onAddNameCard()
-              if (kind === 'contactcard') return onAddContactCard()
-              if (kind === 'tricolour_card') return onAddTricolourCard?.()
-              if (kind === 'photo') return onAddPhoto()
-              if (kind === 'shape') return onAddShape(id)
-              if (kind === 'social') return onAddSocial(id)
-            }}
-          />
-          <div className="ts-footer-presets">
-            {FOOTER_PRESETS.map((preset) => (
-              <button
-                key={preset.id}
-                type="button"
-                className="ts-footer-chip"
-                title={`Add ${preset.name} — drag onto the canvas`}
-                draggable
-                onDragStart={(e) => {
-                  e.dataTransfer.setData('application/x-ts-footer', preset.id)
-                  e.dataTransfer.effectAllowed = 'copy'
-                }}
-                onClick={() => onAddFooter?.(preset.id)}
-              >
-                <span
-                  className={`ts-footer-chip-preview${preset.blank ? ' is-blank' : ''}`}
-                  style={{
-                    background: preset.bg,
-                    color: preset.color,
-                    borderRadius: `${Math.min(preset.radius, 6)}px`,
-                  }}
+      {panelTab === 'political' && (
+        <>
+          {/* Political Templates & Overlays */}
+          <Section
+            title="Political Poster Templates"
+            aside={<span className="ts-count"><Sparkle size={12} /> {templateElements.length}</span>}
+          >
+            <div className="ts-political-filters">
+              {['All', 'BJP / Lotus', 'Congress / Hand', 'AAP / Broom', 'Other Parties'].map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  className={`ts-political-filter-btn${politicalCategory === cat ? ' is-active' : ''}`}
+                  onClick={() => setPoliticalCategory(cat)}
                 >
-                  {!preset.blank && ['x', 'instagram', 'facebook'].map((id) => (
-                    <svg
-                      key={id}
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      dangerouslySetInnerHTML={{ __html: socialMarkup(id) }}
-                    />
-                  ))}
-                </span>
-                <span>{preset.name}</span>
-              </button>
-            ))}
-          </div>
-          <p className="ts-hint">Drag a footer onto the canvas, or click to add it at the bottom.</p>
-          <div className="ts-ornament-grid">
-            {ORNAMENTS.map((ornament) => (
-              <button
-                key={ornament.id}
-                type="button"
-                className="ts-ornament-chip"
-                title={ornament.name}
-                onClick={() => onAddOrnament(ornament.id)}
-                {...elementDrag({ kind: 'ornament', id: ornament.id })}
-              >
-                <svg
-                  viewBox="0 0 200 200"
-                  fill="none"
-                  dangerouslySetInnerHTML={{ __html: ornamentMarkup(ornament.id) }}
-                />
-              </button>
-            ))}
-          </div>
-          {templateElements.length > 0 ? (
-            <>
-              <div className="ts-scanned-head">
-                <span className="ts-label">Poster templates</span>
-                <span className="ts-count">{templateElements.length}</span>
-              </div>
-              <div className="ts-template-grid">
-                {templateElements.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className="ts-template-chip"
-                    title={`Add ${item.name} — fitted to the page, behind your elements`}
-                    onClick={() => onAddSticker(item)}
-                    {...elementDrag({ kind: 'sticker', id: item.id })}
-                  >
-                    <span className="ts-template-thumb"><img src={item.src} alt="" loading="lazy" /></span>
-                    <span>{item.name}</span>
-                  </button>
-                ))}
-              </div>
-              <p className="ts-hint">
-                Drag a template onto the page or click it — the header and footer are fitted to the page edges and
-                dropped behind your text, and on a photo page the plain middle lets the image show through.
-              </p>
-            </>
-          ) : null}
-          {logoElements.length > 0 ? (
-            <>
-              <div className="ts-scanned-head">
-                <span className="ts-label">Party logos</span>
-                <span className="ts-count">{logoElements.length}</span>
-              </div>
+                  {cat}
+                </button>
+              ))}
+            </div>
+            <div className="ts-template-grid">
+              {filteredTemplates.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className="ts-template-card"
+                  title={`Add ${item.name} — fitted to page, transparent overlay`}
+                  onClick={() => onAddSticker(item)}
+                  {...elementDrag({ kind: 'sticker', id: item.id })}
+                >
+                  <span className="ts-template-card-thumb">
+                    <img src={item.src} alt="" loading="lazy" />
+                    <span className="ts-template-badge">{item.aspect > 1.8 ? 'BANNER' : 'FRAME'}</span>
+                  </span>
+                  <span className="ts-template-card-name">{item.name}</span>
+                  <span className="ts-template-card-meta">
+                    <span>{Math.round(item.width)} × {Math.round(item.height)}</span>
+                    <span style={{ color: 'var(--ts-accent)' }}>+ Add</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+            <p className="ts-hint">
+              Click or drag any political template onto the canvas. Frames hug poster edges and let your photo show through seamlessly.
+            </p>
+          </Section>
+
+          {/* Party Logos */}
+          {logoElements.length > 0 && (
+            <Section
+              title="Party Logos & Emblems"
+              aside={<span className="ts-count">{logoElements.length}</span>}
+            >
               <div className="ts-logo-grid">
                 {logoElements.map((item) => (
                   <button
                     key={item.id}
                     type="button"
                     className="ts-logo-chip"
-                    title={`Add ${item.name} logo — transparent PNG`}
+                    title={`Add ${item.name} badge`}
                     onClick={() => onAddSticker(item)}
                     {...elementDrag({ kind: 'sticker', id: item.id })}
                   >
-                    <span className="ts-logo-thumb"><img src={item.src} alt="" loading="lazy" /></span>
+                    <span className="ts-logo-thumb">
+                      <img src={item.src} alt="" loading="lazy" />
+                    </span>
                     <span>{item.name}</span>
                   </button>
                 ))}
               </div>
-              <p className="ts-hint">Transparent PNG badges — drag and resize them like any element.</p>
-            </>
-          ) : null}
-          {scannedElements.length > 0 ? (
-            <>
-              <div className="ts-scanned-head">
-                <span className="ts-label">Scanned elements</span>
+              <p className="ts-hint">Transparent badges with custom background and foreground color support.</p>
+            </Section>
+          )}
+
+          {/* Scanned Elements */}
+          <Section
+            title="Scanned Elements & Cutouts"
+            aside={
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span className="ts-count">{scannedElements.length}</span>
+                <label className="ts-scan-upload-btn" title="Upload an element image to scan">
+                  <Plus size={11} /> Scan
+                  <input
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        const url = URL.createObjectURL(file)
+                        const img = new Image()
+                        img.onload = () => {
+                          const aspect = img.naturalWidth / img.naturalHeight
+                          const newEl = {
+                            id: `scanned_${Date.now()}`,
+                            name: file.name.replace(/\.[^/.]+$/, '').slice(0, 30) || 'Scanned Element',
+                            src: url,
+                            width: img.naturalWidth,
+                            height: img.naturalHeight,
+                            aspect,
+                          }
+                          onAddSticker(newEl)
+                        }
+                        img.src = url
+                      }
+                    }}
+                  />
+                </label>
               </div>
+            }
+          >
+            {scannedElements.length > 0 ? (
               <div className="ts-scanned-grid">
                 {scannedElements.map((item) => (
                   <button
@@ -1784,17 +1883,110 @@ export default function Inspector({
                     onClick={() => onAddSticker(item)}
                     {...elementDrag({ kind: 'sticker', id: item.id })}
                   >
-                    <span className="ts-scanned-thumb"><img src={item.src} alt="" /></span>
+                    <span className="ts-scanned-thumb">
+                      <img src={item.src} alt="" />
+                    </span>
                     <span>{item.name}</span>
                   </button>
                 ))}
               </div>
-            </>
-          ) : (
-            <p className="ts-hint">Scan an element image in Admin → Element scanner to reuse it here.</p>
-          )}
-        </Section>
+            ) : (
+              <p className="ts-hint">Click "+ Scan" above or visit Admin → Element scanner to add cutouts and party badges.</p>
+            )}
+          </Section>
 
+          {/* Political Plates & Cards */}
+          <Section title="Political Plates & Cards">
+            <div className="ts-card-presets-grid">
+              <button
+                type="button"
+                className="ts-preset-chip"
+                onClick={() => onAddTricolourCard?.()}
+                {...elementDrag({ kind: 'tricolour_card' })}
+              >
+                <span className="ts-card-glyph ts-card-glyph--tricolour" />
+                <span>Tricolour Plate</span>
+              </button>
+              <button
+                type="button"
+                className="ts-preset-chip"
+                onClick={() => onAddBanner?.()}
+                {...elementDrag({ kind: 'banner' })}
+              >
+                <span className="ts-banner-glyph" />
+                <span>Name Banner</span>
+              </button>
+              <button
+                type="button"
+                className="ts-preset-chip"
+                onClick={() => onAddContactCard?.()}
+                {...elementDrag({ kind: 'contactcard' })}
+              >
+                <span className="ts-card-glyph ts-card-glyph--contact" />
+                <span>Contact Card</span>
+              </button>
+              <button
+                type="button"
+                className="ts-preset-chip"
+                onClick={() => onAddNameCard?.()}
+                {...elementDrag({ kind: 'namecard' })}
+              >
+                <span className="ts-card-glyph" />
+                <span>Name Card</span>
+              </button>
+            </div>
+            <div className="ts-footer-presets" style={{ marginTop: 10 }}>
+              {FOOTER_PRESETS.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  className="ts-footer-chip"
+                  onClick={() => onAddFooter?.(preset.id)}
+                  {...elementDrag({ kind: 'footer', presetId: preset.id })}
+                >
+                  <span>{preset.name}</span>
+                </button>
+              ))}
+            </div>
+          </Section>
+
+          {/* Basic Elements */}
+          <Section title="Basic Elements">
+            <AddElementsPanel
+              onAdd={(kind, id) => {
+                if (kind === 'text') return onAddText()
+                if (kind === 'banner') return onAddBanner()
+                if (kind === 'namecard') return onAddNameCard()
+                if (kind === 'contactcard') return onAddContactCard()
+                if (kind === 'tricolour_card') return onAddTricolourCard?.()
+                if (kind === 'photo') return onAddPhoto()
+                if (kind === 'shape') return onAddShape(id)
+                if (kind === 'social') return onAddSocial(id)
+              }}
+            />
+            <div className="ts-ornament-grid" style={{ marginTop: 10 }}>
+              {ORNAMENTS.slice(0, 12).map((ornament) => (
+                <button
+                  key={ornament.id}
+                  type="button"
+                  className="ts-ornament-chip"
+                  title={ornament.name}
+                  onClick={() => onAddOrnament(ornament.id)}
+                  {...elementDrag({ kind: 'ornament', id: ornament.id })}
+                >
+                  <svg
+                    viewBox="0 0 200 200"
+                    fill="none"
+                    dangerouslySetInnerHTML={{ __html: ornamentMarkup(ornament.id) }}
+                  />
+                </button>
+              ))}
+            </div>
+          </Section>
+        </>
+      )}
+
+      {panelTab === 'layers' && (
         <Section
           title="Layers"
           aside={<span className="ts-count"><Layers size={12} /> {doc.elements.length}</span>}
@@ -1846,6 +2038,7 @@ export default function Inspector({
           </div>
           <p className="ts-hint">Elements can sit on top of each other. Layers higher in this list overlap the ones below — reorder or use front/back to control what shows through.</p>
         </Section>
+      )}
       </div>
       <div className="ts-inspector-foot">
         <Plus size={13} /> Double-click text on the canvas to edit it

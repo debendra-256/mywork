@@ -512,6 +512,7 @@ export default function TemplateCanvas({
   const paintRef = useRef(null)
   const paintHostRef = useRef(null)
   const paintBusyRef = useRef(false)
+  const underlayRef = useRef({ key: '', canvas: null })
   const cursorRef = useRef({ x: 0, y: 0 })
   const docRef = useRef(doc)
   docRef.current = doc
@@ -1486,12 +1487,90 @@ export default function TemplateCanvas({
     }
     paintBusyRef.current = true
     setPaintActive(true)
+
+    let readyHost = null
+    let readyUnderlay = null
+    let activeFirst = null
+    let activeLast = null
+    let ended = false
+    let isInitialized = false
+    const pendingEvents = []
+
+    let paintFn = null
+    let updateBoxFn = null
+    let pointFn = null
+
+    const handlePointerMove = (ev) => {
+      if (!isInitialized) {
+        pendingEvents.push(ev)
+        return
+      }
+      const at = pointFn(ev)
+      if (tool === 'gradient' || tool === 'patch') {
+        updateBoxFn?.(activeFirst, at)
+        activeLast = at
+        return
+      }
+      if (Math.hypot(at.x - activeLast.x, at.y - activeLast.y) < 0.8) return
+      paintFn?.(activeLast, at)
+      activeLast = at
+    }
+
+    const handlePointerUp = async () => {
+      ended = true
+      if (!isInitialized) return
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+      window.removeEventListener('pointercancel', handlePointerUp)
+      selectRef.current = null
+      setDrawBox(null)
+      try {
+        if (tool === 'gradient' && readyHost && activeFirst && activeLast) {
+          fillGradient(readyHost, activeFirst, activeLast, {
+            type: settings.gradientType || 'linear',
+            foreground: settings.foreground || '#1c2025',
+            background: settings.background || '#f7f7f3',
+            opacity: Number(settings.opacity ?? 0.9),
+          })
+        }
+        if (tool === 'patch' && readyHost && readyUnderlay && activeFirst && activeLast) {
+          patchRect(readyHost, readyUnderlay, {
+            x: Math.min(activeFirst.x, activeLast.x),
+            y: Math.min(activeFirst.y, activeLast.y),
+            width: Math.max(8, Math.abs(activeLast.x - activeFirst.x)),
+            height: Math.max(8, Math.abs(activeLast.y - activeFirst.y)),
+          }, {})
+        }
+        if (readyHost) {
+          await commitPaint(readyHost)
+        }
+      } finally {
+        paintBusyRef.current = false
+      }
+    }
+
+    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointerup', handlePointerUp)
+    window.addEventListener('pointercancel', handlePointerUp)
+
+    selectRef.current = () => {
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+      window.removeEventListener('pointercancel', handlePointerUp)
+      paintBusyRef.current = false
+      setPaintActive(false)
+    }
+
     try {
       const ready = await ensurePaintHost()
-      if (!ready) return
+      if (!ready) {
+        await handlePointerUp()
+        return
+      }
       const { host } = ready
+      readyHost = host
       const rect = stage.getBoundingClientRect()
-      const point = (ev) => ({
+      pointFn = (ev) => ({
         x: clamp(((ev.clientX - rect.left) / rect.width) * host.width, 0, host.width),
         y: clamp(((ev.clientY - rect.top) / rect.height) * host.height, 0, host.height),
       })
@@ -1499,18 +1578,34 @@ export default function TemplateCanvas({
         x: (p.x / host.width) * rect.width,
         y: (p.y / host.height) * rect.height,
       })
-      const first = point(e)
+      activeFirst = pointFn(e)
+      activeLast = activeFirst
       const brushPx = Math.max(2, ((Number(settings.size) || 2.4) / 100) * host.width)
       const needsSource = SOURCE_PAINT_TOOLS.has(tool) || tool === 'bucket'
-      const underlay = needsSource ? await renderUnderlay(docRef.current, host.width) : null
+
+      const currentDoc = docRef.current
+      const nonRasterElements = (currentDoc.elements || []).filter((el) => el.type !== 'raster')
+      const underlayKey = `${currentDoc.bg?.src || ''}:${currentDoc.bg?.color || ''}:${nonRasterElements.length}:${host.width}`
+
+      let underlay = null
+      if (needsSource) {
+        if (underlayRef.current?.key === underlayKey && underlayRef.current.canvas) {
+          underlay = underlayRef.current.canvas
+        } else {
+          underlay = await renderUnderlay(currentDoc, host.width)
+          underlayRef.current = { key: underlayKey, canvas: underlay }
+        }
+      }
+      readyUnderlay = underlay
+
       if (tool === 'bucket') {
-        paintBucket(host, underlay, first.x, first.y, {
+        paintBucket(host, underlay, activeFirst.x, activeFirst.y, {
           tolerance: Number(settings.tolerance) || 34,
           contiguous: settings.contiguous !== false,
           color: settings.foreground || '#1c2025',
           opacity: Number(settings.opacity) || 1,
         })
-        await commitPaint(host)
+        await handlePointerUp()
         return
       }
       const base = {
@@ -1522,10 +1617,14 @@ export default function TemplateCanvas({
       }
       const offset = tool === 'clone' && settings.cloneSource
         ? {
-            x: first.x - settings.cloneSource.x * host.width,
-            y: first.y - settings.cloneSource.y * host.height,
+            x: activeFirst.x - settings.cloneSource.x * host.width,
+            y: activeFirst.y - settings.cloneSource.y * host.height,
           }
         : { x: 0, y: 0 }
+
+      const uw = underlay?.width || host.width
+      const uh = underlay?.height || host.height
+
       const retouch = (from, to) => {
         const common = {
           size: brushPx,
@@ -1535,25 +1634,29 @@ export default function TemplateCanvas({
         if (tool === 'clone') {
           return paintPatchLine(host, underlay, from, to, {
             ...common,
-            sourceX: from.x - offset.x,
-            sourceY: from.y - offset.y,
+            sourceX: clamp(from.x - offset.x, 0, uw - 1),
+            sourceY: clamp(from.y - offset.y, 0, uh - 1),
           })
         }
         if (tool === 'heal') {
+          const sx = settings.cloneSource ? from.x - offset.x : from.x - brushPx * 0.9
+          const sy = settings.cloneSource ? from.y - offset.y : from.y - brushPx * 0.35
           return paintPatchLine(host, underlay, from, to, {
             ...common,
             filter: 'blur(1px)',
-            sourceX: from.x - brushPx * 0.9,
-            sourceY: from.y - brushPx * 0.35,
+            sourceX: clamp(sx, 0, uw - 1),
+            sourceY: clamp(sy, 0, uh - 1),
           })
         }
         if (tool === 'spot-heal') {
+          const offX = from.x + brushPx * 1.5 < uw ? brushPx * 1.2 : -brushPx * 1.2
+          const offY = from.y + brushPx * 1.5 < uh ? brushPx * 0.8 : -brushPx * 0.8
           return paintPatchLine(host, underlay, from, to, {
             ...common,
-            hardness: 0.3,
-            filter: 'blur(2px)',
-            sourceX: from.x - brushPx * 1.4,
-            sourceY: from.y - brushPx * 0.8,
+            hardness: 0.35,
+            filter: 'blur(1.5px)',
+            sourceX: clamp(from.x + offX, 0, uw - 1),
+            sourceY: clamp(from.y + offY, 0, uh - 1),
           })
         }
         if (tool === 'history-brush') {
@@ -1598,12 +1701,11 @@ export default function TemplateCanvas({
         return null
       }
 
-      let last = first
-      const paint = (from, to) => {
+      paintFn = (from, to) => {
         if (tool === 'brush' || tool === 'pencil' || tool === 'eraser') paintStroke(host, from, to, base)
         else retouch(from, to)
       }
-      const updateBox = (from, to) => {
+      updateBoxFn = (from, to) => {
         const a = toStage(from)
         const b = toStage(to)
         setDrawBox({
@@ -1614,65 +1716,31 @@ export default function TemplateCanvas({
           kind: 'paint',
         })
       }
-      if (tool === 'brush' || tool === 'pencil' || tool === 'eraser') paintStamp(host, first.x, first.y, base)
-      else if (needsSource && tool !== 'gradient' && tool !== 'patch') retouch(first, first)
 
-      const move = (ev) => {
-        const at = point(ev)
-        if (tool === 'gradient' || tool === 'patch') {
-          updateBox(first, at)
-          last = at
-          return
-        }
-        if (Math.hypot(at.x - last.x, at.y - last.y) < 0.8) return
-        paint(last, at)
-        last = at
+      if (tool === 'brush' || tool === 'pencil' || tool === 'eraser') paintStamp(host, activeFirst.x, activeFirst.y, base)
+      else if (needsSource && tool !== 'gradient' && tool !== 'patch') retouch(activeFirst, activeFirst)
+
+      isInitialized = true
+
+      for (const ev of pendingEvents) {
+        handlePointerMove(ev)
       }
-      const finish = async () => {
-        window.removeEventListener('pointermove', move)
-        window.removeEventListener('pointerup', finish)
-        window.removeEventListener('pointercancel', finish)
-        selectRef.current = null
-        setDrawBox(null)
-        if (tool === 'gradient') {
-          fillGradient(host, first, last, {
-            type: settings.gradientType || 'linear',
-            foreground: settings.foreground || '#1c2025',
-            background: settings.background || '#f7f7f3',
-            opacity: Number(settings.opacity ?? 0.9),
-          })
-        }
-        if (tool === 'patch') {
-          patchRect(host, underlay, {
-            x: Math.min(first.x, last.x),
-            y: Math.min(first.y, last.y),
-            width: Math.max(8, Math.abs(last.x - first.x)),
-            height: Math.max(8, Math.abs(last.y - first.y)),
-          }, {})
-        }
-        await commitPaint(host)
+
+      if (ended) {
+        await handlePointerUp()
       }
-      // A cancelled pointer should keep whatever was already painted.
-      selectRef.current = () => {
-        window.removeEventListener('pointermove', move)
-        window.removeEventListener('pointerup', finish)
-        window.removeEventListener('pointercancel', finish)
-      }
-      window.addEventListener('pointermove', move)
-      window.addEventListener('pointerup', finish)
-      window.addEventListener('pointercancel', finish)
-    } finally {
+    } catch {
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+      window.removeEventListener('pointercancel', handlePointerUp)
       paintBusyRef.current = false
+      setPaintActive(false)
     }
   }
 
   const positionFor = (el, x0, y0, dx, dy, rect) => {
-    const elhPct =
-      el.type === 'text'
-        ? 10
-        : el.type === 'sticker'
-          ? ((el.w / (el.aspect > 0 ? el.aspect : 1)) * rect.width) / rect.height
-          : ((el.h ?? el.w) * rect.width) / rect.height
+    const currentH = defaultHeightOf(el)
+    const elhPct = (currentH * rect.width) / rect.height
     const x = Math.min(Math.max(0, x0 + dx), Math.max(0, 100 - el.w))
     const y = Math.min(Math.max(0, y0 + dy), Math.max(0, 100 - elhPct))
     return { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 }
@@ -1865,6 +1933,7 @@ export default function TemplateCanvas({
         const h = Math.max(3, start.h + dh)
         patch = { h: Math.round(h * 10) / 10 }
         if (el.type === 'sticker') {
+          patch.w = start.w
           patch.aspect = Math.round((start.w / h) * 1000) / 1000
         }
       } else if (dir === 'n') {
@@ -1872,12 +1941,14 @@ export default function TemplateCanvas({
         const y = start.elY + (start.h - h) * (aspectOf(docRef.current) || 1)
         patch = { y: Math.max(0, Math.round(y * 10) / 10), h: Math.round(h * 10) / 10 }
         if (el.type === 'sticker') {
+          patch.w = start.w
           patch.aspect = Math.round((start.w / h) * 1000) / 1000
         }
       } else if (dir === 'e') {
         const w = Math.min(100 - start.elX, Math.max(6, start.w + dw))
         patch = { w: Math.round(w * 10) / 10 }
         if (el.type === 'sticker') {
+          patch.h = start.h
           patch.aspect = Math.round((w / start.h) * 1000) / 1000
         }
       } else if (dir === 'w') {
@@ -1886,6 +1957,7 @@ export default function TemplateCanvas({
         const x = maxW - w
         patch = { x: Math.round(x * 10) / 10, w: Math.round(w * 10) / 10 }
         if (el.type === 'sticker') {
+          patch.h = start.h
           patch.aspect = Math.round((w / start.h) * 1000) / 1000
         }
       } else if (dir === 'sw') {
@@ -1925,8 +1997,10 @@ export default function TemplateCanvas({
         }
       }
 
+      lastPatchRef = patch
       onPatchElement?.(el.id, patch, { history: false })
     }
+    let lastPatchRef = null
     const stop = () => {
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
@@ -1935,7 +2009,10 @@ export default function TemplateCanvas({
     }
     const up = () => {
       stop()
-      if (start.moved) onGestureEnd?.()
+      if (start.moved && lastPatchRef) {
+        onPatchElement?.(el.id, lastPatchRef, { history: true })
+        onGestureEnd?.()
+      }
     }
     resizeRef.current = stop
     window.addEventListener('pointermove', move)
@@ -2433,6 +2510,10 @@ export default function TemplateCanvas({
 
     if (el.type === 'sticker') {
       const h = el.h ?? (el.aspect > 0 ? el.w / el.aspect : el.w)
+      const bgColor = el.bgColor && el.bgColor !== 'none' && el.bgColor !== 'transparent' ? resolveColor(docRef.current, el.bgColor) : 'transparent'
+      const fgColor = el.fgColor && el.fgColor !== 'none' && el.fgColor !== 'transparent' ? resolveColor(docRef.current, el.fgColor) : null
+      const borderRadius = el.borderRadius ? `${el.borderRadius}px` : undefined
+      const padPx = el.padding ? `${el.padding}px` : undefined
       return (
         <div
           key={el.id}
@@ -2444,6 +2525,10 @@ export default function TemplateCanvas({
             width: `${el.w}%`,
             height: `${h}cqw`,
             opacity: el.opacity ?? 1,
+            backgroundColor: bgColor,
+            borderRadius,
+            padding: padPx,
+            boxSizing: 'border-box',
             transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
           }}
         >
@@ -2455,6 +2540,7 @@ export default function TemplateCanvas({
               width: '100%',
               height: '100%',
               objectFit: 'fill',
+              borderRadius,
               mixBlendMode: el.blend && el.blend !== 'normal' ? el.blend : undefined,
               transform: el.flipX || el.flipY ? `scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})` : undefined,
               filter: el.filters
@@ -2462,6 +2548,25 @@ export default function TemplateCanvas({
                 : undefined,
             }}
           />
+          {fgColor && (
+            <span
+              aria-hidden="true"
+              style={{
+                position: 'absolute',
+                inset: padPx || 0,
+                backgroundColor: fgColor,
+                WebkitMaskImage: `url("${el.src}")`,
+                maskImage: `url("${el.src}")`,
+                WebkitMaskSize: '100% 100%',
+                maskSize: '100% 100%',
+                WebkitMaskRepeat: 'no-repeat',
+                maskRepeat: 'no-repeat',
+                pointerEvents: 'none',
+                opacity: el.fgOpacity ?? 0.85,
+                borderRadius,
+              }}
+            />
+          )}
           {Array.isArray(el.slots) && el.slots.map((slot) => {
             if (slot.kind === 'image') {
               if (!slot.src && !interactive) return null

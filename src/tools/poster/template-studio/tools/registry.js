@@ -270,6 +270,7 @@ export const PAINT_TOOLS = new Set([
   'clone',
   'heal',
   'spot-heal',
+  'patch',
   'history-brush',
 ])
 
@@ -284,6 +285,7 @@ export const SOURCE_PAINT_TOOLS = new Set([
   'clone',
   'heal',
   'spot-heal',
+  'patch',
   'history-brush',
 ])
 

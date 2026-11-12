@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import { Copy, Redo, Trash, Undo } from './Icons.jsx'
 import { SHAPE_GEOMETRY, SHAPE_TOOLS } from '../data/shapes.js'
 import PhotoshopRail from './PhotoshopRail.jsx'
-import ToolOptions from './ToolOptions.jsx'
 
 const TIcon = ({ children, size = 18 }) => (
   <svg
@@ -309,27 +308,6 @@ export default function ToolBar({
           </ToolButton>
         </Group>
       </div>
-
-      <ToolOptions
-        tool={tool}
-        settings={settings}
-        onSettings={onSettings}
-        doc={doc}
-        selected={selected}
-        selectionCount={selectionCount}
-        transparentSelect={transparentSelect}
-        onTransparentSelect={onTransparentSelect}
-        onExportSlices={onExportSlices}
-        onClearSlices={onClearSlices}
-        onClearAnnotations={onClearAnnotations}
-        annotationCount={annotationCount}
-        viewRotation={viewRotation}
-        onRotate={onRotate}
-        onResetRotation={onResetRotation}
-        onZoom={onZoom}
-        onSelectAll={onSelectAll}
-        onDeselect={onDeselect}
-      />
 
       {(adjustVisible || opacityVisible) && (
         <div className="ts-tool-options-stack">

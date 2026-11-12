@@ -3,20 +3,21 @@ import { flushSync } from 'react-dom'
 import TemplateCanvas from './TemplateCanvas.jsx'
 import Inspector from './Inspector.jsx'
 import ToolBar from './ToolBar.jsx'
+import ToolOptions from './ToolOptions.jsx'
 import {
   aspectOf, applyPalette, cloneDoc, makeAnnotation, makeBanner, makeContactCard, makeFooter, makeInk, makeNameCard, makeOrnament, makePhoto, makeRaster, makeShape, makeSocial, makeSticker, makeText, saveDesign, uid,
 } from '../model.js'
 import { SHAPE_DEFAULTS } from '../data/shapes.js'
 import { POSTER_LOGOS, POSTER_TEMPLATES } from '../data/poster-templates.js'
 import { BUILTIN_SCANNED_ELEMENTS, loadElements } from '../../elements.js'
-import { downloadPng, downloadSlices } from '../export.js'
+import { downloadPng, downloadSlices, renderToCanvas } from '../export.js'
 import { preparePhotoFile, removePhotoBackground } from '../photo.js'
 import {
   DEFAULT_TOOL_SETTINGS, PRIMARY_TOOL_OF_GROUP, SHORTCUT_GROUPS, nextToolInGroup,
 } from '../tools/registry.js'
 import { createCanvas, layerDataUrl, loadImage } from '../tools/raster.js'
 import {
-  ArrowLeft, Close, Download, Layers, Redo, Save, Undo, ZoomIn, ZoomOut,
+  ArrowLeft, Close, Download, Layers, Redo, Save, Sparkle, Undo, ZoomIn, ZoomOut,
 } from './Icons.jsx'
 
 const HISTORY_LIMIT = 80
@@ -573,7 +574,7 @@ export default function Editor({
       if (layer) {
         return { ...d, elements: d.elements.map((el) => (el.id === layer.id ? { ...el, src } : el)) }
       }
-      return { ...d, elements: [makeRaster({ src }), ...d.elements] }
+      return { ...d, elements: [...d.elements, makeRaster({ src })] }
     })
   }, [mutate])
 
@@ -1144,6 +1145,26 @@ export default function Editor({
 
         <div className="ts-editor">
           <div className="ts-canvas-area">
+            <ToolOptions
+              tool={activeTool}
+              settings={settings}
+              onSettings={setSettings}
+              doc={doc}
+              selected={selected}
+              selectionCount={selection.length}
+              transparentSelect={transparentSelect}
+              onTransparentSelect={() => setTransparentSelect((v) => !v)}
+              onExportSlices={exportSliceSet}
+              onClearSlices={clearSlices}
+              onClearAnnotations={clearAnnotations}
+              annotationCount={annotationCount}
+              viewRotation={viewRotation}
+              onRotate={rotateView}
+              onResetRotation={() => setViewRotation(0)}
+              onZoom={zoomAt}
+              onSelectAll={selectAll}
+              onDeselect={() => setSelection([])}
+            />
             <div className="ts-canvas-scroll">
               <div
                 className="ts-stage-shell"

@@ -299,6 +299,11 @@ export function makeSticker({ src, name = 'Element', aspect = 1, slots = [], w: 
     opacity: 1,
     rotation: 0,
     blend: 'normal',
+    bgColor: overrides.bgColor || 'transparent',
+    fgColor: overrides.fgColor || 'none',
+    fgOpacity: overrides.fgOpacity ?? 0.85,
+    borderRadius: overrides.borderRadius || 0,
+    padding: overrides.padding || 0,
     slots: (Array.isArray(slots) ? slots : []).map((slot) => ({
       ...slot,
       src: slot.src || '',

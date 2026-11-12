@@ -755,7 +755,7 @@ async function drawSticker(ctx, doc, el, W, H) {
   if (!el.src) return
   const w = (el.w / 100) * W
   const ratio = Number(el.aspect) > 0 ? Number(el.aspect) : 1
-  const h = w / ratio
+  const h = el.h != null ? (el.h / 100) * W : w / ratio
   if (w <= 0 || h <= 0) return
   let img
   try {
@@ -777,6 +777,31 @@ async function drawSticker(ctx, doc, el, W, H) {
   const y = (el.y / 100) * H
   const alpha = el.opacity ?? 1
   withRotation(ctx, x + w / 2, y + h / 2, el.rotation, () => {
+    // 1. Draw Background colour if configured
+    if (el.bgColor && el.bgColor !== 'none' && el.bgColor !== 'transparent') {
+      const bg = resolveColor(doc, el.bgColor)
+      if (bg && bg !== 'none' && bg !== 'transparent') {
+        ctx.save()
+        ctx.fillStyle = bg
+        const radius = el.borderRadius ? Math.min((el.borderRadius / 100) * w, Math.min(w, h) / 2) : 0
+        if (radius > 0 && typeof ctx.roundRect === 'function') {
+          ctx.beginPath()
+          ctx.roundRect(x, y, w, h, radius)
+          ctx.fill()
+        } else {
+          ctx.fillRect(x, y, w, h)
+        }
+        ctx.restore()
+      }
+    }
+
+    // 2. Draw sticker image with padding, blend, and filters
+    const pad = el.padding ? (el.padding / 100) * w : 0
+    const imgX = x + pad
+    const imgY = y + pad
+    const imgW = Math.max(1, w - pad * 2)
+    const imgH = Math.max(1, h - pad * 2)
+
     ctx.save()
     ctx.globalAlpha = alpha
     if (el.blend && el.blend !== 'normal') ctx.globalCompositeOperation = el.blend
@@ -788,8 +813,31 @@ async function drawSticker(ctx, doc, el, W, H) {
       ctx.scale(el.flipX ? -1 : 1, el.flipY ? -1 : 1)
       ctx.translate(-(x + w / 2), -(y + h / 2))
     }
-    ctx.drawImage(img, x, y, w, h)
+    ctx.drawImage(img, imgX, imgY, imgW, imgH)
     ctx.restore()
+
+    // 3. Draw Foreground / Tint overlay if configured
+    if (el.fgColor && el.fgColor !== 'none' && el.fgColor !== 'transparent') {
+      const fg = resolveColor(doc, el.fgColor)
+      if (fg && fg !== 'none' && fg !== 'transparent') {
+        try {
+          const off = document.createElement('canvas')
+          off.width = Math.ceil(imgW)
+          off.height = Math.ceil(imgH)
+          const octx = off.getContext('2d')
+          if (octx) {
+            octx.drawImage(img, 0, 0, imgW, imgH)
+            octx.globalCompositeOperation = 'source-in'
+            octx.fillStyle = fg
+            octx.fillRect(0, 0, imgW, imgH)
+            ctx.save()
+            ctx.globalAlpha = alpha * (el.fgOpacity ?? 0.85)
+            ctx.drawImage(off, imgX, imgY, imgW, imgH)
+            ctx.restore()
+          }
+        } catch {}
+      }
+    }
     for (const slot of slots) {
       const sw = (slot.w / 100) * w
       const sh = (slot.h / 100) * h

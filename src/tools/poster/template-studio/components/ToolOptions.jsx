@@ -52,18 +52,20 @@ export default function ToolOptions({
   const noteMarks = (doc?.elements || []).filter((el) => el.type === 'annotation' && el.kind === 'note').length
   const cloneLocked = tool === 'clone' || tool === 'heal'
   const cloneSource = settings.cloneSource
-  const showPanel =
-    isSelection ||
-    isPaint ||
-    ['crop', 'slice', 'frame', 'eyedropper', 'ruler', 'note', 'count', 'pen', 'path-select', 'direct-select', 'text', 'rotate', 'zoom'].includes(tool) ||
-    tool.startsWith('shape-')
-
-  if (!showPanel) return null
-
   return (
-    <div className="ts-tool-options-stack ts-ps-options">
-      <div className="ts-tool-options">
+    <div className="ts-tool-options-bar">
+      <div className="ts-tool-options-inner">
         <span className="ts-tool-options-title">{meta.label}</span>
+
+        {tool === 'select' && (
+          <>
+            <span className="ts-tool-option ts-tool-tip">Drag any layer or poster photo to position.</span>
+            <div className="ts-tool-actions">
+              <button type="button" className="ts-btn ts-btn-ghost ts-tool-reset" onClick={onSelectAll}>Select all</button>
+              <button type="button" className="ts-btn ts-btn-ghost ts-tool-reset" onClick={onDeselect} disabled={!selectionCount}>Deselect</button>
+            </div>
+          </>
+        )}
 
         {PAINT_SIZES.has(tool) && (
           <>
