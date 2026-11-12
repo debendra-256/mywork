@@ -125,7 +125,7 @@ export const BUILTIN_SCANNED_ELEMENTS = [
     id: 'el_tricolour_nameplate',
     name: 'Tricolour Name Plate',
     tag: 'NamePlate',
-    src: '/templates/tricolour-card.png',
+    src: '/ScannedElement/el_tricolour_nameplate.png',
     aspect: 3.003,
     width: 1024,
     height: 341,
