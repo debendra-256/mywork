@@ -8,7 +8,7 @@ import {
   aspectOf, applyPalette, cloneDoc, makeAnnotation, makeBanner, makeContactCard, makeFooter, makeInk, makeNameCard, makeOrnament, makePhoto, makeRaster, makeShape, makeSocial, makeSticker, makeText, saveDesign, uid,
 } from '../model.js'
 import { SHAPE_DEFAULTS } from '../data/shapes.js'
-import { POSTER_LOGOS, POSTER_TEMPLATES } from '../data/poster-templates.js'
+import { POSTER_LOGOS } from '../data/poster-templates.js'
 import { BUILTIN_SCANNED_ELEMENTS, loadElements } from '../../elements.js'
 import { downloadPng, downloadSlices, renderToCanvas } from '../export.js'
 import { preparePhotoFile, removePhotoBackground } from '../photo.js'
@@ -296,7 +296,7 @@ export default function Editor({
     const at = { xPct, yPct }
     switch (payload?.kind) {
       case 'sticker': {
-        const entry = [...POSTER_TEMPLATES, ...POSTER_LOGOS, ...library].find((item) => item.id === payload.id)
+        const entry = [...POSTER_LOGOS, ...library].find((item) => item.id === payload.id)
         if (entry) addSticker(entry, at)
         return
       }
@@ -1277,7 +1277,6 @@ export default function Editor({
             onAddSocial={addSocial}
             onAddFooter={addFooter}
             onAddSticker={addSticker}
-            templateElements={POSTER_TEMPLATES}
             logoElements={POSTER_LOGOS}
             scannedElements={library}
             onRequestPhoto={requestPhoto}

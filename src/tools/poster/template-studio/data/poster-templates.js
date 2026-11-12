@@ -8,18 +8,7 @@ const entry = (id, name, width, height) => ({
   page: true,
 })
 
-export const POSTER_TEMPLATES = [
-  entry('lotus-classic', 'Lotus Classic', 503, 612),
-  entry('lotus-sweep', 'Lotus Sweep', 504, 612),
-  entry('lotus-wave', 'Lotus Wave', 503, 517),
-  entry('lotus-dots', 'Lotus Dots', 504, 517),
-  entry('lotus-banner', 'Lotus Banner', 1020, 376),
-  entry('lotus-parliament', 'Lotus Parliament', 504, 608),
-  entry('hand-tricolour', 'Hand Tricolour', 505, 608),
-  entry('broom-blue', 'Broom Blue', 504, 533),
-  entry('clock-green', 'Clock Green', 505, 533),
-  entry('hammer-red', 'Hammer Red', 1020, 363),
-]
+export const POSTER_TEMPLATES = []
 
 const logo = (id, name, size) => ({
   id: `logo_${id}`,

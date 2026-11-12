@@ -92,7 +92,6 @@ export const CATEGORIES = [
   { id: 'Anniversary', label: 'Anniversary' },
   { id: 'Festival', label: 'Festival' },
   { id: 'Corporate', label: 'Corporate' },
-  { id: 'Political', label: 'Political' },
 ]
 
 export const resolveColor = (doc, color) => {

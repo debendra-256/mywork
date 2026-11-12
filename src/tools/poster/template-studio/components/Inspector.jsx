@@ -223,22 +223,11 @@ export default function Inspector({
   const setEl = (patch, opts) => selected && onPatchEl(selected.id, patch, opts)
   const live = (patch) => setEl(patch, { history: false })
   const sizeOptions = FONTS.map((f) => ({ value: f.id, label: f.name }))
-  const [panelTab, setPanelTab] = useState(selected ? 'properties' : 'political')
-  const [politicalCategory, setPoliticalCategory] = useState('All')
+  const [panelTab, setPanelTab] = useState(selected ? 'properties' : 'assets')
 
   useEffect(() => {
     if (selected) setPanelTab('properties')
   }, [selected?.id])
-
-  const filteredTemplates = (templateElements || []).filter((item) => {
-    if (politicalCategory === 'All') return true
-    const n = (item.name || '').toLowerCase()
-    if (politicalCategory === 'BJP / Lotus') return n.includes('lotus')
-    if (politicalCategory === 'Congress / Hand') return n.includes('hand')
-    if (politicalCategory === 'AAP / Broom') return n.includes('broom')
-    if (politicalCategory === 'Other Parties') return n.includes('clock') || n.includes('hammer') || (!n.includes('lotus') && !n.includes('hand') && !n.includes('broom'))
-    return true
-  })
 
   const [cutTolerance, setCutTolerance] = useState(30)
   const [cuttingSlot, setCuttingSlot] = useState(null)
@@ -373,13 +362,13 @@ export default function Inspector({
       <div className="ts-panel-nav">
         <button
           type="button"
-          className={`ts-panel-tab${panelTab === 'political' ? ' is-active' : ''}`}
-          onClick={() => setPanelTab('political')}
-          title="Political templates, party logos and scanned elements"
+          className={`ts-panel-tab${panelTab === 'assets' ? ' is-active' : ''}`}
+          onClick={() => setPanelTab('assets')}
+          title="Scanned elements, badges and name plates"
         >
           <Sparkle size={13} />
-          <span>Political & Assets</span>
-          <span className="ts-tab-pill">{templateElements.length + logoElements.length + scannedElements.length}</span>
+          <span>Scanned & Assets</span>
+          <span className="ts-tab-pill">{scannedElements.length + logoElements.length}</span>
         </button>
         <button
           type="button"
@@ -1782,52 +1771,8 @@ export default function Inspector({
         </>
       )}
 
-      {panelTab === 'political' && (
+      {panelTab === 'assets' && (
         <>
-          {/* Political Templates & Overlays */}
-          <Section
-            title="Political Poster Templates"
-            aside={<span className="ts-count"><Sparkle size={12} /> {templateElements.length}</span>}
-          >
-            <div className="ts-political-filters">
-              {['All', 'BJP / Lotus', 'Congress / Hand', 'AAP / Broom', 'Other Parties'].map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  className={`ts-political-filter-btn${politicalCategory === cat ? ' is-active' : ''}`}
-                  onClick={() => setPoliticalCategory(cat)}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-            <div className="ts-template-grid">
-              {filteredTemplates.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className="ts-template-card"
-                  title={`Add ${item.name} — fitted to page, transparent overlay`}
-                  onClick={() => onAddSticker(item)}
-                  {...elementDrag({ kind: 'sticker', id: item.id })}
-                >
-                  <span className="ts-template-card-thumb">
-                    <img src={item.src} alt="" loading="lazy" />
-                    <span className="ts-template-badge">{item.aspect > 1.8 ? 'BANNER' : 'FRAME'}</span>
-                  </span>
-                  <span className="ts-template-card-name">{item.name}</span>
-                  <span className="ts-template-card-meta">
-                    <span>{Math.round(item.width)} × {Math.round(item.height)}</span>
-                    <span style={{ color: 'var(--ts-accent)' }}>+ Add</span>
-                  </span>
-                </button>
-              ))}
-            </div>
-            <p className="ts-hint">
-              Click or drag any political template onto the canvas. Frames hug poster edges and let your photo show through seamlessly.
-            </p>
-          </Section>
-
           {/* Party Logos */}
           {logoElements.length > 0 && (
             <Section
@@ -1915,8 +1860,8 @@ export default function Inspector({
             )}
           </Section>
 
-          {/* Political Plates & Cards */}
-          <Section title="Political Plates & Cards">
+          {/* Name Plates & Cards */}
+          <Section title="Name Plates & Cards">
             <div className="ts-card-presets-grid">
               <button
                 type="button"
