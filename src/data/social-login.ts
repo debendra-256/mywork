@@ -48,19 +48,7 @@ function loadSdk(marker: string, url: string, isReady: () => boolean): Promise<v
 }
 
 export async function loadSocialProviders(): Promise<SocialProviderFlags> {
-  const unavailable: SocialProviderFlags = { google: false, facebook: false }
-  if (!appConfig.social.googleClientId && !appConfig.social.facebookAppId) return unavailable
-  try {
-    const response = await fetch('/api/social-auth')
-    if (!response.ok) return unavailable
-    const result = await response.json() as { providers?: Partial<SocialProviderFlags> }
-    return {
-      google: Boolean(result.providers?.google) && Boolean(appConfig.social.googleClientId),
-      facebook: Boolean(result.providers?.facebook) && Boolean(appConfig.social.facebookAppId),
-    }
-  } catch {
-    return unavailable
-  }
+  return { google: false, facebook: false }
 }
 
 /** Renders Google's own sign-in button; its callback hands over an ID token the server verifies. */

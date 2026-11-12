@@ -4,7 +4,6 @@ import tailwindcss from '@tailwindcss/vite'
 import generatePromptHandler from './api/generate-prompt.js'
 import aiModelSettingsHandler from './api/ai-model-settings.js'
 import adminAuthHandler from './api/admin-auth.js'
-import socialAuthHandler from './api/social-auth.js'
 import posterPhotoHandler from './api/poster-photo.js'
 import youtubeStreamHandler from './api/youtube-stream.js'
 import toolsConfigHandler from './api/tools-config.js'
@@ -48,7 +47,6 @@ function localApiMiddleware() {
       server.middlewares.use('/api/sidebar-settings', jsonApi(sidebarSettingsHandler))
       server.middlewares.use('/api/scanned-elements', jsonApi(scannedElementsHandler))
       server.middlewares.use('/api/contact', jsonApi(sendContactMailHandler))
-      server.middlewares.use('/api/social-auth', jsonApi(socialAuthHandler))
       server.middlewares.use('/api/poster-photo', posterPhotoHandler)
       server.middlewares.use('/api/youtube-stream', async (req, res) => {
         await youtubeStreamHandler(req, res)
