@@ -532,17 +532,13 @@ function FeatureHero({ prompts }: { prompts: Prompt[] }) {
 
 /** Ensures no duplicate posts appear on the home page or library grid. */
 function deduplicatePrompts(items: Prompt[]): Prompt[] {
-  const seenImages = new Set<string>()
-  const seenIds = new Set<string>()
+  const seen = new Set<string>()
   const result: Prompt[] = []
   for (const item of items) {
-    if (seenIds.has(item.id)) continue
-    seenIds.add(item.id)
-    const imgKey = item.image
-      ? item.image.replace(/=(?:s|w)\d[\w-]*$/i, '').replace(/\/(?:s|w)\d+(?:-[a-z0-9]+)*\//i, '/')
-      : item.slug
-    if (imgKey && seenImages.has(imgKey)) continue
-    if (imgKey) seenImages.add(imgKey)
+    if (!item) continue
+    const key = item.id || item.slug || `${item.title}-${item.createdAt}`
+    if (seen.has(key)) continue
+    seen.add(key)
     result.push(item)
   }
   return result

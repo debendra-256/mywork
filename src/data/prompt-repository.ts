@@ -144,7 +144,7 @@ class WordPressPromptRepository implements PromptRepository {
   }
 }
 
-function loadBloggerFeedJsonp(blogId: string, limit = 24, query?: string): Promise<{ feed?: { entry?: any[] } } | null> {
+function loadBloggerFeedJsonp(blogId: string, limit = 500, query?: string): Promise<{ feed?: { entry?: any[] } } | null> {
   if (typeof document === 'undefined') return Promise.resolve(null)
   return new Promise((resolve) => {
     const callbackName = '__blogger_feed_' + Math.random().toString(36).slice(2)
@@ -232,36 +232,50 @@ class BloggerPromptRepository implements PromptRepository {
     return `${this.config.blogger.apiUrl}/blogs/${encodeURIComponent(blogId)}/${resource}`
   }
 
-  private async fetchFromFeed(query: PromptQuery = {}, limit = this.config.pageSize): Promise<Prompt[]> {
+  private async fetchFromFeed(query: PromptQuery = {}, limit = 500): Promise<Prompt[]> {
     const { blogId } = this.config.blogger
     if (!blogId) return []
-    const data = await loadBloggerFeedJsonp(blogId, limit, query.search)
+    const data = await loadBloggerFeedJsonp(blogId, limit || 500, query.search)
     const entries = data?.feed?.entry ?? []
     const posts: Prompt[] = entries.map((entry: any) => mapBloggerPost(mapFeedEntryToBloggerPost(entry, blogId)))
     return query.category ? posts.filter((post) => promptTags(post).includes(query.category!.toLowerCase())) : posts
   }
 
-  private async fetchPosts(query: PromptQuery = {}, limit = this.config.pageSize): Promise<Prompt[]> {
+  private async fetchPosts(query: PromptQuery = {}, limit = 0): Promise<Prompt[]> {
     const hasKey = Boolean(this.config.blogger.apiKey)
     const accessToken = getBloggerAccessTokenIfAvailable()
 
     if (hasKey || accessToken) {
       try {
         const resource = query.search ? 'posts/search' : 'posts'
-        const params = new URLSearchParams({
-          maxResults: String(limit),
-          fetchBodies: 'true',
-          fetchImages: 'true',
-          orderBy: 'published',
-        })
-        if (resource === 'posts') params.set('status', 'live')
-        if (hasKey) params.set('key', this.config.blogger.apiKey)
-        if (query.search) params.set('q', query.search)
-        const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined
-        const response = await fetch(`${this.endpoint(resource)}?${params}`, headers ? { headers } : undefined)
-        if (response.ok) {
-          const result = await response.json() as { items?: BloggerPost[] }
-          const posts = (result.items ?? []).map((post) => mapBloggerPost(post))
+        let pageToken = ''
+        const allItems: BloggerPost[] = []
+
+        do {
+          const params = new URLSearchParams({
+            maxResults: '500',
+            fetchBodies: 'true',
+            fetchImages: 'true',
+            orderBy: 'published',
+          })
+          if (resource === 'posts') params.set('status', 'live')
+          if (hasKey) params.set('key', this.config.blogger.apiKey)
+          if (query.search) params.set('q', query.search)
+          if (pageToken) params.set('pageToken', pageToken)
+          const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined
+          const response = await fetch(`${this.endpoint(resource)}?${params}`, headers ? { headers } : undefined)
+          if (!response.ok) break
+          const result = await response.json() as { items?: BloggerPost[]; nextPageToken?: string }
+          if (result.items?.length) {
+            allItems.push(...result.items)
+          }
+          if (limit > 0 && allItems.length >= limit) break
+          pageToken = result.nextPageToken || ''
+        } while (pageToken && allItems.length < 2000)
+
+        if (allItems.length > 0) {
+          const rawList = limit > 0 ? allItems.slice(0, limit) : allItems
+          const posts = rawList.map((post) => mapBloggerPost(post))
           return query.category ? posts.filter((post) => promptTags(post).includes(query.category!.toLowerCase())) : posts
         }
       } catch {
@@ -269,19 +283,19 @@ class BloggerPromptRepository implements PromptRepository {
       }
     }
 
-    return this.fetchFromFeed(query, limit)
+    return this.fetchFromFeed(query, limit || 500)
   }
 
-  list(query: PromptQuery = {}) { return this.fetchPosts(query) }
+  list(query: PromptQuery = {}) { return this.fetchPosts(query, 0) }
 
   async getBySlug(slug: string) {
-    const posts = await this.fetchPosts({}, 100)
+    const posts = await this.fetchPosts({}, 0)
     const norm = (s: string) => (s || '').replace(/\.html$/i, '').toLowerCase()
     return posts.find((post) => post.slug === slug || post.id === slug || norm(post.slug) === norm(slug)) ?? null
   }
 
   async categories() {
-    const posts = await this.fetchPosts({}, 100)
+    const posts = await this.fetchPosts({}, 0)
     return [...new Set(posts.map((post) => post.category).filter(Boolean))]
   }
 }
