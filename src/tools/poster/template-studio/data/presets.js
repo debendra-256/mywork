@@ -96,10 +96,11 @@ export const CATEGORIES = [
 ]
 
 export const resolveColor = (doc, color) => {
-  if (!color) return 'transparent'
+  if (!color || typeof color !== 'string') return 'transparent'
   if (color === 'none' || color === 'transparent') return color
   if (color.startsWith('#') || color.startsWith('rgb')) return color
-  return (doc.colors && doc.colors[color]) || '#333'
+  const palette = (doc && doc.colors) ? doc.colors : (PALETTES.monochrome || {})
+  return palette[color] || (PALETTES.monochrome && PALETTES.monochrome[color]) || '#333333'
 }
 
 const cssUrl = (src) => `url("${String(src).replace(/"/g, '%22')}")`

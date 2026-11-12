@@ -2510,10 +2510,12 @@ export default function TemplateCanvas({
 
     if (el.type === 'sticker') {
       const h = el.h ?? (el.aspect > 0 ? el.w / el.aspect : el.w)
-      const bgColor = el.bgColor && el.bgColor !== 'none' && el.bgColor !== 'transparent' ? resolveColor(docRef.current, el.bgColor) : 'transparent'
-      const fgColor = el.fgColor && el.fgColor !== 'none' && el.fgColor !== 'transparent' ? resolveColor(docRef.current, el.fgColor) : null
+      const currentDoc = doc || docRef?.current
+      const bgColor = el.bgColor && el.bgColor !== 'none' && el.bgColor !== 'transparent' ? resolveColor(currentDoc, el.bgColor) : 'transparent'
+      const fgColor = el.fgColor && el.fgColor !== 'none' && el.fgColor !== 'transparent' ? resolveColor(currentDoc, el.fgColor) : null
       const borderRadius = el.borderRadius ? `${el.borderRadius}px` : undefined
       const padPx = el.padding ? `${el.padding}px` : undefined
+      const safeMaskUrl = el.src ? `url("${String(el.src).replace(/"/g, '%22')}")` : undefined
       return (
         <div
           key={el.id}
@@ -2548,15 +2550,15 @@ export default function TemplateCanvas({
                 : undefined,
             }}
           />
-          {fgColor && (
+          {fgColor && safeMaskUrl && (
             <span
               aria-hidden="true"
               style={{
                 position: 'absolute',
                 inset: padPx || 0,
                 backgroundColor: fgColor,
-                WebkitMaskImage: `url("${el.src}")`,
-                maskImage: `url("${el.src}")`,
+                WebkitMaskImage: safeMaskUrl,
+                maskImage: safeMaskUrl,
                 WebkitMaskSize: '100% 100%',
                 maskSize: '100% 100%',
                 WebkitMaskRepeat: 'no-repeat',

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Component, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Check, ImagePlus, Images, Sparkles, Square, Trash2, X } from 'lucide-react'
 import Editor from './template-studio/components/Editor.jsx'
@@ -15,6 +15,56 @@ if (typeof document !== 'undefined' && !document.getElementById('qoder-template-
   style.id = 'qoder-template-studio-css'
   style.textContent = studioCss
   document.head.appendChild(style)
+}
+
+class EditorErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error }
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Poster Editor Error Boundary caught:', error, errorInfo)
+    if (this.props.onError) {
+      this.props.onError(error)
+    }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '32px 24px', textAlign: 'center', background: '#1c1f24', color: '#fff', borderRadius: '12px', margin: '32px auto', maxWidth: '540px', boxShadow: '0 8px 30px rgba(0,0,0,0.3)' }}>
+          <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>Editor recovered from a glitch</h3>
+          <p style={{ opacity: 0.8, fontSize: '13px', lineHeight: 1.5, marginBottom: '20px' }}>
+            A rendering glitch was safely contained to keep your poster work intact. You can resume editing immediately.
+          </p>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+            <button
+              type="button"
+              className="cp-btn cp-btn--primary"
+              style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '8px 18px', borderRadius: '8px', cursor: 'pointer', fontWeight: 500 }}
+              onClick={() => this.setState({ hasError: false, error: null })}
+            >
+              Resume editing
+            </button>
+            <button
+              type="button"
+              className="cp-btn cp-btn--ghost"
+              style={{ background: 'transparent', color: '#ccc', border: '1px solid #444', padding: '8px 18px', borderRadius: '8px', cursor: 'pointer' }}
+              onClick={() => this.props.onReset?.()}
+            >
+              Back to posts
+            </button>
+          </div>
+        </div>
+      )
+    }
+    return this.props.children
+  }
 }
 
 const ACCEPTED = ['image/png', 'image/jpeg', 'image/webp', 'image/gif']
@@ -537,17 +587,22 @@ export default function CreatePoster() {
     return (
       <div className="cp-shell cp-shell--editor">
         <div className="ts-root cp-editor-stage">
-          <Editor
-            key={editing.key}
-            initialDoc={editing.doc}
-            designId={editing.designId}
-            onSave={handleSave}
-            onBack={leaveEditor}
-            onClose={leaveEditor}
-            onToast={notify}
-            backLabel="Create Poster"
-            apiBase=""
-          />
+          <EditorErrorBoundary
+            onError={(err) => notify(`Notice: ${err?.message || 'Display glitch recovered'}`)}
+            onReset={leaveEditor}
+          >
+            <Editor
+              key={editing.key}
+              initialDoc={editing.doc}
+              designId={editing.designId}
+              onSave={handleSave}
+              onBack={leaveEditor}
+              onClose={leaveEditor}
+              onToast={notify}
+              backLabel="Create Poster"
+              apiBase=""
+            />
+          </EditorErrorBoundary>
         </div>
         {toast && <div className="cp-toast" role="status"><Check size={14} /><span>{toast}</span></div>}
       </div>

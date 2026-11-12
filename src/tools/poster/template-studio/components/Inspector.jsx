@@ -72,9 +72,20 @@ const Range = ({ label, value, display, min, max, step = 1, onChange, onStart, o
   </div>
 )
 
+function toValidHex(color) {
+  if (!color || typeof color !== 'string') return '#ffffff'
+  const c = color.trim()
+  if (/^#[0-9a-fA-F]{6}$/.test(c)) return c
+  if (/^#[0-9a-fA-F]{3}$/.test(c)) {
+    return `#${c[1]}${c[1]}${c[2]}${c[2]}${c[3]}${c[3]}`
+  }
+  return '#ffffff'
+}
+
 function ColorRow({ label, doc, value, onChange, allowNone = false, moreOpen = false }) {
   const [more, setMore] = useState(moreOpen)
   const resolved = value === 'none' || !value ? '#ffffff' : resolveColor(doc, value)
+  const hexVal = toValidHex(resolved)
   return (
     <div className="ts-field">
       <span className="ts-label">{label}</span>
@@ -83,7 +94,7 @@ function ColorRow({ label, doc, value, onChange, allowNone = false, moreOpen = f
           <button
             type="button"
             className={`ts-swatch ts-swatch--none${value === 'none' ? ' is-active' : ''}`}
-            onClick={() => onChange('none')}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onChange('none') }}
             title="None"
           />
         )}
@@ -92,22 +103,31 @@ function ColorRow({ label, doc, value, onChange, allowNone = false, moreOpen = f
             key={token}
             type="button"
             className={`ts-swatch${value === token ? ' is-active' : ''}`}
-            style={{ background: doc.colors[token] }}
-            onClick={() => onChange(token)}
+            style={{ background: doc?.colors?.[token] || '#888888' }}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onChange(token) }}
             title={token}
           />
         ))}
-        <label className="ts-swatch ts-swatch--custom" style={{ background: resolved }} title="Custom colour">
+        <label
+          className="ts-swatch ts-swatch--custom"
+          style={{ background: resolved }}
+          title="Custom colour"
+          onClick={(e) => e.stopPropagation()}
+        >
           <input
             type="color"
-            value={resolved.toLowerCase().startsWith('#') ? resolved : '#ffffff'}
-            onChange={(e) => onChange(e.target.value)}
+            value={hexVal}
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => {
+              e.stopPropagation()
+              onChange(e.target.value)
+            }}
           />
         </label>
         <button
           type="button"
           className={`ts-swatch ts-swatch--more${more ? ' is-active' : ''}`}
-          onClick={() => setMore((v) => !v)}
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMore((v) => !v) }}
           title={more ? 'Hide more colours' : 'More colours'}
           aria-expanded={more}
         />
@@ -120,7 +140,7 @@ function ColorRow({ label, doc, value, onChange, allowNone = false, moreOpen = f
               type="button"
               className={`ts-color-chip${String(value).toLowerCase() === color ? ' is-active' : ''}`}
               style={{ background: color }}
-              onClick={() => onChange(color)}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onChange(color) }}
               title={color}
             />
           ))}
@@ -1396,7 +1416,7 @@ export default function Inspector({
                   doc={doc}
                   value={selected.bgColor || 'none'}
                   allowNone
-                  onChange={(color) => setEl({ bgColor: color })}
+                  onChange={(color) => setEl({ bgColor: color }, { immediate: true })}
                 />
 
                 <ColorRow
@@ -1404,7 +1424,7 @@ export default function Inspector({
                   doc={doc}
                   value={selected.fgColor || 'none'}
                   allowNone
-                  onChange={(color) => setEl({ fgColor: color })}
+                  onChange={(color) => setEl({ fgColor: color }, { immediate: true })}
                 />
 
                 {selected.fgColor && selected.fgColor !== 'none' && (

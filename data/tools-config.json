@@ -5,7 +5,7 @@
     "screen-recorder": true,
     "shorts": true,
     "compress-image": true,
-    "element-scanner": false,
+    "element-scanner": true,
     "site-theme": true
   },
   "customTools": []
