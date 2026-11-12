@@ -1,14 +1,58 @@
 // Scanned elements API for saving and serving elements to all users.
 import { mkdir, writeFile, unlink } from 'node:fs/promises'
+import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { safeWriteJson, safeReadJson } from './config-writer.js'
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const ROOT_DIR = path.resolve(__dirname, '..')
+
 function getElementsFile(env = process.env) {
-  return path.resolve(env.SCANNED_ELEMENTS_FILE || path.join(process.cwd(), 'data', 'scanned-elements.json'))
+  if (env.SCANNED_ELEMENTS_FILE) return path.resolve(env.SCANNED_ELEMENTS_FILE)
+  const candidate = path.join(ROOT_DIR, 'data', 'scanned-elements.json')
+  if (fs.existsSync(candidate)) return candidate
+  const cwdCandidate = path.resolve(process.cwd(), 'data', 'scanned-elements.json')
+  if (fs.existsSync(cwdCandidate)) return cwdCandidate
+  return candidate
 }
 
-function getUploadDir() {
-  return path.resolve(process.cwd(), 'public', 'ScannedElement')
+function getUploadDirs() {
+  const dirs = new Set()
+  dirs.add(path.join(ROOT_DIR, 'public', 'ScannedElement'))
+  const distDir = path.join(ROOT_DIR, 'dist', 'ScannedElement')
+  if (fs.existsSync(path.dirname(distDir))) {
+    dirs.add(distDir)
+  }
+  const cwdPublic = path.resolve(process.cwd(), 'public', 'ScannedElement')
+  if (fs.existsSync(path.dirname(cwdPublic))) {
+    dirs.add(cwdPublic)
+  }
+  return Array.from(dirs)
+}
+
+async function saveBase64Image(id, dataUrl) {
+  if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/')) return null
+  const match = dataUrl.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/)
+  if (!match) return null
+  const rawExt = match[1].toLowerCase()
+  const ext = rawExt === 'jpeg' ? 'jpg' : rawExt === 'svg+xml' ? 'svg' : rawExt
+  const buffer = Buffer.from(match[2], 'base64')
+  const filename = `${id}.${ext}`
+  const uploadDirs = getUploadDirs()
+  let savedAny = false
+
+  for (const dir of uploadDirs) {
+    try {
+      await mkdir(dir, { recursive: true })
+      await writeFile(path.join(dir, filename), buffer)
+      savedAny = true
+    } catch (err) {
+      console.warn(`Could not write image to ${dir}:`, err?.message)
+    }
+  }
+
+  return savedAny ? `/ScannedElement/${filename}` : null
 }
 
 const DEFAULT_BUILTIN = [
@@ -83,7 +127,16 @@ async function readAllElements(env) {
   const filePath = getElementsFile(env)
   try {
     const data = await safeReadJson(filePath)
-    if (Array.isArray(data)) return data
+    if (Array.isArray(data) && data.length > 0) {
+      const elementMap = new Map()
+      for (const b of DEFAULT_BUILTIN) {
+        if (b && b.id) elementMap.set(b.id, b)
+      }
+      for (const el of data) {
+        if (el && el.id) elementMap.set(el.id, el)
+      }
+      return Array.from(elementMap.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+    }
   } catch {
     // File doesn't exist yet, seed with default
     try {
@@ -130,25 +183,10 @@ export default async function handler(request, response, env = process.env) {
       const slots = Array.isArray(body.slots) ? body.slots : []
       const createdAt = Number(body.createdAt) || Date.now()
 
-      // If src is a base64 Data URL, save it into public/ScannedElement/
+      // If src is a base64 Data URL, save it into public/ScannedElement/ and dist/ScannedElement/
       if (src.startsWith('data:image/')) {
-        const match = src.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/)
-        if (match) {
-          const rawExt = match[1].toLowerCase()
-          const ext = rawExt === 'jpeg' ? 'jpg' : rawExt === 'svg+xml' ? 'svg' : rawExt
-          const buffer = Buffer.from(match[2], 'base64')
-          const uploadDir = getUploadDir()
-          const filename = `${id}.${ext}`
-          const filepath = path.join(uploadDir, filename)
-
-          try {
-            await mkdir(uploadDir, { recursive: true })
-            await writeFile(filepath, buffer)
-            src = `/ScannedElement/${filename}`
-          } catch (writeErr) {
-            console.warn('Could not write image to public/ScannedElement, falling back to data URL:', writeErr?.message)
-          }
-        }
+        const savedSrc = await saveBase64Image(id, src)
+        if (savedSrc) src = savedSrc
       }
 
       const newElement = {
@@ -165,14 +203,35 @@ export default async function handler(request, response, env = process.env) {
       }
 
       const elements = await readAllElements(env)
-      const existingIndex = elements.findIndex((el) => el.id === id)
-      let nextElements
-      if (existingIndex >= 0) {
-        nextElements = [...elements]
-        nextElements[existingIndex] = newElement
-      } else {
-        nextElements = [newElement, ...elements]
+      const elementMap = new Map()
+
+      // 1. Builtins as foundation
+      for (const b of DEFAULT_BUILTIN) {
+        if (b && b.id) elementMap.set(b.id, b)
       }
+
+      // 2. Existing server elements
+      for (const el of elements) {
+        if (el && el.id) elementMap.set(el.id, el)
+      }
+
+      // 3. Client elements (so previously scanned elements in client cache are NEVER lost!)
+      const clientElements = Array.isArray(body.clientElements) ? body.clientElements : []
+      for (const el of clientElements) {
+        if (el && el.id && !elementMap.has(el.id)) {
+          let elSrc = el.src
+          if (typeof elSrc === 'string' && elSrc.startsWith('data:image/')) {
+            const savedElSrc = await saveBase64Image(el.id, elSrc)
+            if (savedElSrc) elSrc = savedElSrc
+          }
+          elementMap.set(el.id, { ...el, src: elSrc })
+        }
+      }
+
+      // 4. Update with the newly scanned element
+      elementMap.set(id, newElement)
+
+      const nextElements = Array.from(elementMap.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
 
       await safeWriteJson(getElementsFile(env), nextElements)
       response.status(200).json({ success: true, element: newElement, elements: nextElements })
@@ -197,7 +256,11 @@ export default async function handler(request, response, env = process.env) {
       if (target && typeof target.src === 'string' && target.src.startsWith('/ScannedElement/')) {
         try {
           const filename = path.basename(target.src)
-          await unlink(path.join(getUploadDir(), filename))
+          for (const dir of getUploadDirs()) {
+            try {
+              await unlink(path.join(dir, filename))
+            } catch {}
+          }
         } catch {}
       }
 

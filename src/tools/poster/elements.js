@@ -208,6 +208,41 @@ export function loadElements() {
   return [...custom, ...builtins].sort((a, b) => b.createdAt - a.createdAt)
 }
 
+export function mergeElements(serverElements = [], localElements = []) {
+  const mergedMap = new Map()
+
+  // 1. Built-in elements as base
+  for (const b of BUILTIN_SCANNED_ELEMENTS) {
+    if (b && b.id) mergedMap.set(b.id, b)
+  }
+
+  // 2. Existing local elements (never lose user's scanned items!)
+  if (Array.isArray(localElements)) {
+    for (const el of localElements) {
+      if (el && el.id) mergedMap.set(el.id, el)
+    }
+  }
+
+  // 3. Server elements (update or add; upgrade data URL src to persistent server path if available)
+  if (Array.isArray(serverElements)) {
+    for (const el of serverElements) {
+      if (el && el.id) {
+        const existing = mergedMap.get(el.id)
+        if (existing) {
+          const preferredSrc = (typeof el.src === 'string' && el.src.startsWith('/'))
+            ? el.src
+            : (existing.src || el.src)
+          mergedMap.set(el.id, { ...existing, ...el, src: preferredSrc })
+        } else {
+          mergedMap.set(el.id, el)
+        }
+      }
+    }
+  }
+
+  return Array.from(mergedMap.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+}
+
 export async function fetchServerElements() {
   try {
     const res = await fetch('/api/scanned-elements')
@@ -229,21 +264,7 @@ export async function fetchServerElements() {
 
       // Merge server elements with locally stored elements so local elements are NEVER lost
       const local = loadElements()
-      const mergedMap = new Map()
-      // Local elements first
-      for (const el of local) {
-        if (el && el.id) mergedMap.set(el.id, el)
-      }
-      // Server elements update or add
-      for (const el of serverElements) {
-        if (el && el.id) mergedMap.set(el.id, el)
-      }
-      // Ensure all builtins are present
-      for (const b of BUILTIN_SCANNED_ELEMENTS) {
-        if (!mergedMap.has(b.id)) mergedMap.set(b.id, b)
-      }
-
-      const merged = Array.from(mergedMap.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+      const merged = mergeElements(serverElements, local)
       persist(merged)
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('imgmojo:scanned-elements-updated', { detail: merged }))
@@ -281,19 +302,22 @@ export async function saveElementToServer(entry) {
     createdAt: Date.now(),
   }
 
-  // Optimistically store in localStorage
-  const optimistic = [saved, ...elements.filter((el) => el.id !== saved.id)]
+  // Optimistically store in localStorage alongside ALL existing scanned elements
+  const optimistic = mergeElements([], [saved, ...elements])
   persist(optimistic)
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('imgmojo:scanned-elements-updated', { detail: optimistic }))
   }
 
-  // Post to /api/scanned-elements
+  // Post to /api/scanned-elements, including clientElements so server can also preserve previous scanned elements
   try {
     const res = await fetch('/api/scanned-elements', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(saved),
+      body: JSON.stringify({
+        ...saved,
+        clientElements: elements,
+      }),
     })
     if (res.ok) {
       const data = await res.json()
@@ -302,7 +326,8 @@ export async function saveElementToServer(entry) {
           ...saved,
           src: data.element.src || saved.src,
         }
-        const updated = (data.elements || optimistic).map((el) => el.id === serverSaved.id ? serverSaved : el)
+        // Non-destructive merge: NEVER drop previous scanned elements
+        const updated = mergeElements(data.elements || [], [serverSaved, ...optimistic])
         persist(updated)
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('imgmojo:scanned-elements-updated', { detail: updated }))
@@ -332,20 +357,24 @@ export function addElement(entry) {
     slots: normalizeSlots(entry.slots),
     createdAt: Date.now(),
   }
-  const next = [saved, ...elements.filter((el) => el.id !== saved.id)]
+  const next = mergeElements([], [saved, ...elements])
   persist(next)
-  // Background sync to server
+  // Background sync to server with clientElements to avoid losing existing elements
   fetch('/api/scanned-elements', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(saved),
+    body: JSON.stringify({
+      ...saved,
+      clientElements: elements,
+    }),
   })
     .then((res) => res.json())
     .then((data) => {
       if (data && data.elements) {
-        persist(data.elements)
+        const merged = mergeElements(data.elements, loadElements())
+        persist(merged)
         if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('imgmojo:scanned-elements-updated', { detail: data.elements }))
+          window.dispatchEvent(new CustomEvent('imgmojo:scanned-elements-updated', { detail: merged }))
         }
       }
     })
@@ -362,9 +391,12 @@ export function deleteElement(id) {
     .then((res) => res.json())
     .then((data) => {
       if (data && data.elements) {
-        persist(data.elements)
+        const filteredServer = data.elements.filter((el) => el.id !== id)
+        const currentLocal = loadElements().filter((el) => el.id !== id)
+        const merged = mergeElements(filteredServer, currentLocal)
+        persist(merged)
         if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('imgmojo:scanned-elements-updated', { detail: data.elements }))
+          window.dispatchEvent(new CustomEvent('imgmojo:scanned-elements-updated', { detail: merged }))
         }
       }
     })
