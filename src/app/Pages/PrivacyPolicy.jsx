@@ -1,9 +1,26 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Mail, Globe } from 'lucide-react'
 import './AboutUs.css'
 
 export default function PrivacyPolicy() {
+    useEffect(() => {
+    const canonicalUrl = 'https://www.imgmojo.com/privacy';
+
+    let canonical = document.querySelector('link[rel="canonical"]');
+
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonical);
+    }
+
+    canonical.setAttribute('href', canonicalUrl);
+
+    return () => {
+      canonical?.remove();
+    };
+  }, []);
   return (
     <main className="simple-page">
       <div className="simple-container">

@@ -143,7 +143,7 @@ export default function CompressImage() {
       'Reduce image file size without losing quality. Compress JPG, PNG, WEBP, SVG, GIF, and AVIF images online quickly and for free with 100% browser privacy on ImgMojo.'
     const seoKeywords =
       'compress images online, free image compressor, reduce image size without losing quality, compress JPG, compress PNG, compress WEBP, bulk image optimizer, resize and compress photo, ImgMojo'
-    const canonicalUrl = window.location.href.split('#')[0]
+    const canonicalUrl = "https://imgmojo.com/image-compressor";
 
     document.title = seoTitle
 
