@@ -1631,13 +1631,17 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
             )}
           </div>
           <div className="detail-info">
-            {!prompt.sourceUrl && (
-              <span className="section-kicker">
-                {prompt.tool} · {prompt.style}
+            <div className="detail-meta-pill-row">
+              <span className="detail-category-pill">
+                <Sparkles size={11} /> {prompt.category || 'AI Prompt'}
               </span>
-            )}
+              {!prompt.sourceUrl && prompt.tool && (
+                <span className="detail-tool-pill">
+                  {prompt.tool} · {prompt.style}
+                </span>
+              )}
+            </div>
             <h1>{prompt.title}</h1>
-            <p>{prompt.description}</p>
 
             {placeholders.length > 0 && (
               <div className="prompt-customizer-card" ref={customizerRef}>
@@ -1726,8 +1730,9 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
             <div className="detail-prompt-text">{effectivePrompt}</div>
             <div className="detail-action-buttons">
               <button className="copy-large" onClick={copy}>
-                {copied ? <Check size={17} /> : <Copy size={17} />}
-                {copied ? 'Copied to clipboard' : 'Copy prompt'} <ArrowRight size={16} />
+                {copied ? <Check size={16} /> : <Copy size={16} />}
+                <span>{copied ? 'Copied to clipboard' : 'Copy prompt'}</span>
+                <ArrowRight size={15} />
               </button>
               <button
                 type="button"
@@ -1748,9 +1753,11 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
                   aria-label="Download image"
                 >
                   {downloadSuccess ? <Check size={16} /> : <Download size={16} />}
-                  {downloading ? 'Downloading…' : downloadSuccess ? 'Downloaded!' : 'Download image'}
+                  <span>{downloading ? 'Downloading…' : downloadSuccess ? 'Downloaded!' : 'Download image'}</span>
                 </button>
               )}
+            </div>
+            <div className="detail-social-actions-pills">
               <a
                 href={telegramUrl}
                 target="_blank"
@@ -1758,7 +1765,7 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
                 className="detail-telegram-action"
                 aria-label="Join our Telegram Channel"
               >
-                <TelegramIcon size={16} /> Join Telegram <ArrowUpRight size={13} />
+                <TelegramIcon size={15} /> Join Telegram <ArrowUpRight size={12} />
               </a>
               <a
                 href={instagramUrl}
@@ -1767,7 +1774,7 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
                 className="detail-instagram-action"
                 aria-label="Follow us on Instagram"
               >
-                <Instagram size={16} /> Follow on Instagram <ArrowUpRight size={13} />
+                <Instagram size={15} /> Follow on Instagram <ArrowUpRight size={12} />
               </a>
               <a
                 href={facebookUrl}
@@ -1776,7 +1783,7 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
                 className="detail-facebook-action"
                 aria-label="Follow us on Facebook"
               >
-                <Facebook size={16} /> Follow on Facebook <ArrowUpRight size={13} />
+                <Facebook size={15} /> Follow on Facebook <ArrowUpRight size={12} />
               </a>
             </div>
             <div className="detail-community-cards">
