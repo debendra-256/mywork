@@ -835,17 +835,161 @@
   }
 }
 
-/* Video frames for Blogger / Video Prompts */
+/* Video frames & Homepage Inline Video Preview & Player */
 .tile-video-frame {
+  position: relative !important;
+  width: 100% !important;
+  aspect-ratio: 4 / 5 !important;
+  background: #0d1117 !important;
+  overflow: hidden !important;
+  border-radius: 12px 12px 0 0 !important;
+  display: block !important;
+}
+
+.tile-video-preview-wrapper {
   position: relative;
   width: 100%;
-  aspect-ratio: 1.25;
-  background: #000;
-  overflow: hidden;
-  border-radius: 12px 12px 0 0;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  background: #0d1117;
+  overflow: hidden;
+}
+
+.tile-video-poster {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center top !important;
+  transition: transform 0.4s ease, filter 0.3s ease;
+}
+
+.prompt-tile:hover .tile-video-poster {
+  transform: scale(1.04);
+}
+
+.tile-video-poster-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #13241b 0%, #0d1512 100%);
+  color: #34d399;
+}
+
+.tile-video-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.45) 100%);
+  transition: background 0.25s ease;
+  pointer-events: none;
+}
+
+.tile-video-preview-wrapper:hover .tile-video-scrim {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+.tile-play-button {
+  position: relative;
+  z-index: 5;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0a9f62 0%, #087447 100%);
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  border: 2.5px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 6px 24px rgba(10, 159, 98, 0.55), 0 0 0 0 rgba(10, 159, 98, 0.4);
+  cursor: pointer;
+  transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.24s ease, filter 0.2s ease;
+}
+
+.tile-play-button svg {
+  margin-left: 3px; /* visual center for play triangle */
+}
+
+.tile-video-preview-wrapper:hover .tile-play-button {
+  transform: scale(1.14);
+  box-shadow: 0 8px 30px rgba(10, 159, 98, 0.75), 0 0 0 8px rgba(10, 159, 98, 0.22);
+  filter: brightness(1.08);
+}
+
+.tile-video-play-badge {
+  position: absolute;
+  bottom: 11px;
+  left: 11px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.82);
+  backdrop-filter: blur(8px);
+  color: #ffffff;
+  font-size: 9.5px;
+  font-weight: 750;
+  letter-spacing: 0.03em;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  pointer-events: none;
+}
+
+.tile-video-tag {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  background: rgba(10, 159, 98, 0.92) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.35) !important;
+  backdrop-filter: blur(8px);
+}
+
+.tile-video-player-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #000000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tile-video-media {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  background: #000000 !important;
+  border: 0 !important;
+  display: block !important;
+}
+
+.tile-video-close-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.tile-video-close-btn:hover {
+  background: #dc2626;
+  border-color: #ef4444;
+  transform: scale(1.1);
 }
 
 .tile-video-frame .tile-video-iframe,
@@ -856,12 +1000,6 @@
   display: block;
   object-fit: cover;
   background: #000;
-}
-
-.tile-video-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
 }
 
 .detail-cover-video {

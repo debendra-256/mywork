@@ -22,6 +22,7 @@ interface BloggerPost {
   published: string
   labels?: string[]
   images?: Array<{ url: string }>
+  video?: string
 }
 
 function stripHtml(html: string): string {
@@ -49,44 +50,124 @@ function mapPost(post: WordPressPost): Prompt {
   }
 }
 
+function normalizeVideoUrl(rawUrl: string): string {
+  let url = rawUrl.trim()
+  if (url.startsWith('//')) {
+    url = 'https:' + url
+  }
+  // YouTube watch, embed, shorts, youtu.be
+  const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/|youtube-nocookie\.com\/embed\/)([a-zA-Z0-9_-]{11})/i)
+  if (ytMatch?.[1]) {
+    return `https://www.youtube.com/embed/${ytMatch[1]}`
+  }
+  // Google Drive preview
+  const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/i)
+  if (driveMatch?.[1]) {
+    return `https://drive.google.com/file/d/${driveMatch[1]}/preview`
+  }
+  // Vimeo
+  const vimeoMatch = url.match(/vimeo\.com\/(?:video\/)?(\d+)/i)
+  if (vimeoMatch?.[1]) {
+    return `https://player.vimeo.com/video/${vimeoMatch[1]}`
+  }
+  // Blogger video tokens
+  const bloggerTokenMatch = url.match(/blogger\.com\/(?:video\.g|video-play\.mp4)\?token=([a-zA-Z0-9_-]+)/i)
+  if (bloggerTokenMatch?.[1]) {
+    return `https://www.blogger.com/video.g?token=${bloggerTokenMatch[1]}`
+  }
+  return url
+}
+
 function extractVideoUrl(html: string): string | undefined {
   if (!html) return undefined
   if (typeof DOMParser !== 'undefined') {
     try {
       const doc = new DOMParser().parseFromString(html, 'text/html')
-      const iframe = doc.querySelector('iframe')
-      if (iframe?.getAttribute('src')) return iframe.getAttribute('src')!
-      const video = doc.querySelector('video')
-      if (video?.getAttribute('src')) return video.getAttribute('src')!
-      const source = doc.querySelector('video > source')
-      if (source?.getAttribute('src')) return source.getAttribute('src')!
+
+      // 1. Check iframes (Blogger player, YouTube, Drive, Vimeo)
+      const iframes = Array.from(doc.querySelectorAll('iframe'))
+      for (const iframe of iframes) {
+        const src = iframe.getAttribute('src') || iframe.getAttribute('data-src')
+        if (src) return normalizeVideoUrl(src)
+      }
+
+      // 2. Check video elements & nested sources
+      const videos = Array.from(doc.querySelectorAll('video'))
+      for (const video of videos) {
+        const src = video.getAttribute('src') || video.getAttribute('data-src')
+        if (src) return normalizeVideoUrl(src)
+        const sources = Array.from(video.querySelectorAll('source'))
+        for (const s of sources) {
+          const sSrc = s.getAttribute('src') || s.getAttribute('data-src')
+          if (sSrc) return normalizeVideoUrl(sSrc)
+        }
+      }
+
+      // 3. Standalone source tags
+      const standaloneSources = Array.from(doc.querySelectorAll('source'))
+      for (const s of standaloneSources) {
+        const src = s.getAttribute('src') || s.getAttribute('data-src')
+        if (src) return normalizeVideoUrl(src)
+      }
+
+      // 4. Anchor tags pointing directly to videos or video hosts
+      const links = Array.from(doc.querySelectorAll('a'))
+      for (const a of links) {
+        const href = a.getAttribute('href') || ''
+        if (
+          /\.(mp4|webm|mov|m4v|ogg)(\?.*)?$/i.test(href) ||
+          href.includes('blogger.com/video.g') ||
+          href.includes('blogger.com/video-play.mp4') ||
+          href.includes('youtube.com/') ||
+          href.includes('youtu.be/') ||
+          href.includes('drive.google.com/file/d/') ||
+          href.includes('vimeo.com/')
+        ) {
+          return normalizeVideoUrl(href)
+        }
+      }
     } catch {}
   }
-  const iframeMatch = html.match(/<iframe[^>]+src=["']([^"']+)["']/i)
-  if (iframeMatch?.[1]) return iframeMatch[1]
-  const videoMatch = html.match(/<video[^>]+src=["']([^"']+)["']/i)
-  if (videoMatch?.[1]) return videoMatch[1]
-  const sourceMatch = html.match(/<source[^>]+src=["']([^"']+)["']/i)
-  if (sourceMatch?.[1]) return sourceMatch[1]
-  const ytMatch = html.match(/https?:\/\/(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i)
-  if (ytMatch?.[1]) return 'https://www.youtube.com/embed/' + ytMatch[1]
+
+  // Regex fallbacks
+  const bloggerMatch = html.match(/https?:\/\/(?:www\.)?blogger\.com\/(?:video\.g|video-play\.mp4)\?token=([a-zA-Z0-9_-]+)/i)
+  if (bloggerMatch?.[1]) return `https://www.blogger.com/video.g?token=${bloggerMatch[1]}`
+
+  const iframeMatch = html.match(/<iframe[^>]+(?:src|data-src)=["']([^"']+)["']/i)
+  if (iframeMatch?.[1]) return normalizeVideoUrl(iframeMatch[1])
+
+  const videoMatch = html.match(/<video[^>]+(?:src|data-src)=["']([^"']+)["']/i)
+  if (videoMatch?.[1]) return normalizeVideoUrl(videoMatch[1])
+
+  const sourceMatch = html.match(/<source[^>]+(?:src|data-src)=["']([^"']+)["']/i)
+  if (sourceMatch?.[1]) return normalizeVideoUrl(sourceMatch[1])
+
+  const ytMatch = html.match(/https?:\/\/(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/|youtube-nocookie\.com\/embed\/)([a-zA-Z0-9_-]{11})/i)
+  if (ytMatch?.[1]) return `https://www.youtube.com/embed/${ytMatch[1]}`
+
+  const driveMatch = html.match(/https?:\/\/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/i)
+  if (driveMatch?.[1]) return `https://drive.google.com/file/d/${driveMatch[1]}/preview`
+
+  const directVideoMatch = html.match(/https?:\/\/[^\s"'<>]+\.(?:mp4|webm|mov|m4v|ogg)(?:\?[^\s"'<>]*)?/i)
+  if (directVideoMatch?.[0]) return normalizeVideoUrl(directVideoMatch[0])
+
   return undefined
 }
 
 function extractVideoThumbnail(videoUrl: string | undefined): string | undefined {
   if (!videoUrl) return undefined
-  const ytMatch = videoUrl.match(/(?:youtube\.com\/embed\/|youtu\.be\/|youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/i)
-  if (ytMatch?.[1]) return 'https://img.youtube.com/vi/' + ytMatch[1] + '/hqdefault.jpg'
+  const ytMatch = videoUrl.match(/(?:youtube\.com\/(?:embed\/|watch\?v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i)
+  if (ytMatch?.[1]) return `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`
   return undefined
 }
 
 function mapBloggerPost(post: BloggerPost): Prompt {
   const content = stripHtml(post.content)
   const pathParts = new URL(post.url).pathname.split('/').filter(Boolean)
-  const video = extractVideoUrl(post.content)
+  const video = post.video || extractVideoUrl(post.content)
   const image = posterPhotoUrl(post.content, post.images?.[0]?.url ?? '') || extractVideoThumbnail(video)
   const rawTitle = stripHtml(post.title).trim()
-  const derivedTitle = rawTitle || post.labels?.find((l) => !l.startsWith('#')) || post.labels?.[0]?.replace(/^#/, '') || 'Creative Photo'
+  const derivedTitle = rawTitle || post.labels?.find((l) => !l.startsWith('#')) || post.labels?.[0]?.replace(/^#/, '') || (video ? 'AI Video' : 'Creative Photo')
   return {
     id: post.id,
     slug: pathParts.at(-1) || post.id,
@@ -212,6 +293,32 @@ function mapFeedEntryToBloggerPost(entry: any, blogId: string): BloggerPost {
     }
   }
 
+  // Extract video from feed enclosure or media content if present
+  let feedVideo: string | undefined = undefined
+  const enclosure = entry.link?.find(
+    (l: any) => l.rel === 'enclosure' && (l.type?.startsWith('video/') || l.href?.includes('video') || /\.(mp4|webm|mov|m4v)/i.test(l.href || ''))
+  )
+  if (enclosure?.href) {
+    feedVideo = normalizeVideoUrl(enclosure.href)
+  }
+
+  const mediaContent = entry.media$content || entry['media$group']?.['media$content']
+  if (!feedVideo) {
+    if (Array.isArray(mediaContent)) {
+      const videoMedia = mediaContent.find(
+        (m: any) => m.medium === 'video' || m.type?.startsWith('video/') || m.url?.includes('video')
+      )
+      if (videoMedia?.url) feedVideo = normalizeVideoUrl(videoMedia.url)
+    } else if (mediaContent?.medium === 'video' && mediaContent?.url) {
+      feedVideo = normalizeVideoUrl(mediaContent.url)
+    }
+  }
+
+  const mediaPlayer = entry.media$player || entry['media$group']?.['media$player']
+  if (!feedVideo && mediaPlayer?.url) {
+    feedVideo = normalizeVideoUrl(mediaPlayer.url)
+  }
+
   return {
     id: postId,
     url: alternateLink || `https://www.blogger.com/blog/post/edit/${blogId}/${postId}`,
@@ -220,6 +327,7 @@ function mapFeedEntryToBloggerPost(entry: any, blogId: string): BloggerPost {
     published: String(entry.published?.$t || ''),
     labels,
     images: images.length ? images : undefined,
+    video: feedVideo,
   }
 }
 

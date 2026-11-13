@@ -414,10 +414,19 @@ function Sidebar({ open, active, onSelect, onHome, onClose, activeUtility, onOpe
 
 function isDirectVideo(url: string | undefined): boolean {
   if (!url) return false
-  return /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(url)
+  return /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i.test(url) || url.includes('/video-play.mp4') || url.startsWith('blob:') || url.startsWith('data:video/')
 }
 
-function PromptVideo({ src, title, className }: { src: string; title: string; className?: string }) {
+function getAutoplayUrl(url: string): string {
+  if (!url) return ''
+  if (url.includes('youtube.com/embed/')) {
+    const separator = url.includes('?') ? '&' : '?'
+    return `${url}${separator}autoplay=1&rel=0`
+  }
+  return url
+}
+
+function PromptVideo({ src, title, className, poster }: { src: string; title: string; className?: string; poster?: string }) {
   if (isDirectVideo(src)) {
     return (
       <video
@@ -425,6 +434,7 @@ function PromptVideo({ src, title, className }: { src: string; title: string; cl
         controls
         playsInline
         preload="metadata"
+        poster={poster}
         className={className || 'tile-video-iframe'}
         aria-label={title}
       />
@@ -443,37 +453,149 @@ function PromptVideo({ src, title, className }: { src: string; title: string; cl
 }
 
 function PromptCard({ prompt, index, saved, onToggleSave }: { prompt: Prompt; index: number; saved: boolean; engagement?: EngagementCounts; onToggleSave: () => void; onCopy?: () => void; onHashtag?: (tag: string) => void }) {
+  const [isPlaying, setIsPlaying] = useState(false)
   const cardTitle = prompt.title?.trim() || prompt.category || 'Creative Prompt'
   const cardDesc = prompt.description?.trim() || prompt.promptText?.trim() || 'AI photo prompt.'
-  return <article className="prompt-tile">
-    {prompt.video ? (
-      <div className={`tile-image tile-video-frame tile-image-${index % 6}`}>
-        <PromptVideo src={prompt.video} title={cardTitle} className="tile-video-iframe" />
-        <span className="tile-tag tile-video-tag"><Video size={11} style={{ verticalAlign: 'middle', marginRight: 4 }} />{prompt.category}</span>
-        {prompt.featured && <span className="tile-featured"><Sparkles size={12} /> EDITOR’S PICK</span>}
-        <Link to={`/prompt/${prompt.slug}`} className="tile-open" aria-label={`View ${cardTitle} details`}><ArrowUpRight size={17} /></Link>
+  return (
+    <article className={`prompt-tile ${prompt.video ? 'is-video-tile' : ''}`}>
+      {prompt.video ? (
+        <div className={`tile-image tile-video-frame tile-image-${index % 6} ${isPlaying ? 'is-playing' : ''}`}>
+          {isPlaying ? (
+            <div className="tile-video-player-container">
+              {isDirectVideo(prompt.video) ? (
+                <video
+                  src={prompt.video}
+                  controls
+                  autoPlay
+                  playsInline
+                  poster={prompt.image}
+                  className="tile-video-media"
+                  aria-label={cardTitle}
+                />
+              ) : (
+                <iframe
+                  src={getAutoplayUrl(prompt.video)}
+                  title={cardTitle}
+                  className="tile-video-media"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              )}
+              <button
+                type="button"
+                className="tile-video-close-btn"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setIsPlaying(false)
+                }}
+                title="Stop video preview"
+                aria-label="Stop video preview"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ) : (
+            <div
+              className="tile-video-preview-wrapper"
+              onClick={() => setIsPlaying(true)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setIsPlaying(true)
+                }
+              }}
+              aria-label={`Play video for ${cardTitle}`}
+            >
+              {prompt.image ? (
+                <img
+                  {...responsiveImage(prompt.image, '(max-width: 700px) 45vw, 23vw')}
+                  alt={prompt.imageAlt || cardTitle}
+                  loading="lazy"
+                  className="tile-video-poster"
+                />
+              ) : (
+                <div className="tile-video-poster-fallback">
+                  <Video size={36} />
+                </div>
+              )}
+              <div className="tile-video-scrim" />
+              <button
+                type="button"
+                className="tile-play-button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setIsPlaying(true)
+                }}
+                title={`Play ${cardTitle}`}
+                aria-label={`Play ${cardTitle}`}
+              >
+                <Play size={22} fill="currentColor" />
+              </button>
+              <span className="tile-tag tile-video-tag">
+                <Video size={11} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+                {prompt.category || 'Video'}
+              </span>
+              <span className="tile-video-play-badge">
+                <Play size={10} fill="currentColor" /> Play Video
+              </span>
+              {prompt.featured && (
+                <span className="tile-featured">
+                  <Sparkles size={12} /> EDITOR’S PICK
+                </span>
+              )}
+              <Link
+                to={`/prompt/${prompt.slug}`}
+                className="tile-open"
+                aria-label={`View ${cardTitle} details`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <ArrowUpRight size={17} />
+              </Link>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className={`tile-image tile-image-${index % 6}`}>
+          <Link to={`/prompt/${prompt.slug}`} className="tile-image-link" aria-label={`View ${cardTitle} details`}>
+            {prompt.image ? (
+              <img
+                {...responsiveImage(prompt.image, '(max-width: 700px) 45vw, 23vw')}
+                alt={prompt.imageAlt || cardTitle}
+                loading="lazy"
+              />
+            ) : (
+              <span className="tile-image-fallback">
+                <Sparkles size={28} />
+              </span>
+            )}
+            <span className="tile-vignette" />
+            <span className="tile-tag">{prompt.category}</span>
+            {prompt.featured && (
+              <span className="tile-featured">
+                <Sparkles size={12} /> EDITOR’S PICK
+              </span>
+            )}
+            <span className="tile-open">
+              <ArrowUpRight size={17} />
+            </span>
+          </Link>
+        </div>
+      )}
+      <div className="tile-content">
+        <div className="tile-heading">
+          <Link to={`/prompt/${prompt.slug}`} className="tile-title">{cardTitle}</Link>
+          <button className={`tile-save ${saved ? 'is-saved' : ''}`} onClick={onToggleSave} aria-label={saved ? 'Remove from saved' : 'Save prompt'}>
+            <Heart size={17} fill={saved ? 'currentColor' : 'none'} />
+          </button>
+        </div>
+        <p>{cardDesc}</p>
       </div>
-    ) : (
-      <div className={`tile-image tile-image-${index % 6}`}>
-        <Link to={`/prompt/${prompt.slug}`} className="tile-image-link" aria-label={`View ${cardTitle} details`}>
-          {prompt.image ? <img {...responsiveImage(prompt.image, '(max-width: 700px) 45vw, 23vw')} alt={prompt.imageAlt || cardTitle} loading="lazy" /> : <span className="tile-image-fallback"><Sparkles size={28} /></span>}
-          <span className="tile-vignette" />
-          <span className="tile-tag">{prompt.category}</span>
-          {prompt.featured && <span className="tile-featured"><Sparkles size={12} /> EDITOR’S PICK</span>}
-          <span className="tile-open"><ArrowUpRight size={17} /></span>
-        </Link>
-      </div>
-    )}
-    <div className="tile-content">
-      <div className="tile-heading">
-        <Link to={`/prompt/${prompt.slug}`} className="tile-title">{cardTitle}</Link>
-        <button className={`tile-save ${saved ? 'is-saved' : ''}`} onClick={onToggleSave} aria-label={saved ? 'Remove from saved' : 'Save prompt'}>
-          <Heart size={17} fill={saved ? 'currentColor' : 'none'} />
-        </button>
-      </div>
-      <p>{cardDesc}</p>
-    </div>
-  </article>
+    </article>
+  )
 }
 
 function FeatureHero({ prompts }: { prompts: Prompt[] }) {
@@ -1590,7 +1712,7 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
           <div className="detail-cover-wrapper">
             <div className={`detail-cover ${prompt.video ? 'detail-cover-video' : ''}`}>
               {prompt.video ? (
-                <PromptVideo src={prompt.video} title={prompt.title} className="detail-video-iframe" />
+                <PromptVideo src={prompt.video} title={prompt.title} className="detail-video-iframe" poster={prompt.image} />
               ) : prompt.image ? (
                 <img src={imageAtWidth(prompt.image, 1600) || prompt.image} alt={prompt.imageAlt || prompt.title} />
               ) : (
