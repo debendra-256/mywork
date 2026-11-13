@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ChevronDown, Clock3, Copy, DatabaseBackup, Download, Facebook, Video, Flame, Headphones, Heart, Home, ImagePlus, Images, Instagram, KeyRound, Layers, LayoutDashboard, LayoutGrid, Linkedin, Lock, LockOpen, LogOut, Mail, Menu, MessageCircle, Play, Plus, Search, ShieldCheck, SlidersHorizontal, Sparkles, Store, Sun, Trash2, Twitter, X, Zap } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ChevronDown, Clock3, Copy, DatabaseBackup, Download, Facebook, Video, Flame, Headphones, Heart, Home, ImagePlus, Images, Instagram, KeyRound, Layers, LayoutDashboard, LayoutGrid, Linkedin, Lock, LockOpen, LogOut, Mail, Menu, MessageCircle, Play, Plus, RotateCcw, Search, ShieldCheck, SlidersHorizontal, Sparkles, Store, Sun, Trash2, Twitter, X, Zap } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { appConfig } from '../config/app.config'
 import { toolsConfig, type ToolDefinition, type ToolIcon } from '../config/ToolsConfig'
@@ -1239,6 +1239,67 @@ const detailFeaturedTools = [
   },
 ]
 
+export interface PromptPlaceholder {
+  raw: string
+  key: string
+  canonicalKey: string
+  label: string
+  defaultValue: string
+}
+
+export function parsePromptPlaceholders(promptText: string): PromptPlaceholder[] {
+  if (!promptText) return []
+  const regex = /\{\{\s*([^}|]+?)\s*(?:\|\s*([^}]*?)\s*)?\}\}/g
+  const seen = new Map<string, PromptPlaceholder>()
+  let match: RegExpExecArray | null
+
+  while ((match = regex.exec(promptText)) !== null) {
+    const raw = match[0]
+    const rawKey = match[1].trim()
+    const defaultValue = (match[2] ?? '').trim()
+    const canonicalKey = rawKey.toUpperCase()
+
+    if (!seen.has(canonicalKey)) {
+      let label = rawKey.replace(/[_-]+/g, ' ').trim()
+      if (/^no$/i.test(label)) {
+        label = 'Number'
+      } else {
+        label = label
+          .split(' ')
+          .map((w) => (w.length > 0 ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : ''))
+          .join(' ')
+      }
+
+      seen.set(canonicalKey, {
+        raw,
+        key: rawKey,
+        canonicalKey,
+        label,
+        defaultValue,
+      })
+    }
+  }
+
+  return Array.from(seen.values())
+}
+
+export function applyPromptCustomizations(
+  promptText: string,
+  values: Record<string, string>
+): string {
+  if (!promptText) return ''
+  const regex = /\{\{\s*([^}|]+?)\s*(?:\|\s*([^}]*?)\s*)?\}\}/g
+  return promptText.replace(regex, (match, rawKey: string, rawDefault: string | undefined) => {
+    const canonicalKey = rawKey.trim().toUpperCase()
+    const userVal = values[canonicalKey] ?? values[rawKey.trim()]
+    if (userVal !== undefined && userVal.trim() !== '') {
+      return userVal
+    }
+    const def = (rawDefault ?? '').trim()
+    return def || match
+  })
+}
+
 function PromptPage({ prompts }: { prompts: Prompt[] }) {
   const { slug = '' } = useParams()
   const navigate = useNavigate()
@@ -1278,9 +1339,82 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
     }
   }
 
-  const customizePosterUrl = prompt?.image
-    ? `/poster/upload?photo=${encodeURIComponent(imageAtWidth(prompt.image, 1600) || prompt.image)}`
-    : '/poster/upload'
+  const placeholders = useMemo(() => parsePromptPlaceholders(prompt?.promptText || ''), [prompt?.promptText])
+
+  const [customValues, setCustomValues] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {}
+    if (prompt?.promptText) {
+      for (const p of parsePromptPlaceholders(prompt.promptText)) {
+        if (p.defaultValue) {
+          initial[p.canonicalKey] = p.defaultValue
+        }
+      }
+    }
+    return initial
+  })
+
+  const [copiedCustom, setCopiedCustom] = useState(false)
+  const customizerRef = useRef<HTMLDivElement>(null)
+  const firstInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const initial: Record<string, string> = {}
+    if (prompt?.promptText) {
+      for (const p of placeholders) {
+        if (p.defaultValue) {
+          initial[p.canonicalKey] = p.defaultValue
+        }
+      }
+    }
+    setCustomValues(initial)
+    setCopiedCustom(false)
+    setCopied(false)
+  }, [prompt?.id, prompt?.promptText, placeholders])
+
+  const effectivePrompt = useMemo(
+    () => (prompt ? applyPromptCustomizations(prompt.promptText, customValues) : ''),
+    [prompt, customValues]
+  )
+
+  const isCustomized = useMemo(() => {
+    return placeholders.some((p) => {
+      const current = customValues[p.canonicalKey]
+      return current !== undefined && current !== p.defaultValue
+    })
+  }, [placeholders, customValues])
+
+  const handleValueChange = (canonicalKey: string, val: string) => {
+    setCustomValues((prev) => ({
+      ...prev,
+      [canonicalKey]: val,
+    }))
+  }
+
+  const handleResetDefaults = () => {
+    const initial: Record<string, string> = {}
+    for (const p of placeholders) {
+      if (p.defaultValue) {
+        initial[p.canonicalKey] = p.defaultValue
+      }
+    }
+    setCustomValues(initial)
+  }
+
+  const handleCustomizeAndCopy = async () => {
+    if (!effectivePrompt) return
+    try {
+      await navigator.clipboard.writeText(effectivePrompt)
+      setCopiedCustom(true)
+      setCopied(true)
+      if (prompt) record(prompt.id, 'copy')
+      window.setTimeout(() => {
+        setCopiedCustom(false)
+        setCopied(false)
+      }, 2000)
+    } catch (err) {
+      console.error('Failed to copy prompt:', err)
+    }
+  }
 
   const otherPrompts = useMemo(() => {
     if (!prompt) return []
@@ -1321,22 +1455,24 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
   const promptImage = prompt.image ? (imageAtWidth(prompt.image, 1200) ?? undefined) : undefined
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(prompt.promptText)
+      await navigator.clipboard.writeText(effectivePrompt)
       setCopied(true)
-      record(prompt.id, 'copy')
+      if (prompt) record(prompt.id, 'copy')
       window.setTimeout(() => setCopied(false), 1600)
     } catch {
       setCopied(false)
     }
   }
-  const shareText = `${prompt.title}\n\n${prompt.promptText}${prompt.image ? `\n\nImage:\n${imageAtWidth(prompt.image, 1200)}` : ''}\n\n${pageUrl}`
+  const shareText = prompt
+    ? `${prompt.title}\n\n${effectivePrompt}${prompt.image ? `\n\nImage:\n${imageAtWidth(prompt.image, 1200)}` : ''}\n\n${pageUrl}`
+    : ''
   const copyForAiTool = (label: string) => {
     if (!navigator.clipboard?.writeText) {
       setShareMessage('Clipboard is unavailable here. Copy the prompt above, then paste it into the tool.')
       return
     }
-    void navigator.clipboard.writeText(prompt.promptText).then(() => {
-      record(prompt.id, 'copy')
+    void navigator.clipboard.writeText(effectivePrompt).then(() => {
+      if (prompt) record(prompt.id, 'copy')
       setShareMessage(`Prompt copied. Paste it into ${label}.`)
       window.setTimeout(() => setShareMessage(''), 3000)
     }).catch(() => {
@@ -1404,14 +1540,21 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
                   {downloadSuccess ? <Check size={14} /> : <Download size={14} />}
                   <span>{downloading ? 'Downloading…' : downloadSuccess ? 'Downloaded!' : 'Download image'}</span>
                 </button>
-                <Link
-                  to={customizePosterUrl}
+                <button
+                  type="button"
                   className="detail-cover-btn detail-cover-btn-customize"
-                  title="Customise this image in Poster Editor"
+                  title="Customize & copy prompt"
+                  onClick={() => {
+                    void handleCustomizeAndCopy()
+                    if (placeholders.length > 0 && customizerRef.current) {
+                      customizerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                      firstInputRef.current?.focus()
+                    }
+                  }}
                 >
-                  <Sparkles size={14} />
-                  <span>Customise this image</span>
-                </Link>
+                  {copiedCustom ? <Check size={14} /> : <Sparkles size={14} />}
+                  <span>{copiedCustom ? 'Copied Prompt!' : 'Customize & Copy Prompt'}</span>
+                </button>
               </div>
             )}
           </div>
@@ -1423,37 +1566,118 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
             )}
             <h1>{prompt.title}</h1>
             <p>{prompt.description}</p>
+
+            {placeholders.length > 0 && (
+              <div className="prompt-customizer-card" ref={customizerRef}>
+                <div className="prompt-customizer-header">
+                  <div className="prompt-customizer-title-group">
+                    <span className="prompt-customizer-badge-icon">
+                      <Sparkles size={16} />
+                    </span>
+                    <div>
+                      <h3 className="prompt-customizer-title">Customize &amp; Personalize Prompt</h3>
+                      <p className="prompt-customizer-subtitle">
+                        Edit the variables below to customize your prompt in real-time
+                      </p>
+                    </div>
+                  </div>
+                  {isCustomized && (
+                    <button
+                      type="button"
+                      className="prompt-customizer-reset"
+                      onClick={handleResetDefaults}
+                      title="Reset variables to defaults"
+                    >
+                      <RotateCcw size={12} />
+                      <span>Reset</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="prompt-customizer-inputs">
+                  {placeholders.map((p, idx) => (
+                    <div key={p.canonicalKey} className="prompt-customizer-field">
+                      <label htmlFor={`field-${p.canonicalKey}`} className="prompt-customizer-label">
+                        <span className="field-name">{p.label}</span>
+                        {p.defaultValue && (
+                          <span className="field-default-tag" title={`Default: ${p.defaultValue}`}>
+                            Default: {p.defaultValue}
+                          </span>
+                        )}
+                      </label>
+                      <div className="prompt-customizer-input-wrapper">
+                        <input
+                          id={`field-${p.canonicalKey}`}
+                          ref={idx === 0 ? firstInputRef : undefined}
+                          type="text"
+                          className="prompt-customizer-text-input"
+                          value={customValues[p.canonicalKey] ?? p.defaultValue}
+                          placeholder={p.defaultValue || `Enter ${p.label}...`}
+                          onChange={(e) => handleValueChange(p.canonicalKey, e.target.value)}
+                        />
+                        {customValues[p.canonicalKey] && (
+                          <button
+                            type="button"
+                            className="prompt-customizer-clear-btn"
+                            onClick={() => handleValueChange(p.canonicalKey, '')}
+                            title="Clear"
+                            aria-label={`Clear ${p.label}`}
+                          >
+                            <X size={12} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="prompt-customizer-action-row">
+                  <button
+                    type="button"
+                    className="prompt-customizer-btn-primary"
+                    onClick={handleCustomizeAndCopy}
+                  >
+                    {copiedCustom ? <Check size={16} /> : <Sparkles size={16} />}
+                    <span>{copiedCustom ? 'Copied Customized Prompt!' : 'Customize & Copy Prompt'}</span>
+                    <ArrowRight size={15} />
+                  </button>
+                  <span className="prompt-customizer-hint">
+                    ✨ Live prompt updates below as you type
+                  </span>
+                </div>
+              </div>
+            )}
+
             <div className="detail-prompt-label">
               THE PROMPT <span>READY TO COPY</span>
             </div>
-            <div className="detail-prompt-text">{prompt.promptText}</div>
+            <div className="detail-prompt-text">{effectivePrompt}</div>
             <div className="detail-action-buttons">
               <button className="copy-large" onClick={copy}>
                 {copied ? <Check size={17} /> : <Copy size={17} />}
                 {copied ? 'Copied to clipboard' : 'Copy prompt'} <ArrowRight size={16} />
               </button>
+              <button
+                type="button"
+                className="detail-customize-btn detail-customize-copy-btn"
+                onClick={handleCustomizeAndCopy}
+                aria-label="Customize and copy prompt"
+              >
+                {copiedCustom ? <Check size={16} /> : <Sparkles size={16} />}
+                <span>{copiedCustom ? 'Copied Customized Prompt!' : 'Customize & Copy Prompt'}</span>
+                <ArrowRight size={14} />
+              </button>
               {prompt.image && (
-                <>
-                  <button
-                    type="button"
-                    className={`detail-download-btn ${downloadSuccess ? 'is-success' : ''}`}
-                    onClick={handleDownload}
-                    disabled={downloading}
-                    aria-label="Download image"
-                  >
-                    {downloadSuccess ? <Check size={16} /> : <Download size={16} />}
-                    {downloading ? 'Downloading…' : downloadSuccess ? 'Downloaded!' : 'Download image'}
-                  </button>
-                  <Link
-                    to={customizePosterUrl}
-                    className="detail-customize-btn"
-                    aria-label="Customise this image in Poster Editor"
-                  >
-                    <Sparkles size={16} />
-                    Customise this image
-                    <ArrowRight size={14} />
-                  </Link>
-                </>
+                <button
+                  type="button"
+                  className={`detail-download-btn ${downloadSuccess ? 'is-success' : ''}`}
+                  onClick={handleDownload}
+                  disabled={downloading}
+                  aria-label="Download image"
+                >
+                  {downloadSuccess ? <Check size={16} /> : <Download size={16} />}
+                  {downloading ? 'Downloading…' : downloadSuccess ? 'Downloaded!' : 'Download image'}
+                </button>
               )}
               <a
                 href={telegramUrl}
@@ -1541,7 +1765,7 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
                         const url =
                           target.id === 'whatsapp'
                             ? `${target.baseUrl}?text=${encodeURIComponent(shareText)}`
-                            : `${target.baseUrl}?url=${encodeURIComponent(prompt.image || pageUrl)}&text=${encodeURIComponent(`${prompt.title}\n\n${prompt.promptText}${prompt.image ? `\n\n${pageUrl}` : ''}`)}`
+                            : `${target.baseUrl}?url=${encodeURIComponent(prompt.image || pageUrl)}&text=${encodeURIComponent(`${prompt.title}\n\n${effectivePrompt}${prompt.image ? `\n\n${pageUrl}` : ''}`)}`
                         return (
                           <a
                             key={target.id}
