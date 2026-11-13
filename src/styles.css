@@ -1893,28 +1893,35 @@
 
 .detail-action-buttons {
   display: grid !important;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
-  gap: 10px !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 12px !important;
   margin-top: 14px !important;
+}
+
+@media (max-width: 520px) {
+  .detail-action-buttons {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 .detail-action-buttons .copy-large {
   margin-top: 0 !important;
-  min-height: 44px !important;
+  min-height: 46px !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 8px !important;
-  padding: 0 16px !important;
+  gap: 9px !important;
+  padding: 0 18px !important;
   border-radius: 10px !important;
   background: #18181b !important;
   color: #ffffff !important;
-  font-size: 11.5px !important;
+  font-size: 12px !important;
   font-weight: 750 !important;
   border: 0 !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
   cursor: pointer !important;
   transition: all 0.16s ease !important;
+  width: 100% !important;
 }
 
 .detail-action-buttons .copy-large:hover {
@@ -1923,60 +1930,72 @@
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15) !important;
 }
 
-.detail-action-buttons .detail-customize-btn {
-  min-height: 44px !important;
+.detail-action-buttons .detail-share-btn {
+  margin-top: 0 !important;
+  min-height: 46px !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 8px !important;
-  padding: 0 16px !important;
+  gap: 9px !important;
+  padding: 0 18px !important;
   border-radius: 10px !important;
   background: linear-gradient(135deg, #0a9f62 0%, #087447 100%) !important;
   color: #ffffff !important;
-  font-size: 11.5px !important;
+  font-size: 12px !important;
   font-weight: 750 !important;
   border: 0 !important;
   box-shadow: 0 4px 14px rgba(10, 159, 98, 0.28) !important;
   cursor: pointer !important;
   transition: all 0.16s ease !important;
+  width: 100% !important;
 }
 
-.detail-action-buttons .detail-customize-btn:hover {
+.detail-action-buttons .detail-share-btn:hover {
   transform: translateY(-1px) !important;
   filter: brightness(1.06) !important;
   box-shadow: 0 6px 18px rgba(10, 159, 98, 0.38) !important;
+  color: #ffffff !important;
 }
 
-.detail-action-buttons .detail-download-btn {
-  min-height: 44px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 8px !important;
-  padding: 0 16px !important;
-  border-radius: 10px !important;
-  background: #ffffff !important;
-  color: #1f2937 !important;
-  font-size: 11.5px !important;
-  font-weight: 750 !important;
-  border: 1.5px solid #d1d5db !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
-  cursor: pointer !important;
-  transition: all 0.16s ease !important;
+.prompt-share-panel.is-open {
+  margin-top: 16px;
+  border-radius: 14px;
+  border: 1.5px solid #d1fae5;
+  background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%);
+  padding: 18px;
+  box-shadow: 0 4px 18px rgba(10, 159, 98, 0.07);
 }
 
-.detail-action-buttons .detail-download-btn:hover:not(:disabled) {
-  transform: translateY(-1px) !important;
-  border-color: #0a9f62 !important;
-  color: #087447 !important;
-  background: #f9fafb !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06) !important;
+.share-copy-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  background: #ffffff;
+  border: 1.5px solid #d1d5db;
+  color: #1f2937;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 8px;
+  padding: 8px 14px;
+  transition: all 0.15s ease;
 }
 
-.detail-action-buttons .detail-download-btn.is-success {
-  background: #ecfdf5 !important;
-  border-color: #10b981 !important;
-  color: #065f46 !important;
+.share-copy-link:hover {
+  border-color: #0a9f62;
+  color: #087447;
+  background: #f0fdf4;
+}
+
+[data-scheme="dark"] .prompt-share-panel.is-open {
+  border-color: #064e3b;
+  background: #111827;
+}
+
+[data-scheme="dark"] .share-copy-link {
+  background: #1f2937;
+  border-color: #374151;
+  color: #f3f4f6;
 }
 
 .detail-social-actions-pills {

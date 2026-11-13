@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ChevronDown, Clock3, Copy, DatabaseBackup, Download, Facebook, Video, Flame, Headphones, Heart, Home, ImagePlus, Images, Instagram, KeyRound, Layers, LayoutDashboard, LayoutGrid, Linkedin, Lock, LockOpen, LogOut, Mail, Menu, MessageCircle, Play, Plus, RotateCcw, Search, ShieldCheck, SlidersHorizontal, Sparkles, Store, Sun, Trash2, Twitter, X, Zap } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ChevronDown, Clock3, Copy, DatabaseBackup, Download, Facebook, Video, Flame, Headphones, Heart, Home, ImagePlus, Images, Instagram, KeyRound, Layers, LayoutDashboard, LayoutGrid, Linkedin, Lock, LockOpen, LogOut, Mail, Menu, MessageCircle, Play, Plus, RotateCcw, Search, Share2, ShieldCheck, SlidersHorizontal, Sparkles, Store, Sun, Trash2, Twitter, X, Zap } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { appConfig } from '../config/app.config'
 import { toolsConfig, type ToolDefinition, type ToolIcon } from '../config/ToolsConfig'
@@ -1364,75 +1364,6 @@ function ToolPage({ tool, prompts = [] }: { tool: ToolDefinition; prompts?: Prom
   )
 }
 
-const detailFeaturedTools = [
-  {
-    id: 'poster',
-    title: 'Create Poster',
-    tagline: 'Design Studio',
-    desc: 'Turn any photo into print-ready social posters, banners & flyers with custom typography, elements and layout presets.',
-    icon: 'sparkles' as const,
-    href: '/poster',
-    preview: '/images/tools/poster-preview.svg',
-    badge: 'Free Tool',
-    chips: ['100+ Layouts', 'Print Ready', 'No Watermark'],
-  },
-  {
-    id: 'watermark-remover',
-    title: 'Watermark Remover',
-    tagline: 'AI Inpainting',
-    desc: 'Cleanly erase unwanted watermarks, logos, timestamps & stamps with neural image reconstruction.',
-    icon: 'droplets' as const,
-    href: '/watermark-remover',
-    preview: '/images/tools/watermark-preview.svg',
-    badge: 'Free AI Tool',
-    chips: ['100% Automatic', 'Texture Restore', 'Instant'],
-  },
-  {
-    id: 'compress-image',
-    title: 'Compress Image',
-    tagline: 'Batch Optimizer',
-    desc: 'Shrink high-resolution JPG & PNG file sizes by up to 90% without visible loss of sharpness.',
-    icon: 'file-archive' as const,
-    href: '/compress-image',
-    preview: '/images/tools/compress-preview.svg',
-    badge: 'Free Tool',
-    chips: ['Up to -90%', 'Bulk Zip Download', 'Lossless'],
-  },
-  {
-    id: 'qr-code',
-    title: 'QR Code Generator',
-    tagline: 'Vector Creator',
-    desc: 'Generate customized high-resolution branded QR codes with colors, custom dot patterns & logos.',
-    icon: 'qr-code' as const,
-    href: '/qr-code',
-    preview: '/images/tools/qrcode-preview.svg',
-    badge: 'Free Tool',
-    chips: ['High-Res PNG & SVG', 'Custom Logo', 'Wi-Fi & URL'],
-  },
-  {
-    id: 'passport-photo',
-    title: 'Passport Photo Maker',
-    tagline: 'Official Compliance',
-    desc: 'Create official compliant passport & visa photos in 2×2 in, 35×45 mm with auto background color.',
-    icon: 'id-card' as const,
-    href: '/passport-photo',
-    preview: '/images/tools/passport-preview.svg',
-    badge: 'Free Tool',
-    chips: ['Official Sizes', 'White & Blue BG', 'Print Sheets'],
-  },
-  {
-    id: 'remove-object',
-    title: 'Remove Object from Image',
-    tagline: 'Magic Eraser',
-    desc: 'Brush over unwanted photobombers, text, power lines or clutter to seamlessly wipe them from any photo.',
-    icon: 'eraser' as const,
-    href: '/remove-object',
-    preview: '/images/tools/eraser-preview.svg',
-    badge: 'Free AI Tool',
-    chips: ['AI Inpainting', 'Photobomber Wipe', 'Zero Sign Up'],
-  },
-]
-
 export interface PromptPlaceholder {
   raw: string
   key: string
@@ -1500,13 +1431,9 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
   const [copied, setCopied] = useState(false)
   const [shareMenuOpen, setShareMenuOpen] = useState(false)
   const [shareMessage, setShareMessage] = useState('')
-  const [savedIds, setSavedIds] = useState<string[]>([])
   const [downloading, setDownloading] = useState(false)
   const [downloadSuccess, setDownloadSuccess] = useState(false)
-  const { counts, record } = useEngagement()
-
-  const toggleSave = (id: string) =>
-    setSavedIds((ids) => (ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id]))
+  const { record } = useEngagement()
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -1610,28 +1537,6 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
     }
   }
 
-  const otherPrompts = useMemo(() => {
-    if (!prompt) return []
-    const currentKey = normalizeSlug(prompt.slug)
-    const currentTags = promptTags(prompt).map((t) => t.toLowerCase())
-    const others = deduplicatePrompts(prompts).filter(
-      (p) => p.id !== prompt.id && normalizeSlug(p.slug) !== currentKey
-    )
-    return others
-      .sort((a, b) => {
-        const aTags = promptTags(a).map((t) => t.toLowerCase())
-        const bTags = promptTags(b).map((t) => t.toLowerCase())
-        const aMatch =
-          (a.category && a.category.toLowerCase() === (prompt.category || '').toLowerCase() ? 2 : 0) +
-          (aTags.some((t) => currentTags.includes(t)) ? 1 : 0)
-        const bMatch =
-          (b.category && b.category.toLowerCase() === (prompt.category || '').toLowerCase() ? 2 : 0) +
-          (bTags.some((t) => currentTags.includes(t)) ? 1 : 0)
-        return bMatch - aMatch || (b.createdAt || '').localeCompare(a.createdAt || '')
-      })
-      .slice(0, 8)
-  }, [prompt, prompts])
-
   if (!prompt) {
     return (
       <main className="not-found">
@@ -1657,6 +1562,22 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
       setCopied(false)
     }
   }
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: prompt?.title || 'AI Prompt on ImgMojo',
+          text: `${prompt?.title ? `${prompt.title}\n\n` : ''}${effectivePrompt}\n\n`,
+          url: pageUrl,
+        })
+        if (prompt) record(prompt.id, 'share')
+        return
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return
+      }
+    }
+    setShareMenuOpen((open) => !open)
+  }
   const shareText = prompt
     ? `${prompt.title}\n\n${effectivePrompt}${prompt.image ? `\n\nImage:\n${imageAtWidth(prompt.image, 1200)}` : ''}\n\n${pageUrl}`
     : ''
@@ -1674,10 +1595,6 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
       window.setTimeout(() => setShareMessage(''), 4000)
     })
   }
-  const instagramUsername = appConfig.community.instagramUsername || 'imgmojo'
-  const instagramUrl = appConfig.community.instagramUrl || `https://www.instagram.com/${instagramUsername}/`
-  const telegramUrl = appConfig.community.telegramUrl || 'https://web.telegram.org/a/#-1004392723031'
-  const facebookUrl = appConfig.community.facebookUrl || 'https://www.facebook.com/imgmojo'
 
   return (
     <div className="detail-shell">
@@ -1858,109 +1775,20 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
               </button>
               <button
                 type="button"
-                className="detail-customize-btn detail-customize-copy-btn"
-                onClick={handleCustomizeAndCopy}
-                aria-label="Customize and copy prompt"
+                className="detail-share-btn"
+                onClick={handleShare}
+                aria-label="Share prompt"
               >
-                {copiedCustom ? <Check size={16} /> : <Sparkles size={16} />}
-                <span>{copiedCustom ? 'Copied Customized Prompt!' : 'Customize & Copy Prompt'}</span>
-                <ArrowRight size={14} />
+                <Share2 size={16} />
+                <span>{shareMenuOpen ? 'Hide Share Options' : 'Share prompt'}</span>
               </button>
-              {prompt.image && (
-                <button
-                  type="button"
-                  className={`detail-download-btn ${downloadSuccess ? 'is-success' : ''}`}
-                  onClick={handleDownload}
-                  disabled={downloading}
-                  aria-label="Download image"
-                >
-                  {downloadSuccess ? <Check size={16} /> : <Download size={16} />}
-                  <span>{downloading ? 'Downloading…' : downloadSuccess ? 'Downloaded!' : 'Download image'}</span>
-                </button>
-              )}
             </div>
-            <div className="detail-social-actions-pills">
-              <a
-                href={telegramUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="detail-telegram-action"
-                aria-label="Join our Telegram Channel"
-              >
-                <TelegramIcon size={15} /> Join Telegram <ArrowUpRight size={12} />
-              </a>
-              <a
-                href={instagramUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="detail-instagram-action"
-                aria-label="Follow us on Instagram"
-              >
-                <Instagram size={15} /> Follow on Instagram <ArrowUpRight size={12} />
-              </a>
-              <a
-                href={facebookUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="detail-facebook-action"
-                aria-label="Follow us on Facebook"
-              >
-                <Facebook size={15} /> Follow on Facebook <ArrowUpRight size={12} />
-              </a>
-            </div>
-            <div className="detail-community-cards">
-              <a href={telegramUrl} target="_blank" rel="noreferrer" className="detail-social-card card-telegram">
-                <div className="social-card-badge badge-telegram">
-                  <TelegramIcon size={20} />
-                </div>
-                <div className="social-card-content">
-                  <strong>Join our Telegram Channel</strong>
-                  <span>Instant prompt drops, exclusive creator resources &amp; discussions</span>
-                </div>
-                <span className="social-card-arrow arrow-telegram">
-                  Join <ArrowUpRight size={13} />
-                </span>
-              </a>
 
-              <a href={instagramUrl} target="_blank" rel="noreferrer" className="detail-social-card card-instagram">
-                <div className="social-card-badge badge-instagram">
-                  <Instagram size={20} />
-                </div>
-                <div className="social-card-content">
-                  <strong>Follow on Instagram</strong>
-                  <span>Get new daily AI prompts, trends &amp; tutorials <b>@{instagramUsername}</b></span>
-                </div>
-                <span className="social-card-arrow arrow-instagram">
-                  Follow <ArrowUpRight size={13} />
-                </span>
-              </a>
-
-              <a href={facebookUrl} target="_blank" rel="noreferrer" className="detail-social-card card-facebook">
-                <div className="social-card-badge badge-facebook">
-                  <Facebook size={20} />
-                </div>
-                <div className="social-card-content">
-                  <strong>Follow on Facebook</strong>
-                  <span>Latest guides, community highlights &amp; tips</span>
-                </div>
-                <span className="social-card-arrow arrow-facebook">
-                  Follow <ArrowUpRight size={13} />
-                </span>
-              </a>
-            </div>
-            <section className="prompt-share-panel">
-              <button
-                type="button"
-                className="prompt-share-toggle"
-                aria-expanded={shareMenuOpen}
-                onClick={() => setShareMenuOpen((open) => !open)}
-              >
-                <Copy size={17} /> Share prompt <span>{shareMenuOpen ? '−' : '+'}</span>
-              </button>
-              {shareMenuOpen && (
+            {shareMenuOpen && (
+              <section className="prompt-share-panel is-open">
                 <div className="prompt-share-options">
                   <div className="share-group">
-                    <strong>Send to someone</strong>
+                    <strong>Share to</strong>
                     <div className="share-target-list">
                       {appConfig.promptSharing.messaging.map((target) => {
                         const url =
@@ -1980,6 +1808,21 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
                           </a>
                         )
                       })}
+                      <button
+                        type="button"
+                        className="share-target share-copy-link"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(pageUrl)
+                            setShareMessage('Link copied to clipboard!')
+                            window.setTimeout(() => setShareMessage(''), 3000)
+                          } catch {
+                            setShareMessage('Could not copy link.')
+                          }
+                        }}
+                      >
+                        <Copy size={14} /> Copy Link
+                      </button>
                     </div>
                   </div>
                   <div className="share-group">
@@ -2004,8 +1847,8 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
                     </p>
                   </div>
                 </div>
-              )}
-            </section>
+              </section>
+            )}
             {shareMessage && (
               <p className="share-status" role="status">
                 {shareMessage}
@@ -2013,81 +1856,6 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
             )}
           </div>
         </div>
-
-        {/* Other creative tools showcase */}
-        <section className="detail-tools-showcase" aria-label="Free creative tools">
-          <div className="detail-section-head">
-            <div>
-              <span className="section-kicker">IMGMOJO CREATIVE SUITE</span>
-              <h2>Supercharge Your Photos With Free Tools</h2>
-              <p>Enhance, edit, and transform images with our fast, in-browser creative tools — 100% free.</p>
-            </div>
-          </div>
-          <div className="detail-tools-grid">
-            {detailFeaturedTools.map((tool) => (
-              <Link key={tool.id} to={tool.href} className="detail-tool-card">
-                <div className="detail-tool-preview-wrap">
-                  <img src={tool.preview} alt={`${tool.title} screenshot`} className="detail-tool-preview-img" loading="lazy" />
-                  <span className="detail-tool-badge">
-                    <Sparkles size={11} /> {tool.badge}
-                  </span>
-                </div>
-                <div className="detail-tool-info">
-                  <div className="detail-tool-title-row">
-                    <div className={`detail-tool-icon icon-${tool.id}`}>
-                      <ToolGlyph icon={tool.icon} size={18} />
-                    </div>
-                    <div>
-                      <h3>{tool.title}</h3>
-                      <span className="detail-tool-tagline">{tool.tagline}</span>
-                    </div>
-                  </div>
-                  <p>{tool.desc}</p>
-                  <div className="detail-tool-chips">
-                    {tool.chips.map((chip) => (
-                      <span key={chip} className="detail-tool-chip">{chip}</span>
-                    ))}
-                  </div>
-                </div>
-                <div className="detail-tool-action-bar">
-                  <span className="detail-tool-cta">
-                    Try Tool Free <ArrowRight size={14} />
-                  </span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* Other prompts recommendations */}
-        {otherPrompts.length > 0 && (
-          <section className="detail-other-prompts" aria-label="Other prompts you may like">
-            <div className="detail-section-head">
-              <div>
-                <span className="section-kicker">MORE INSPIRATION</span>
-                <h2>Other Prompts You May Like</h2>
-                <p>Explore related trending prompts, ready to copy and remix.</p>
-              </div>
-              <Link to="/" className="detail-view-all-btn">
-                View all prompts <ArrowRight size={14} />
-              </Link>
-            </div>
-            <div className="prompt-grid">
-              {otherPrompts.map((item, index) => (
-                <PromptCard
-                  key={item.id}
-                  prompt={item}
-                  index={index}
-                  saved={savedIds.includes(item.id)}
-                  engagement={engagementFor(counts, item.id)}
-                  onToggleSave={() => toggleSave(item.id)}
-                  onCopy={() => record(item.id, 'copy')}
-                  onHashtag={(tag) => navigate(`/?filter=${encodeURIComponent(tag)}`)}
-                />
-              ))}
-            </div>
-          </section>
-        )}
       </main>
       <SiteFooter />
     </div>
