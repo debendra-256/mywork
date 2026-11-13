@@ -777,10 +777,46 @@ export default function CreatePoster() {
             </div>
           </header>
         ) : (
-          <header className="cp-head cp-head--submode">
-            <Link to="/poster" className="cp-back"><ArrowLeft size={13} /> Back to poster options</Link>
-            <div className="cp-hero-kicker"><Sparkles size={12} /> CREATE POSTER</div>
-            <h1>Turn any photo into <em>a poster.</em></h1>
+          <header className="cp-sub-hero">
+            <div className="cp-sub-hero-body">
+              <div className="cp-sub-hero-content">
+                <Link to="/poster" className="cp-back"><ArrowLeft size={13} /> All start options</Link>
+                <div className="cp-hero-kicker">
+                  <Sparkles size={12} className="cp-sparkle-icon" />
+                  {mode === 'photo' ? 'UPLOAD PHOTO' : mode === 'blank' ? 'BLANK POSTER' : 'PREDEFINED TEMPLATES'}
+                </div>
+                <h1 className="cp-sub-hero-title">
+                  {mode === 'photo' ? (
+                    <>Upload photos & make <span className="cp-title-accent">stunning Posters</span></>
+                  ) : mode === 'blank' ? (
+                    <>Pick page size & colour for <span className="cp-title-accent">Blank Poster</span></>
+                  ) : (
+                    <>Choose from ready-made <span className="cp-title-accent">Poster Templates</span></>
+                  )}
+                </h1>
+                <p className="cp-sub-hero-desc">
+                  {mode === 'photo'
+                    ? 'Upload one or multiple images below. Each image is split into its own post ready for its own template, or you can edit it directly.'
+                    : mode === 'blank'
+                    ? 'Select your aspect ratio and canvas background colour to start designing freely.'
+                    : 'Select any layout below to open it in the editor and customize with your own text, photos, and scanned elements.'}
+                </p>
+                {mode === 'photo' && (
+                  <div className="cp-sub-hero-pills">
+                    <span className="cp-hero-val"><Zap size={13} className="cp-val-icon cp-val-icon--yellow" fill="currentColor" /> Up to 12 Photos</span>
+                    <span className="cp-hero-val"><Cloud size={13} className="cp-val-icon cp-val-icon--purple" /> High-Resolution HD</span>
+                    <span className="cp-hero-val"><Gift size={13} className="cp-val-icon cp-val-icon--pink" /> Auto Draft Saving</span>
+                  </div>
+                )}
+              </div>
+              <div className="cp-sub-hero-art" aria-hidden="true">
+                <img
+                  src={mode === 'photo' ? '/images/poster-card-upload.png' : mode === 'blank' ? '/images/poster-card-blank.png' : '/images/poster-card-template.png'}
+                  alt=""
+                  className="cp-sub-hero-img"
+                />
+              </div>
+            </div>
           </header>
         )}
 
@@ -915,10 +951,22 @@ export default function CreatePoster() {
               className="cp-drop"
               onClick={pickFile}
             >
-              <span className="cp-drop-icon"><ImagePlus size={24} /></span>
-              <strong>{preparing ? 'Preparing your images…' : 'Drag & drop one or many images, or browse'}</strong>
-              <small>JPG, PNG, WebP or GIF · up to 25 MB each · up to {MAX_IMAGES} at once</small>
-              <span className="cp-drop-cta">Choose images <ArrowRight size={14} /></span>
+              <div className="cp-drop-art-wrap">
+                <img src="/images/poster-card-upload.png" alt="" className="cp-drop-art-img" />
+              </div>
+              <span className="cp-drop-icon"><UploadCloud size={24} /></span>
+              <strong>{preparing ? 'Preparing your images…' : 'Drag & drop one or multiple photos, or browse'}</strong>
+              <small>JPG, PNG, WebP or GIF · Up to 25 MB each · Up to {MAX_IMAGES} photos at once</small>
+              <span className="cp-drop-cta">
+                <UploadCloud size={14} />
+                <span>Browse Images</span>
+                <ArrowRight size={14} />
+              </span>
+              <div className="cp-drop-pills">
+                <span className="cp-drop-pill">✨ Batch upload</span>
+                <span className="cp-drop-pill">🎨 Auto photo slot</span>
+                <span className="cp-drop-pill">💾 Auto draft saving</span>
+              </div>
             </button>
           )}
           {error && <p className="cp-error" role="alert">{error}</p>}
