@@ -63,5 +63,192 @@
       }
     ],
     "createdAt": 1700000000000
+  },
+  {
+    "id": "el_event_birthday_splash",
+    "name": "Happy Birthday Vibrant Splash",
+    "tag": "Events",
+    "src": "/ScannedElement/el_event_birthday_splash.png",
+    "aspect": 1.122,
+    "width": 698,
+    "height": 622,
+    "slots": [],
+    "createdAt": 1731450000000
+  },
+  {
+    "id": "el_event_birthday_cake",
+    "name": "Happy Birthday Cake Badge",
+    "tag": "Events",
+    "src": "/ScannedElement/el_event_birthday_cake.png",
+    "aspect": 1.659,
+    "width": 672,
+    "height": 405,
+    "slots": [],
+    "createdAt": 1731450001000
+  },
+  {
+    "id": "el_event_anniversary_lettering",
+    "name": "Happy Anniversary Lettering",
+    "tag": "Events",
+    "src": "/ScannedElement/el_event_anniversary_lettering.png",
+    "aspect": 2.196,
+    "width": 582,
+    "height": 265,
+    "slots": [],
+    "createdAt": 1731450002000
+  },
+  {
+    "id": "el_event_birthday_gold_red",
+    "name": "Happy Birthday Gold & Red",
+    "tag": "Events",
+    "src": "/ScannedElement/el_event_birthday_gold_red.png",
+    "aspect": 1.82,
+    "width": 699,
+    "height": 384,
+    "slots": [],
+    "createdAt": 1731450003000
+  },
+  {
+    "id": "el_event_new_year_2026",
+    "name": "Happy New Year 2026",
+    "tag": "Events",
+    "src": "/ScannedElement/el_event_new_year_2026.png",
+    "aspect": 1.11,
+    "width": 596,
+    "height": 537,
+    "slots": [],
+    "createdAt": 1731450004000
+  },
+  {
+    "id": "el_event_first_birthday_decor",
+    "name": "Kids First Birthday Decor",
+    "tag": "Events",
+    "src": "/ScannedElement/el_event_first_birthday_decor.png",
+    "aspect": 0.869,
+    "width": 611,
+    "height": 703,
+    "slots": [],
+    "createdAt": 1731450005000
+  },
+  {
+    "id": "el_event_nav_varsh_creative",
+    "name": "Nav Varsh Hindi Calligraphy",
+    "tag": "Events",
+    "src": "/ScannedElement/el_event_nav_varsh_creative.png",
+    "aspect": 1.017,
+    "width": 593,
+    "height": 583,
+    "slots": [],
+    "createdAt": 1731450006000
+  },
+  {
+    "id": "el_event_nav_varsh_hardik",
+    "name": "Nav Varsh Hardik Shubhkamnaye",
+    "tag": "Events",
+    "src": "/ScannedElement/el_event_nav_varsh_hardik.png",
+    "aspect": 1.132,
+    "width": 283,
+    "height": 250,
+    "slots": [],
+    "createdAt": 1731450007000
+  },
+  {
+    "id": "el_event_anniversary_hearts",
+    "name": "Happy Anniversary Hearts",
+    "tag": "Events",
+    "src": "/ScannedElement/el_event_anniversary_hearts.png",
+    "aspect": 1.18,
+    "width": 649,
+    "height": 550,
+    "slots": [],
+    "createdAt": 1731450008000
+  },
+  {
+    "id": "el_festival_chhath_puja_arghya",
+    "name": "Chhath Puja Arghya Clipart",
+    "tag": "Festivals",
+    "src": "/ScannedElement/el_festival_chhath_puja_arghya.png",
+    "aspect": 1.491,
+    "width": 689,
+    "height": 462,
+    "slots": [],
+    "createdAt": 1731450009000
+  },
+  {
+    "id": "el_festival_diwali_shubh_calligraphy",
+    "name": "Shubh Diwali Calligraphy",
+    "tag": "Festivals",
+    "src": "/ScannedElement/el_festival_diwali_shubh_calligraphy.png",
+    "aspect": 1.177,
+    "width": 578,
+    "height": 491,
+    "slots": [],
+    "createdAt": 1731450010000
+  },
+  {
+    "id": "el_festival_diwali_diya_rangoli",
+    "name": "Diwali Diya & Rangoli Decor",
+    "tag": "Festivals",
+    "src": "/ScannedElement/el_festival_diwali_diya_rangoli.png",
+    "aspect": 1.01,
+    "width": 712,
+    "height": 705,
+    "slots": [],
+    "createdAt": 1731450011000
+  },
+  {
+    "id": "el_festival_chhath_puja_wishes",
+    "name": "Chhath Puja Mahaparv Wishes",
+    "tag": "Festivals",
+    "src": "/ScannedElement/el_festival_chhath_puja_wishes.png",
+    "aspect": 1.761,
+    "width": 699,
+    "height": 397,
+    "slots": [],
+    "createdAt": 1731450012000
+  },
+  {
+    "id": "el_festival_happy_diwali_oil_lamp",
+    "name": "Happy Diwali Oil Lamp Greeting",
+    "tag": "Festivals",
+    "src": "/ScannedElement/el_festival_happy_diwali_oil_lamp.png",
+    "aspect": 1.004,
+    "width": 735,
+    "height": 732,
+    "slots": [],
+    "createdAt": 1731450013000
+  },
+  {
+    "id": "el_festival_diwali_multicolor",
+    "name": "Happy Diwali Multicolor Typography",
+    "tag": "Festivals",
+    "src": "/ScannedElement/el_festival_diwali_multicolor.png",
+    "aspect": 1.822,
+    "width": 614,
+    "height": 337,
+    "slots": [],
+    "createdAt": 1731450014000
+  },
+  {
+    "id": "el_other_comic_boom_yellow",
+    "name": "Comic Boom Yellow Splash",
+    "tag": "Others",
+    "src": "/ScannedElement/el_other_comic_boom_yellow.png",
+    "aspect": 1.208,
+    "width": 598,
+    "height": 495,
+    "slots": [],
+    "createdAt": 1731450015000
+  },
+  {
+    "id": "el_other_comic_boom_cyan",
+    "name": "Comic Boom Cyan Splash",
+    "tag": "Others",
+    "src": "/ScannedElement/el_other_comic_boom_cyan.png",
+    "aspect": 1.237,
+    "width": 736,
+    "height": 595,
+    "slots": [],
+    "createdAt": 1731450016000
   }
 ]
