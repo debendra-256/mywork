@@ -3,29 +3,130 @@ import {
   Check,
   ChevronDown,
   Copy,
-  Crown,
-  FileText,
-  Flower2,
-  Gamepad2,
-  Heart,
-  HelpCircle,
-  LayoutGrid,
-  Leaf,
-  Search,
-  Share2,
-  Shuffle,
   Smile,
-  Sparkles,
-  Star,
-  Trash2,
   X,
 } from 'lucide-react'
 import { appConfig } from '../../config/app.config'
-import { styleCategories, textStyles } from './text-styles'
+import { textStyles } from './text-styles'
 import './EmojiTextGenerator.css'
 
+export const HINDI_CATEGORIES = [
+  { id: 'all', label: 'सभी' },
+  { id: 'bold', label: 'बोल्ड' },
+  { id: 'cursive', label: 'कर्सिव' },
+  { id: 'shapes', label: 'आकार' },
+  { id: 'effects', label: 'इफेक्ट्स' },
+  { id: 'glitch', label: 'ग्लिच' },
+  { id: 'small', label: 'छोटा' },
+  { id: 'fancy', label: 'फैंसी' },
+  { id: 'decorative', label: 'सजावटी' },
+  { id: 'calligraphy', label: 'सुलेख' },
+]
+
+export const HINDI_STYLE_META = {
+  'bold': { hindi: 'बोल्ड', categories: ['bold'] },
+  'bold-italic': { hindi: 'बोल्ड इटैलिक', categories: ['bold', 'cursive'] },
+  'sans-bold': { hindi: 'सैन्स बोल्ड', categories: ['bold', 'shapes'] },
+  'sans-bold-italic': { hindi: 'सैन्स बोल्ड इटैलिक', categories: ['bold', 'cursive'] },
+  'script-bold': { hindi: 'बोल्ड स्क्रिप्ट', categories: ['bold', 'cursive', 'calligraphy'] },
+  'italic': { hindi: 'इटैलिक', categories: ['cursive'] },
+  'script': { hindi: 'स्क्रिप्ट', categories: ['cursive', 'calligraphy'] },
+  'sans': { hindi: 'सैन्स', categories: ['shapes'] },
+  'sans-italic': { hindi: 'सैन्स इटैलिक', categories: ['cursive', 'shapes'] },
+  'fraktur': { hindi: 'फ़्रैक्चर', categories: ['fancy', 'calligraphy'] },
+  'fraktur-bold': { hindi: 'बोल्ड फ़्रैक्चर', categories: ['bold', 'fancy', 'calligraphy'] },
+  'double-struck': { hindi: 'डबल स्ट्रक', categories: ['shapes', 'fancy'] },
+  'monospace': { hindi: 'मोनोस्पेस', categories: ['shapes'] },
+  'small-caps': { hindi: 'स्मॉल कैप्स', categories: ['shapes', 'small'] },
+  'circled': { hindi: 'सर्कल्ड', categories: ['shapes', 'decorative'] },
+  'parenthesized': { hindi: 'कोष्ठक', categories: ['shapes'] },
+  'superscript': { hindi: 'सुपरस्क्रिप्ट', categories: ['small'] },
+  'subscript': { hindi: 'सबस्क्रिप्ट', categories: ['small'] },
+  'fullwidth': { hindi: 'फुलविड्थ', categories: ['shapes'] },
+  'flip': { hindi: 'उल्टा', categories: ['effects'] },
+  'underline': { hindi: 'अंडरलाइन', categories: ['effects'] },
+  'double-underline': { hindi: 'डबल अंडरलाइन', categories: ['effects'] },
+  'wavy-underline': { hindi: 'वेवी लाइन', categories: ['effects'] },
+  'strikethrough': { hindi: 'स्ट्राइकथ्रू', categories: ['effects'] },
+  'overline': { hindi: 'ओवरलाइन', categories: ['effects'] },
+  'slashed': { hindi: 'स्लैश', categories: ['effects'] },
+  'dotted': { hindi: 'डॉटेड', categories: ['effects'] },
+  'glitch-light': { hindi: 'हल्का ग्लिच', categories: ['glitch'] },
+  'glitch-heavy': { hindi: 'ग्लिच हेवी', categories: ['glitch'] },
+  'corrupt': { hindi: 'करप्ट Zalgo', categories: ['glitch'] },
+  'wings': { hindi: 'विंग्स', categories: ['decorative'] },
+  'heart-line': { hindi: 'हार्ट बीट', categories: ['decorative'] },
+  'kawaii': { hindi: 'कवाई', categories: ['decorative'] },
+  'star-string': { hindi: 'स्टार स्ट्रिंग', categories: ['decorative'] },
+  'flower-chain': { hindi: 'फ्लावर चेन', categories: ['decorative'] },
+  'lightning': { hindi: 'लाइटनिंग', categories: ['decorative'] },
+  'red-heart': { hindi: 'रेड हार्ट', categories: ['decorative'] },
+  'star-glow': { hindi: 'ग्लोइंग स्टार्स', categories: ['decorative'] },
+  'fire': { hindi: 'फायर', categories: ['decorative'] },
+  'crown': { hindi: 'क्राउन', categories: ['decorative'] },
+  'celebrate': { hindi: 'सेलिब्रेशन', categories: ['decorative'] },
+  'love-you': { hindi: 'लव यू', categories: ['decorative'] },
+  'party-sparkle': { hindi: 'स्पार्कल', categories: ['decorative'] },
+  'gaming-life': { hindi: 'गेमर', categories: ['decorative'] },
+  'blackletter': { hindi: 'ब्लैकलेटर', categories: ['fancy', 'calligraphy'] },
+  'gothic-cross': { hindi: 'क्रूसेडर', categories: ['fancy', 'calligraphy'] },
+  'runic': { hindi: 'रूनिक', categories: ['fancy'] },
+  'greek': { hindi: 'ग्रीक', categories: ['fancy'] },
+  'cyrillic': { hindi: 'स्लाविक', categories: ['fancy'] },
+  'cherokee': { hindi: 'चेरोकी', categories: ['fancy'] },
+  'vaporwave': { hindi: 'वेपरवेव', categories: ['decorative'] },
+  'aesthetic-star': { hindi: 'स्टार डस्ट', categories: ['decorative'] },
+  'aesthetic-moon': { hindi: 'नाइट ब्लूम', categories: ['decorative'] },
+  'aesthetic-cloud': { hindi: 'क्लाउड नाइन', categories: ['decorative'] },
+  'sniper': { hindi: 'स्नाइपर', categories: ['decorative'] },
+  'clan-tag': { hindi: 'क्लैन टैग', categories: ['bold', 'shapes'] },
+  'symbol-arrows': { hindi: 'एरो', categories: ['decorative'] },
+  'symbol-triangles': { hindi: 'ट्रायंगल', categories: ['decorative'] },
+  'symbol-moon': { hindi: 'हाफ मून', categories: ['decorative'] },
+  'corner': { hindi: 'कॉर्नर ब्रैकेट्स', categories: ['shapes'] },
+  'lenticular': { hindi: 'ब्लॉक ब्रैकेट्स', categories: ['shapes'] },
+  'box-lines': { hindi: 'बॉक्स लाइन्स', categories: ['shapes'] },
+  'spaced': { hindi: 'एयर स्पेसिंग', categories: ['effects'] },
+  'dot-between': { hindi: 'डॉट बिटवीन', categories: ['effects'] },
+  'slash-wrap': { hindi: 'स्लैश रैप', categories: ['effects'] },
+  'bar-wrap': { hindi: 'साइडबार', categories: ['effects'] },
+  'dash-around': { hindi: 'लॉन्ग डैश', categories: ['effects'] },
+  'snake-case': { hindi: 'स्नेक केस', categories: ['effects'] },
+  'pink-heart': { hindi: 'पिंक हार्ट', categories: ['decorative'] },
+  'soft-point': { hindi: 'सॉफ्ट पॉइंट', categories: ['decorative'] },
+  'bow': { hindi: 'रिबन बो', categories: ['decorative'] },
+  'music-note': { hindi: 'म्यूजिक नोट्स', categories: ['decorative'] },
+  'soft-wave': { hindi: 'सॉफ्ट वेव', categories: ['decorative'] },
+  'aesthetic-halo': { hindi: 'हेलो', categories: ['decorative'] },
+  'aesthetic-wave': { hindi: 'स्लो वेव', categories: ['decorative'] },
+  'aesthetic-quote': { hindi: 'सॉफ्ट कोट', categories: ['calligraphy', 'decorative'] },
+  'aesthetic-floral': { hindi: 'प्रेस्ड फ्लावर', categories: ['decorative'] },
+  'aesthetic-blossom': { hindi: 'ब्लॉसम ट्रेल', categories: ['decorative'] },
+  'aesthetic-orbit': { hindi: 'ऑर्बिट', categories: ['decorative'] },
+  'gothic-dagger': { hindi: 'डैगर रो', categories: ['fancy'] },
+  'gothic-altar': { hindi: 'अल्टार', categories: ['fancy'] },
+  'gothic-skull': { hindi: 'स्कल एंड बोन्स', categories: ['decorative'] },
+  'gothic-ankh': { hindi: 'अंख', categories: ['decorative'] },
+  'gothic-fleur': { hindi: 'फ्लेउर-डी-लिस', categories: ['decorative'] },
+  'gothic-spade': { hindi: 'स्पेड कोर्ट', categories: ['decorative'] },
+  'double-angle': { hindi: 'डबल एंगल', categories: ['shapes'] },
+  'angle': { hindi: 'एंगल ब्रैकेट्स', categories: ['shapes'] },
+  'symbol-asterisk': { hindi: 'एस्टरिक्स फ्लेयर', categories: ['decorative'] },
+  'symbol-diamond': { hindi: 'डायमंड डॉट', categories: ['decorative'] },
+  'symbol-music': { hindi: 'म्यूजिक स्कोर', categories: ['decorative'] },
+  'symbol-braille': { hindi: 'ब्रेल फ्रेम', categories: ['decorative'] },
+  'diamond-set': { hindi: 'डायमंड्स', categories: ['decorative'] },
+  'snowfall': { hindi: 'स्नोफॉल', categories: ['decorative'] },
+  'rose-drop': { hindi: 'रोज', categories: ['decorative'] },
+  'spectrum': { hindi: 'स्पेक्ट्रम बार्स', categories: ['decorative'] },
+  'crossed-out': { hindi: 'डिनाइड', categories: ['effects'] },
+  'neon-grid': { hindi: 'नियोन ग्रिड', categories: ['shapes'] },
+  'toxic': { hindi: 'टॉक्सिक', categories: ['decorative'] },
+  'rule-around': { hindi: 'फाइन रूल', categories: ['effects'] },
+  'lowercase': { hindi: 'ऑल लोअरकेस', categories: ['effects'] },
+}
+
 const maxLength = 280
-const favoritesKey = 'promptseen:emoji-text-favorites'
 
 function WhatsAppIcon({ size = 16, className = '' }) {
   return (
@@ -46,68 +147,6 @@ function WhatsAppIcon({ size = 16, className = '' }) {
 
 const whatsappBase = appConfig.promptSharing?.messaging?.find((target) => target.id === 'whatsapp')?.baseUrl ?? 'https://wa.me/'
 const whatsappUrl = (value) => `${whatsappBase}?text=${encodeURIComponent(value)}`
-
-const examples = ['Happy Birthday', 'Level 99 Noob', 'Thank You', 'Free Fire', 'Gamer', 'Love You ❤️']
-
-const randomPool = [
-  'hello',
-  'Good Morning ☀️',
-  'Game Over 🎮',
-  'Stay Cool 😎',
-  'Queen 💖',
-  'King 👑',
-  'Level 99 Noob',
-  'Happy Birthday 🎉',
-  'Free Fire',
-  'Love You ❤️',
-  'Toxic Player ☠️',
-  'Angel 🪽',
-  'Cyberpunk ⚡',
-  'Vibes ✨',
-  'Pro Gamer 🕹️',
-  'Dream Big 🚀',
-  'Sunshine 🌻',
-  'Legend ⚔️',
-]
-
-const categoryIconMap = {
-  all: LayoutGrid,
-  fancy: Sparkles,
-  cute: Heart,
-  gaming: Gamepad2,
-  aesthetic: Flower2,
-  gothic: Crown,
-  minimal: Leaf,
-  symbols: Star,
-  emoji: Smile,
-  favorites: Star,
-}
-
-const categoryBadgeMap = {
-  fancy: 'FANCY',
-  cute: 'CUTE',
-  gaming: 'GAMING',
-  aesthetic: 'AESTHETIC',
-  gothic: 'GOTHIC',
-  minimal: 'MINIMAL',
-  symbols: 'SYMBOLS',
-  emoji: 'EMOJI',
-}
-
-const favoriteIds = () => {
-  try {
-    const stored = JSON.parse(localStorage.getItem(favoritesKey) ?? '[]')
-    return new Set(Array.isArray(stored) ? stored.filter((id) => typeof id === 'string') : [])
-  } catch {
-    return new Set()
-  }
-}
-
-const isStyleMatch = (style, needle) =>
-  !needle ||
-  style.name.toLowerCase().includes(needle) ||
-  style.category.toLowerCase().includes(needle) ||
-  style.id.includes(needle)
 
 // FAQ list for schema and on-page content
 const faqs = [
@@ -143,12 +182,11 @@ export default function EmojiTextGenerator() {
     return 'hello'
   })
   const [view, setView] = useState('all')
-  const [query, setQuery] = useState('')
-  const [favorites, setFavorites] = useState(favoriteIds)
   const [copiedKey, setCopiedKey] = useState('')
   const [notice, setNotice] = useState('')
   const [openFaq, setOpenFaq] = useState(null)
   const copiedTimer = useRef(0)
+  const inputRef = useRef(null)
 
   // Injected SEO Metadata and JSON-LD schemas
   useEffect(() => {
@@ -270,42 +308,37 @@ export default function EmojiTextGenerator() {
     }
   }, [])
 
-  const source = text.trim()
-  const needle = query.trim().toLowerCase()
-
   const results = useMemo(() => {
-    if (!source) return []
+    const preview = text || 'hello'
     return textStyles
-      .filter((style) => (view === 'favorites' ? favorites.has(style.id) : view === 'all' || style.category === view))
-      .filter((style) => isStyleMatch(style, needle))
-      .map((style) => ({ id: style.id, name: style.name, category: style.category, output: style.transform(source) }))
-  }, [source, view, favorites, needle])
-
-  const categoryCounts = useMemo(() => {
-    const counts = { all: textStyles.length, favorites: favorites.size }
-    for (const style of textStyles) counts[style.category] = (counts[style.category] ?? 0) + 1
-    return counts
-  }, [favorites])
-
-  const toggleFavorite = (id) => {
-    setFavorites((current) => {
-      const next = new Set(current)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      try {
-        localStorage.setItem(favoritesKey, JSON.stringify([...next]))
-      } catch {
-        // Storage full fallback
-      }
-      return next
-    })
-  }
+      .filter((style) => {
+        if (view === 'all') return true
+        const meta = HINDI_STYLE_META[style.id]
+        if (meta && meta.categories) {
+          return meta.categories.includes(view)
+        }
+        return style.category === view
+      })
+      .map((style) => {
+        const meta = HINDI_STYLE_META[style.id] || { hindi: style.name, categories: [style.category] }
+        return {
+          id: style.id,
+          name: style.name,
+          hindi: meta.hindi || style.name,
+          category: style.category,
+          output: style.transform(preview),
+        }
+      })
+  }, [text, view])
 
   const markCopied = (key, label, failed) => {
     window.clearTimeout(copiedTimer.current)
     setCopiedKey(failed ? '' : key)
-    setNotice(failed ? `${label} could not be copied. Select the text and copy it instead.` : `${label} copied! Paste it anywhere.`)
-    copiedTimer.current = window.setTimeout(() => setCopiedKey(''), 1800)
+    setNotice(failed ? `${label} could not be copied.` : `${label} कॉपी हो गया!`)
+    copiedTimer.current = window.setTimeout(() => {
+      setCopiedKey('')
+      setNotice('')
+    }, 2000)
   }
 
   const copy = async (key, label, value) => {
@@ -317,333 +350,146 @@ export default function EmojiTextGenerator() {
     }
   }
 
-  const handleRandomText = () => {
-    const available = randomPool.filter((p) => p !== text)
-    const picked = available[Math.floor(Math.random() * available.length)] || 'Fancy Text'
-    setText(picked)
-  }
-
-  const handleShareTopOnWhatsApp = () => {
-    if (!results.length) return
-    const topOutput = results[0].output
-    window.open(whatsappUrl(topOutput), '_blank', 'noopener,noreferrer')
-  }
-
-  const chips = [...styleCategories, { id: 'favorites', label: 'Favorites' }]
-
   return (
     <div className="emoji-text-wrapper">
-      {/* Full Width Hero Banner with 3D Illustration Graphic */}
-      <section className="emoji-text-hero">
-        <div className="emoji-text-hero-content">
-          <div className="emoji-text-hero-kicker">
-            <span className="emoji-text-kicker-emoji">🥰</span>
-            <span>EMOJI TEXT GENERATOR</span>
-          </div>
-          <h1>
-            Write in <span className="emoji-text-hero-gradient">Emoji Style Text</span>
-          </h1>
-          <p>
-            Type your words and instantly get 100+ stylish emoji fonts, decorations and gamer styles. Perfect for WhatsApp,
-            Instagram, bios, comments and more!
-          </p>
-        </div>
-
-        {/* 3D-styled Mobile Graphic Art */}
-        <div className="emoji-text-hero-graphic" aria-hidden="true">
-          <div className="emoji-text-3d-bubble">
-            <div className="emoji-text-3d-face">😍</div>
-            <div className="emoji-text-bubble-shine" />
-          </div>
-          <div className="emoji-text-floating-heart heart-1">💖</div>
-          <div className="emoji-text-floating-heart heart-2">💕</div>
-          <div className="emoji-text-3d-card">
-            <span className="emoji-text-card-aa">Aa</span>
-            <div className="emoji-text-card-sparkle">✨</div>
-          </div>
-        </div>
-      </section>
-
-      {/* Main 2-Column Responsive Workspace */}
-      <main className="emoji-text-layout">
-        {/* Left Column: Controls (Your Text + Style Groups) */}
-        <aside className="emoji-text-controls">
-          {/* Card 1: Your Text */}
-          <section className="emoji-text-card emoji-text-input-card">
-            <div className="emoji-text-card-head">
-              <div className="emoji-text-card-title">
-                <span className="emoji-text-title-icon">✏️</span>
-                <h2>Your Text</h2>
-              </div>
-              <span className="emoji-text-char-badge">
-                {source.length}/{maxLength}
-              </span>
-            </div>
-
-            <label className="emoji-text-textarea-wrap">
-              <textarea
-                rows={4}
-                value={text}
-                maxLength={maxLength}
-                onChange={(event) => setText(event.target.value)}
-                placeholder="Type a name, status or message…"
-                aria-label="Text to convert into stylish emoji fonts"
-              />
-            </label>
-
-            {/* Quick Actions Bar */}
-            <div className="emoji-text-quick-actions">
-              <button
-                type="button"
-                className="emoji-text-btn-ghost"
-                onClick={() => setText('')}
-                disabled={!text}
-                title="Clear text"
-              >
-                <Trash2 size={14} /> Clear
-              </button>
-              <button
-                type="button"
-                className="emoji-text-btn-ghost"
-                onClick={() => setText('ImgMojo Editor')}
-                title="Insert sample text"
-              >
-                <FileText size={14} /> Sample Text
-              </button>
-              <button
-                type="button"
-                className="emoji-text-btn-random"
-                onClick={handleRandomText}
-                title="Generate random phrase"
-              >
-                <Shuffle size={14} /> Random Text
-              </button>
-            </div>
-
-            {/* Suggestion Pills */}
-            <div className="emoji-text-examples-row">
-              {examples.map((example) => (
-                <button
-                  key={example}
-                  type="button"
-                  className="emoji-text-example-pill"
-                  onClick={() => setText(example)}
-                >
-                  {example}
-                </button>
-              ))}
-            </div>
-          </section>
-
-          {/* Card 2: Style Groups */}
-          <section className="emoji-text-card emoji-text-groups-card">
-            <div className="emoji-text-card-head">
-              <div className="emoji-text-card-title">
-                <span className="emoji-text-title-icon">🎯</span>
-                <h2>Style Groups</h2>
-              </div>
-              <span className="emoji-text-styles-count">100+ styles</span>
-            </div>
-
-            <div className="emoji-text-chips-grid" role="radiogroup" aria-label="Filter styles by category">
-              {chips.map((entry) => {
-                const IconComponent = categoryIconMap[entry.id] || Sparkles
-                const isCurrent = view === entry.id
-                return (
-                  <button
-                    key={entry.id}
-                    type="button"
-                    role="radio"
-                    aria-checked={isCurrent}
-                    className={`emoji-text-chip-btn ${isCurrent ? 'is-active' : ''}`}
-                    onClick={() => setView(entry.id)}
-                  >
-                    <IconComponent
-                      size={14}
-                      className={entry.id === 'favorites' && categoryCounts.favorites ? 'is-filled' : ''}
-                    />
-                    <span className="emoji-text-chip-label">{entry.label}</span>
-                    <span className="emoji-text-chip-num">{categoryCounts[entry.id] ?? 0}</span>
-                  </button>
-                )
-              })}
-            </div>
-
-            <p className="emoji-text-compatibility-tip">
-              Styles are composed of universal Unicode glyphs and paste seamlessly into any modern app or platform.
-            </p>
-          </section>
-        </aside>
-
-        {/* Right Column: Fancy Font Variations List */}
-        <section className="emoji-text-card emoji-text-results-card" aria-label="Generated font variations">
-          {/* Header Row */}
-          <div className="emoji-text-results-header">
-            <div>
-              <div className="emoji-text-results-heading">
-                <Sparkles size={18} className="emoji-text-sparkle-icon" />
-                <h2>Fancy Font Variations</h2>
-              </div>
-              <p className="emoji-text-results-sub">Choose from 100+ stylish emoji text styles</p>
-            </div>
-
-            {/* Top Action Pills */}
-            <div className="emoji-text-top-actions">
-              <button
-                type="button"
-                className={`emoji-text-top-pill ${view === 'favorites' ? 'is-active' : ''}`}
-                onClick={() => setView(view === 'favorites' ? 'all' : 'favorites')}
-              >
-                <Star size={14} className={categoryCounts.favorites ? 'is-filled' : ''} />
-                Favorites ({categoryCounts.favorites ?? 0})
-              </button>
-
-              <button
-                type="button"
-                className="emoji-text-top-pill"
-                onClick={() => void copy('all', 'All styles', results.map((style) => style.output).join('\n'))}
-                disabled={!results.length}
-              >
-                {copiedKey === 'all' ? (
-                  <>
-                    <Check size={14} /> Copied All
-                  </>
-                ) : (
-                  <>
-                    <Copy size={14} /> Copy All
-                  </>
-                )}
-              </button>
-
-              <button
-                type="button"
-                className="emoji-text-top-pill emoji-text-top-whatsapp"
-                onClick={handleShareTopOnWhatsApp}
-                disabled={!results.length}
-              >
-                <WhatsAppIcon size={15} />
-                <span>Share on WhatsApp</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Search Input Bar */}
-          <div className="emoji-text-search-container">
-            <Search size={16} className="emoji-text-search-lens" />
+      <div className="et-modern-container">
+        {/* Search / Text Input Bar */}
+        <div className="et-search-section">
+          <div className="et-search-box">
             <input
-              value={query}
-              maxLength={40}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search font styles (e.g., bold, gothic, cute, gaming...)"
-              aria-label="Search font styles"
+              ref={inputRef}
+              type="text"
+              value={text}
+              maxLength={maxLength}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="hello"
+              className="et-search-input"
+              aria-label="Enter text to convert"
             />
-            {query && (
+            {text ? (
               <button
                 type="button"
-                className="emoji-text-search-clear-btn"
-                onClick={() => setQuery('')}
-                aria-label="Clear search"
+                className="et-search-clear-btn"
+                onClick={() => {
+                  setText('')
+                  inputRef.current?.focus()
+                }}
+                aria-label="Clear text"
               >
-                <X size={14} />
+                <X size={20} />
               </button>
-            )}
+            ) : null}
           </div>
+        </div>
 
-          {/* Toast Notification */}
-          {notice && (
-            <div className="emoji-text-toast" role="status">
-              <Check size={14} />
-              <span>{notice}</span>
-            </div>
-          )}
+        {/* Category Filter Pills Row */}
+        <div className="et-categories-section">
+          <div className="et-categories-row" role="tablist" aria-label="Font categories">
+            {HINDI_CATEGORIES.map((cat) => {
+              const isActive = view === cat.id
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  className={`et-category-pill ${isActive ? 'is-active' : ''}`}
+                  onClick={() => setView(cat.id)}
+                >
+                  {cat.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
 
-          {/* Variations List */}
-          {results.length ? (
-            <div className="emoji-text-list">
+        {/* 3-Column Font Cards Grid */}
+        <section className="et-cards-section" aria-label="Generated font styles">
+          {results.length > 0 ? (
+            <div className="et-cards-grid">
               {results.map((style) => {
-                const starred = favorites.has(style.id)
-                const badgeText = categoryBadgeMap[style.category] || style.category.toUpperCase()
+                const isCopied = copiedKey === style.id
                 return (
-                  <article className="emoji-text-row" key={style.id}>
-                    <div className="emoji-text-accent-bar" aria-hidden="true" />
-
-                    <div className="emoji-text-row-info">
-                      <div className="emoji-text-row-meta">
-                        <strong className="emoji-text-style-title">{style.name}</strong>
-                        <span className={`emoji-text-category-badge cat-${style.category}`}>
-                          {badgeText}
-                        </span>
-                      </div>
-                      <p className="emoji-text-styled-output">{style.output}</p>
+                  <article
+                    key={style.id}
+                    className={`et-card ${isCopied ? 'is-copied' : ''}`}
+                    onClick={() => copy(style.id, style.hindi, style.output)}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Copy ${style.hindi} style`}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        copy(style.id, style.hindi, style.output)
+                      }
+                    }}
+                    title="Click to copy"
+                  >
+                    <div className="et-card-body">
+                      <div className="et-card-text">{style.output}</div>
                     </div>
 
-                    <div className="emoji-text-row-actions">
-                      <button
-                        type="button"
-                        className={`emoji-text-star-btn ${starred ? 'is-starred' : ''}`}
-                        onClick={() => toggleFavorite(style.id)}
-                        aria-pressed={starred}
-                        aria-label={`${starred ? 'Remove' : 'Add'} ${style.name} ${starred ? 'from' : 'to'} favorites`}
-                        title={starred ? 'Remove from favorites' : 'Add to favorites'}
-                      >
-                        <Star size={15} />
-                      </button>
+                    <div className="et-card-footer" onClick={(e) => e.stopPropagation()}>
+                      <span className="et-card-tag">{style.hindi}</span>
 
-                      <a
-                        className="emoji-text-wa-btn"
-                        href={whatsappUrl(style.output)}
-                        target="_blank"
-                        rel="noreferrer"
-                        aria-label={`Share ${style.name} style on WhatsApp`}
-                        title="Share on WhatsApp"
-                      >
-                        <WhatsAppIcon size={14} />
-                        <span>WhatsApp</span>
-                      </a>
+                      <div className="et-card-actions">
+                        <a
+                          href={whatsappUrl(style.output)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="et-card-action-btn et-card-wa"
+                          title="Share on WhatsApp"
+                          aria-label={`Share ${style.hindi} on WhatsApp`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <WhatsAppIcon size={15} />
+                        </a>
 
-                      <button
-                        type="button"
-                        className={`emoji-text-copy-btn ${copiedKey === style.id ? 'is-copied' : ''}`}
-                        onClick={() => void copy(style.id, style.name, style.output)}
-                        aria-label={`Copy ${style.name} style`}
-                      >
-                        {copiedKey === style.id ? (
-                          <>
-                            <Check size={14} /> Copied
-                          </>
-                        ) : (
-                          <>
-                            <Copy size={14} /> Copy
-                          </>
-                        )}
-                      </button>
+                        <button
+                          type="button"
+                          className={`et-card-action-btn et-card-copy ${isCopied ? 'is-copied' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            copy(style.id, style.hindi, style.output)
+                          }}
+                          title={isCopied ? 'Copied!' : 'Copy'}
+                          aria-label={isCopied ? 'Copied' : 'Copy'}
+                        >
+                          {isCopied ? <Check size={14} /> : <Copy size={14} />}
+                        </button>
+                      </div>
                     </div>
                   </article>
                 )
               })}
             </div>
           ) : (
-            <div className="emoji-text-empty-state">
-              <Smile size={32} />
-              {source ? (
-                <>
-                  <h3>{view === 'favorites' ? 'No favorites added yet' : 'No style matches that search'}</h3>
-                  <p>
-                    {view === 'favorites'
-                      ? 'Click the star icon on any style to bookmark it here for quick access.'
-                      : 'Try typing a simpler term like “bold”, “wave” or “cute”, or switch to All Styles.'}
-                  </p>
-                </>
-              ) : (
-                <>
-                  <h3>Type something to preview</h3>
-                  <p>Enter any text on the left to see all 100+ fancy font styles appear instantly.</p>
-                </>
-              )}
+            <div className="et-empty-state">
+              <Smile size={36} />
+              <h3>कोई फ़ॉन्ट नहीं मिला</h3>
+              <p>कृपया 'सभी' श्रेणी चुनें या कोई अन्य शब्द टाइप करें।</p>
+              <button
+                type="button"
+                className="et-empty-reset-btn"
+                onClick={() => {
+                  setView('all')
+                  setText('hello')
+                }}
+              >
+                रीसेट करें
+              </button>
             </div>
           )}
         </section>
-      </main>
+
+        {/* Floating Copied Toast */}
+        {notice && (
+          <div className="et-floating-toast" role="status">
+            <Check size={16} />
+            <span>{notice}</span>
+          </div>
+        )}
+      </div>
 
       {/* Semantic On-Page SEO Content Section */}
       <section className="emoji-text-seo-section">
