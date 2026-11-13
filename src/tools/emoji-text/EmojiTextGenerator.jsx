@@ -10,120 +10,120 @@ import { appConfig } from '../../config/app.config'
 import { textStyles } from './text-styles'
 import './EmojiTextGenerator.css'
 
-export const HINDI_CATEGORIES = [
-  { id: 'all', label: 'सभी' },
-  { id: 'bold', label: 'बोल्ड' },
-  { id: 'cursive', label: 'कर्सिव' },
-  { id: 'shapes', label: 'आकार' },
-  { id: 'effects', label: 'इफेक्ट्स' },
-  { id: 'glitch', label: 'ग्लिच' },
-  { id: 'small', label: 'छोटा' },
-  { id: 'fancy', label: 'फैंसी' },
-  { id: 'decorative', label: 'सजावटी' },
-  { id: 'calligraphy', label: 'सुलेख' },
+export const CATEGORIES = [
+  { id: 'all', label: 'All' },
+  { id: 'bold', label: 'Bold' },
+  { id: 'cursive', label: 'Cursive' },
+  { id: 'shapes', label: 'Shapes' },
+  { id: 'effects', label: 'Effects' },
+  { id: 'glitch', label: 'Glitch' },
+  { id: 'small', label: 'Small' },
+  { id: 'fancy', label: 'Fancy' },
+  { id: 'decorative', label: 'Decorative' },
+  { id: 'calligraphy', label: 'Calligraphy' },
 ]
 
-export const HINDI_STYLE_META = {
-  'bold': { hindi: 'बोल्ड', categories: ['bold'] },
-  'bold-italic': { hindi: 'बोल्ड इटैलिक', categories: ['bold', 'cursive'] },
-  'sans-bold': { hindi: 'सैन्स बोल्ड', categories: ['bold', 'shapes'] },
-  'sans-bold-italic': { hindi: 'सैन्स बोल्ड इटैलिक', categories: ['bold', 'cursive'] },
-  'script-bold': { hindi: 'बोल्ड स्क्रिप्ट', categories: ['bold', 'cursive', 'calligraphy'] },
-  'italic': { hindi: 'इटैलिक', categories: ['cursive'] },
-  'script': { hindi: 'स्क्रिप्ट', categories: ['cursive', 'calligraphy'] },
-  'sans': { hindi: 'सैन्स', categories: ['shapes'] },
-  'sans-italic': { hindi: 'सैन्स इटैलिक', categories: ['cursive', 'shapes'] },
-  'fraktur': { hindi: 'फ़्रैक्चर', categories: ['fancy', 'calligraphy'] },
-  'fraktur-bold': { hindi: 'बोल्ड फ़्रैक्चर', categories: ['bold', 'fancy', 'calligraphy'] },
-  'double-struck': { hindi: 'डबल स्ट्रक', categories: ['shapes', 'fancy'] },
-  'monospace': { hindi: 'मोनोस्पेस', categories: ['shapes'] },
-  'small-caps': { hindi: 'स्मॉल कैप्स', categories: ['shapes', 'small'] },
-  'circled': { hindi: 'सर्कल्ड', categories: ['shapes', 'decorative'] },
-  'parenthesized': { hindi: 'कोष्ठक', categories: ['shapes'] },
-  'superscript': { hindi: 'सुपरस्क्रिप्ट', categories: ['small'] },
-  'subscript': { hindi: 'सबस्क्रिप्ट', categories: ['small'] },
-  'fullwidth': { hindi: 'फुलविड्थ', categories: ['shapes'] },
-  'flip': { hindi: 'उल्टा', categories: ['effects'] },
-  'underline': { hindi: 'अंडरलाइन', categories: ['effects'] },
-  'double-underline': { hindi: 'डबल अंडरलाइन', categories: ['effects'] },
-  'wavy-underline': { hindi: 'वेवी लाइन', categories: ['effects'] },
-  'strikethrough': { hindi: 'स्ट्राइकथ्रू', categories: ['effects'] },
-  'overline': { hindi: 'ओवरलाइन', categories: ['effects'] },
-  'slashed': { hindi: 'स्लैश', categories: ['effects'] },
-  'dotted': { hindi: 'डॉटेड', categories: ['effects'] },
-  'glitch-light': { hindi: 'हल्का ग्लिच', categories: ['glitch'] },
-  'glitch-heavy': { hindi: 'ग्लिच हेवी', categories: ['glitch'] },
-  'corrupt': { hindi: 'करप्ट Zalgo', categories: ['glitch'] },
-  'wings': { hindi: 'विंग्स', categories: ['decorative'] },
-  'heart-line': { hindi: 'हार्ट बीट', categories: ['decorative'] },
-  'kawaii': { hindi: 'कवाई', categories: ['decorative'] },
-  'star-string': { hindi: 'स्टार स्ट्रिंग', categories: ['decorative'] },
-  'flower-chain': { hindi: 'फ्लावर चेन', categories: ['decorative'] },
-  'lightning': { hindi: 'लाइटनिंग', categories: ['decorative'] },
-  'red-heart': { hindi: 'रेड हार्ट', categories: ['decorative'] },
-  'star-glow': { hindi: 'ग्लोइंग स्टार्स', categories: ['decorative'] },
-  'fire': { hindi: 'फायर', categories: ['decorative'] },
-  'crown': { hindi: 'क्राउन', categories: ['decorative'] },
-  'celebrate': { hindi: 'सेलिब्रेशन', categories: ['decorative'] },
-  'love-you': { hindi: 'लव यू', categories: ['decorative'] },
-  'party-sparkle': { hindi: 'स्पार्कल', categories: ['decorative'] },
-  'gaming-life': { hindi: 'गेमर', categories: ['decorative'] },
-  'blackletter': { hindi: 'ब्लैकलेटर', categories: ['fancy', 'calligraphy'] },
-  'gothic-cross': { hindi: 'क्रूसेडर', categories: ['fancy', 'calligraphy'] },
-  'runic': { hindi: 'रूनिक', categories: ['fancy'] },
-  'greek': { hindi: 'ग्रीक', categories: ['fancy'] },
-  'cyrillic': { hindi: 'स्लाविक', categories: ['fancy'] },
-  'cherokee': { hindi: 'चेरोकी', categories: ['fancy'] },
-  'vaporwave': { hindi: 'वेपरवेव', categories: ['decorative'] },
-  'aesthetic-star': { hindi: 'स्टार डस्ट', categories: ['decorative'] },
-  'aesthetic-moon': { hindi: 'नाइट ब्लूम', categories: ['decorative'] },
-  'aesthetic-cloud': { hindi: 'क्लाउड नाइन', categories: ['decorative'] },
-  'sniper': { hindi: 'स्नाइपर', categories: ['decorative'] },
-  'clan-tag': { hindi: 'क्लैन टैग', categories: ['bold', 'shapes'] },
-  'symbol-arrows': { hindi: 'एरो', categories: ['decorative'] },
-  'symbol-triangles': { hindi: 'ट्रायंगल', categories: ['decorative'] },
-  'symbol-moon': { hindi: 'हाफ मून', categories: ['decorative'] },
-  'corner': { hindi: 'कॉर्नर ब्रैकेट्स', categories: ['shapes'] },
-  'lenticular': { hindi: 'ब्लॉक ब्रैकेट्स', categories: ['shapes'] },
-  'box-lines': { hindi: 'बॉक्स लाइन्स', categories: ['shapes'] },
-  'spaced': { hindi: 'एयर स्पेसिंग', categories: ['effects'] },
-  'dot-between': { hindi: 'डॉट बिटवीन', categories: ['effects'] },
-  'slash-wrap': { hindi: 'स्लैश रैप', categories: ['effects'] },
-  'bar-wrap': { hindi: 'साइडबार', categories: ['effects'] },
-  'dash-around': { hindi: 'लॉन्ग डैश', categories: ['effects'] },
-  'snake-case': { hindi: 'स्नेक केस', categories: ['effects'] },
-  'pink-heart': { hindi: 'पिंक हार्ट', categories: ['decorative'] },
-  'soft-point': { hindi: 'सॉफ्ट पॉइंट', categories: ['decorative'] },
-  'bow': { hindi: 'रिबन बो', categories: ['decorative'] },
-  'music-note': { hindi: 'म्यूजिक नोट्स', categories: ['decorative'] },
-  'soft-wave': { hindi: 'सॉफ्ट वेव', categories: ['decorative'] },
-  'aesthetic-halo': { hindi: 'हेलो', categories: ['decorative'] },
-  'aesthetic-wave': { hindi: 'स्लो वेव', categories: ['decorative'] },
-  'aesthetic-quote': { hindi: 'सॉफ्ट कोट', categories: ['calligraphy', 'decorative'] },
-  'aesthetic-floral': { hindi: 'प्रेस्ड फ्लावर', categories: ['decorative'] },
-  'aesthetic-blossom': { hindi: 'ब्लॉसम ट्रेल', categories: ['decorative'] },
-  'aesthetic-orbit': { hindi: 'ऑर्बिट', categories: ['decorative'] },
-  'gothic-dagger': { hindi: 'डैगर रो', categories: ['fancy'] },
-  'gothic-altar': { hindi: 'अल्टार', categories: ['fancy'] },
-  'gothic-skull': { hindi: 'स्कल एंड बोन्स', categories: ['decorative'] },
-  'gothic-ankh': { hindi: 'अंख', categories: ['decorative'] },
-  'gothic-fleur': { hindi: 'फ्लेउर-डी-लिस', categories: ['decorative'] },
-  'gothic-spade': { hindi: 'स्पेड कोर्ट', categories: ['decorative'] },
-  'double-angle': { hindi: 'डबल एंगल', categories: ['shapes'] },
-  'angle': { hindi: 'एंगल ब्रैकेट्स', categories: ['shapes'] },
-  'symbol-asterisk': { hindi: 'एस्टरिक्स फ्लेयर', categories: ['decorative'] },
-  'symbol-diamond': { hindi: 'डायमंड डॉट', categories: ['decorative'] },
-  'symbol-music': { hindi: 'म्यूजिक स्कोर', categories: ['decorative'] },
-  'symbol-braille': { hindi: 'ब्रेल फ्रेम', categories: ['decorative'] },
-  'diamond-set': { hindi: 'डायमंड्स', categories: ['decorative'] },
-  'snowfall': { hindi: 'स्नोफॉल', categories: ['decorative'] },
-  'rose-drop': { hindi: 'रोज', categories: ['decorative'] },
-  'spectrum': { hindi: 'स्पेक्ट्रम बार्स', categories: ['decorative'] },
-  'crossed-out': { hindi: 'डिनाइड', categories: ['effects'] },
-  'neon-grid': { hindi: 'नियोन ग्रिड', categories: ['shapes'] },
-  'toxic': { hindi: 'टॉक्सिक', categories: ['decorative'] },
-  'rule-around': { hindi: 'फाइन रूल', categories: ['effects'] },
-  'lowercase': { hindi: 'ऑल लोअरकेस', categories: ['effects'] },
+export const STYLE_CATEGORIES_MAP = {
+  'bold': ['bold'],
+  'bold-italic': ['bold', 'cursive'],
+  'sans-bold': ['bold', 'shapes'],
+  'sans-bold-italic': ['bold', 'cursive'],
+  'script-bold': ['bold', 'cursive', 'calligraphy'],
+  'italic': ['cursive'],
+  'script': ['cursive', 'calligraphy'],
+  'sans': ['shapes'],
+  'sans-italic': ['cursive', 'shapes'],
+  'fraktur': ['fancy', 'calligraphy'],
+  'fraktur-bold': ['bold', 'fancy', 'calligraphy'],
+  'double-struck': ['shapes', 'fancy'],
+  'monospace': ['shapes'],
+  'small-caps': ['shapes', 'small'],
+  'circled': ['shapes', 'decorative'],
+  'parenthesized': ['shapes'],
+  'superscript': ['small'],
+  'subscript': ['small'],
+  'fullwidth': ['shapes'],
+  'flip': ['effects'],
+  'underline': ['effects'],
+  'double-underline': ['effects'],
+  'wavy-underline': ['effects'],
+  'strikethrough': ['effects'],
+  'overline': ['effects'],
+  'slashed': ['effects'],
+  'dotted': ['effects'],
+  'glitch-light': ['glitch'],
+  'glitch-heavy': ['glitch'],
+  'corrupt': ['glitch'],
+  'wings': ['decorative'],
+  'heart-line': ['decorative'],
+  'kawaii': ['decorative'],
+  'star-string': ['decorative'],
+  'flower-chain': ['decorative'],
+  'lightning': ['decorative'],
+  'red-heart': ['decorative'],
+  'star-glow': ['decorative'],
+  'fire': ['decorative'],
+  'crown': ['decorative'],
+  'celebrate': ['decorative'],
+  'love-you': ['decorative'],
+  'party-sparkle': ['decorative'],
+  'gaming-life': ['decorative'],
+  'blackletter': ['fancy', 'calligraphy'],
+  'gothic-cross': ['fancy', 'calligraphy'],
+  'runic': ['fancy'],
+  'greek': ['fancy'],
+  'cyrillic': ['fancy'],
+  'cherokee': ['fancy'],
+  'vaporwave': ['decorative'],
+  'aesthetic-star': ['decorative'],
+  'aesthetic-moon': ['decorative'],
+  'aesthetic-cloud': ['decorative'],
+  'sniper': ['decorative'],
+  'clan-tag': ['bold', 'shapes'],
+  'symbol-arrows': ['decorative'],
+  'symbol-triangles': ['decorative'],
+  'symbol-moon': ['decorative'],
+  'corner': ['shapes'],
+  'lenticular': ['shapes'],
+  'box-lines': ['shapes'],
+  'spaced': ['effects'],
+  'dot-between': ['effects'],
+  'slash-wrap': ['effects'],
+  'bar-wrap': ['effects'],
+  'dash-around': ['effects'],
+  'snake-case': ['effects'],
+  'pink-heart': ['decorative'],
+  'soft-point': ['decorative'],
+  'bow': ['decorative'],
+  'music-note': ['decorative'],
+  'soft-wave': ['decorative'],
+  'aesthetic-halo': ['decorative'],
+  'aesthetic-wave': ['decorative'],
+  'aesthetic-quote': ['calligraphy', 'decorative'],
+  'aesthetic-floral': ['decorative'],
+  'aesthetic-blossom': ['decorative'],
+  'aesthetic-orbit': ['decorative'],
+  'gothic-dagger': ['fancy'],
+  'gothic-altar': ['fancy'],
+  'gothic-skull': ['decorative'],
+  'gothic-ankh': ['decorative'],
+  'gothic-fleur': ['decorative'],
+  'gothic-spade': ['decorative'],
+  'double-angle': ['shapes'],
+  'angle': ['shapes'],
+  'symbol-asterisk': ['decorative'],
+  'symbol-diamond': ['decorative'],
+  'symbol-music': ['decorative'],
+  'symbol-braille': ['decorative'],
+  'diamond-set': ['decorative'],
+  'snowfall': ['decorative'],
+  'rose-drop': ['decorative'],
+  'spectrum': ['decorative'],
+  'crossed-out': ['effects'],
+  'neon-grid': ['shapes'],
+  'toxic': ['decorative'],
+  'rule-around': ['effects'],
+  'lowercase': ['effects'],
 }
 
 const maxLength = 280
@@ -313,28 +313,24 @@ export default function EmojiTextGenerator() {
     return textStyles
       .filter((style) => {
         if (view === 'all') return true
-        const meta = HINDI_STYLE_META[style.id]
-        if (meta && meta.categories) {
-          return meta.categories.includes(view)
+        const cats = STYLE_CATEGORIES_MAP[style.id]
+        if (cats) {
+          return cats.includes(view)
         }
         return style.category === view
       })
-      .map((style) => {
-        const meta = HINDI_STYLE_META[style.id] || { hindi: style.name, categories: [style.category] }
-        return {
-          id: style.id,
-          name: style.name,
-          hindi: meta.hindi || style.name,
-          category: style.category,
-          output: style.transform(preview),
-        }
-      })
+      .map((style) => ({
+        id: style.id,
+        name: style.name,
+        category: style.category,
+        output: style.transform(preview),
+      }))
   }, [text, view])
 
   const markCopied = (key, label, failed) => {
     window.clearTimeout(copiedTimer.current)
     setCopiedKey(failed ? '' : key)
-    setNotice(failed ? `${label} could not be copied.` : `${label} कॉपी हो गया!`)
+    setNotice(failed ? `${label} could not be copied.` : `${label} copied to clipboard!`)
     copiedTimer.current = window.setTimeout(() => {
       setCopiedKey('')
       setNotice('')
@@ -385,7 +381,7 @@ export default function EmojiTextGenerator() {
         {/* Category Filter Pills Row */}
         <div className="et-categories-section">
           <div className="et-categories-row" role="tablist" aria-label="Font categories">
-            {HINDI_CATEGORIES.map((cat) => {
+            {CATEGORIES.map((cat) => {
               const isActive = view === cat.id
               return (
                 <button
@@ -413,14 +409,14 @@ export default function EmojiTextGenerator() {
                   <article
                     key={style.id}
                     className={`et-card ${isCopied ? 'is-copied' : ''}`}
-                    onClick={() => copy(style.id, style.hindi, style.output)}
+                    onClick={() => copy(style.id, style.name, style.output)}
                     role="button"
                     tabIndex={0}
-                    aria-label={`Copy ${style.hindi} style`}
+                    aria-label={`Copy ${style.name} style`}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault()
-                        copy(style.id, style.hindi, style.output)
+                        copy(style.id, style.name, style.output)
                       }
                     }}
                     title="Click to copy"
@@ -430,7 +426,7 @@ export default function EmojiTextGenerator() {
                     </div>
 
                     <div className="et-card-footer" onClick={(e) => e.stopPropagation()}>
-                      <span className="et-card-tag">{style.hindi}</span>
+                      <span className="et-card-tag">{style.name}</span>
 
                       <div className="et-card-actions">
                         <a
@@ -439,7 +435,7 @@ export default function EmojiTextGenerator() {
                           rel="noopener noreferrer"
                           className="et-card-action-btn et-card-wa"
                           title="Share on WhatsApp"
-                          aria-label={`Share ${style.hindi} on WhatsApp`}
+                          aria-label={`Share ${style.name} on WhatsApp`}
                           onClick={(e) => e.stopPropagation()}
                         >
                           <WhatsAppIcon size={15} />
@@ -450,7 +446,7 @@ export default function EmojiTextGenerator() {
                           className={`et-card-action-btn et-card-copy ${isCopied ? 'is-copied' : ''}`}
                           onClick={(e) => {
                             e.stopPropagation()
-                            copy(style.id, style.hindi, style.output)
+                            copy(style.id, style.name, style.output)
                           }}
                           title={isCopied ? 'Copied!' : 'Copy'}
                           aria-label={isCopied ? 'Copied' : 'Copy'}
@@ -466,8 +462,8 @@ export default function EmojiTextGenerator() {
           ) : (
             <div className="et-empty-state">
               <Smile size={36} />
-              <h3>कोई फ़ॉन्ट नहीं मिला</h3>
-              <p>कृपया 'सभी' श्रेणी चुनें या कोई अन्य शब्द टाइप करें।</p>
+              <h3>No fonts found</h3>
+              <p>Please select 'All' category or try typing different words.</p>
               <button
                 type="button"
                 className="et-empty-reset-btn"
@@ -476,7 +472,7 @@ export default function EmojiTextGenerator() {
                   setText('hello')
                 }}
               >
-                रीसेट करें
+                Reset
               </button>
             </div>
           )}
