@@ -148,12 +148,21 @@ function Flyout({ group, anchor, onPick, onClose, current }) {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
-  const style = {
-    position: 'fixed',
-    left: Math.min(window.innerWidth - 220, anchor.right + 8),
-    top: Math.min(Math.max(8, anchor.top - 6), window.innerHeight - 60 - group.tools.length * 40),
-    zIndex: 2147483600,
-  }
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768
+  const style = isMobile
+    ? {
+        position: 'fixed',
+        left: Math.max(10, Math.min(window.innerWidth - 220, anchor.left)),
+        bottom: 58,
+        top: 'auto',
+        zIndex: 2147483600,
+      }
+    : {
+        position: 'fixed',
+        left: Math.min(window.innerWidth - 220, anchor.right + 8),
+        top: Math.min(Math.max(8, anchor.top - 6), window.innerHeight - 60 - group.tools.length * 40),
+        zIndex: 2147483600,
+      }
   return createPortal(
     <div className="ts-ps-flyout-backdrop" onPointerDown={onClose}>
       <div className="ts-ps-flyout" style={style} onPointerDown={(e) => e.stopPropagation()}>

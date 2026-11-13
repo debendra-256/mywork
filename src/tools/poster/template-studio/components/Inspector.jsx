@@ -227,6 +227,7 @@ export default function Inspector({
   onRemoveBackground,
   onRemoveSlotBackground,
   cutting = false,
+  onClosePanel,
 }) {
   const setEl = (patch, opts) => selected && onPatchEl(selected.id, patch, opts)
   const live = (patch) => setEl(patch, { history: false })
@@ -465,6 +466,24 @@ export default function Inspector({
 
   return (
     <aside className="ts-inspector">
+      <div className="ts-sheet-header ts-mobile-only">
+        <div className="ts-sheet-handle-bar" onClick={() => onClosePanel?.()} />
+        <div className="ts-sheet-title-row">
+          <span className="ts-sheet-title">
+            {panelTab === 'assets' ? 'Scanned & Assets' : panelTab === 'layers' ? 'Layers Stack' : 'Properties'}
+          </span>
+          {onClosePanel && (
+            <button
+              type="button"
+              className="ts-sheet-close-btn"
+              onClick={() => onClosePanel()}
+              title="Close panel"
+            >
+              ✕ Close
+            </button>
+          )}
+        </div>
+      </div>
       <div className="ts-panel-nav">
         <button
           type="button"

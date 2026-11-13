@@ -1259,7 +1259,8 @@ export default function Editor({
             </div>
 
             <button type="button" className="ts-panel-toggle ts-mobile-only" onClick={() => setPanelOpen((v) => !v)}>
-              {panelOpen ? 'Hide design panel' : 'Design panel'}
+              <Layers size={14} />
+              <span>{panelOpen ? '✕ Hide panel' : '✨ Assets & Layers'}</span>
             </button>
           </div>
 
@@ -1293,6 +1294,7 @@ export default function Editor({
             onRemoveBackground={removeBackground}
             onRemoveSlotBackground={removeSlotBackground}
             cutting={cuttingId === selected?.id}
+            onClosePanel={() => setPanelOpen(false)}
           />
         </div>
       </div>

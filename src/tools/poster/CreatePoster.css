@@ -1309,65 +1309,502 @@
 
 /* PromptProject theme for the vendored template studio */
 .cp-shell .ts-root {
-  --ts-bg: #f5f6f8;
-  --ts-bg-deep: #e9edf0;
-  --ts-panel: #ffffff;
-  --ts-ink: #1c2025;
-  --ts-soft: #68727c;
-  --ts-faint: #98a1aa;
-  --ts-line: #e8eaed;
-  --ts-line-strong: #dfe3e7;
-  --ts-accent: #0a9f62;
-  --ts-gold: #0a9f62;
+  --ts-bg: var(--canvas, #f5f6f8);
+  --ts-bg-deep: var(--surface, #e9edf0);
+  --ts-panel: var(--paper, #ffffff);
+  --ts-ink: var(--ink, #1c2025);
+  --ts-soft: var(--muted, #68727c);
+  --ts-faint: var(--faint, #98a1aa);
+  --ts-line: var(--line, #e8eaed);
+  --ts-line-strong: var(--line-strong, #dfe3e7);
+  --ts-accent: var(--brand, #7c3aed);
+  --ts-gold: var(--brand, #7c3aed);
   --ts-danger: #c0453a;
   --ts-font-ui: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --ts-font-display: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
-.cp-shell .ts-topbar { background: #fff; border-bottom: 1px solid var(--ts-line); }
-.cp-shell .ts-btn-primary { background: #0a9f62; color: #fff; box-shadow: 0 10px 20px -12px #0a9f6288; }
-.cp-shell .ts-btn-primary:hover:not(:disabled) { background: #087447; }
-.cp-shell .ts-btn-ghost { border-color: #dfe7e2; color: #35433b; }
-.cp-shell .ts-btn-ghost:hover:not(:disabled) { background: #f3faf6; border-color: #bfe3ce; }
-.cp-shell .ts-icon-btn:hover:not(:disabled) { background: #edf8f1; color: #087d4e; }
-.cp-shell .ts-close { background: #fff; border-color: #e5e9e7; }
+
+/* Touch action fix: crucial for mobile touch dragging and editing */
+.ts-stage,
+.ts-stage.is-interactive,
+.ts-stage.is-interactive .ts-el,
+.ts-stage.is-interactive .ts-resize,
+.ts-stage.is-interactive .ts-resize--se,
+.ts-stage.is-interactive .ts-resize--sw,
+.ts-stage.is-interactive .ts-resize--ne,
+.ts-stage.is-interactive .ts-resize--nw,
+.ts-stage-resize-bar,
+.ts-stage-resize-corner,
+.ts-stage-resize-pill {
+  touch-action: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+}
+
+/* Mobile sheet header inside inspector */
+.ts-sheet-header {
+  display: none;
+}
+
+/* ---------- Full Mobile Responsiveness for Poster Editor ---------- */
+@media (max-width: 768px) {
+  .cp-shell--editor {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    overflow: hidden !important;
+    z-index: 9999 !important;
+  }
+  .cp-editor-stage {
+    width: 100% !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+  .ts-editor-root {
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    position: relative !important;
+  }
+
+  /* Compact Mobile Topbar */
+  .ts-topbar.ts-editor-bar {
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+    padding: 0 8px !important;
+    gap: 6px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    background: var(--ts-panel, #ffffff) !important;
+    border-bottom: 1px solid var(--ts-line, #e5e7eb) !important;
+    flex-shrink: 0 !important;
+    z-index: 30 !important;
+  }
+  .ts-back {
+    padding: 6px !important;
+    min-width: 32px !important;
+    height: 32px !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  .ts-back span { display: none !important; }
+  .ts-bar-divider { display: none !important; }
+  .ts-doc-meta {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    margin: 0 4px !important;
+  }
+  .ts-doc-name {
+    width: 100% !important;
+    max-width: 130px !important;
+    font-size: 13px !important;
+    font-weight: 750 !important;
+    padding: 4px 6px !important;
+    border-radius: 6px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  .ts-doc-sub { display: none !important; }
+  .ts-top-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    flex-shrink: 0 !important;
+  }
+  .ts-history {
+    display: flex !important;
+    gap: 1px !important;
+    padding: 2px !important;
+    background: var(--ts-bg, #f3f5f4) !important;
+    border-radius: 8px !important;
+  }
+  .ts-history .ts-icon-btn {
+    width: 28px !important;
+    height: 28px !important;
+    padding: 0 !important;
+  }
+  .ts-btn.ts-download {
+    height: 30px !important;
+    padding: 0 8px !important;
+    font-size: 11px !important;
+    border-radius: 8px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  .ts-btn.ts-download span { display: none !important; }
+  .ts-btn.ts-btn-primary {
+    height: 30px !important;
+    padding: 0 10px !important;
+    font-size: 11px !important;
+    border-radius: 8px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+  }
+  .ts-btn.ts-btn-primary span {
+    display: inline-block !important;
+  }
+  .ts-close {
+    width: 28px !important;
+    height: 28px !important;
+    padding: 0 !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* Body: Vertical Stack with Full Width Canvas & Bottom Tool Rail */
+  .ts-editor-body {
+    flex: 1 1 auto !important;
+    display: flex !important;
+    flex-direction: column-reverse !important;
+    min-height: 0 !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    position: relative !important;
+  }
+  .ts-editor {
+    flex: 1 1 auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    min-width: 0 !important;
+    position: relative !important;
+    overflow: hidden !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Bottom Horizontal Scrollable Tool Dock */
+  .ts-toolbar-rail {
+    width: 100% !important;
+    height: 52px !important;
+    min-height: 52px !important;
+    flex: none !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    background: var(--ts-panel, #ffffff) !important;
+    border-right: none !important;
+    border-top: 1px solid var(--ts-line, #e5e7eb) !important;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.06) !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    z-index: 25 !important;
+    padding: 0 6px !important;
+  }
+  .ts-toolbar-rail::-webkit-scrollbar { display: none !important; }
+  .ts-toolbar {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 4px 6px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    width: auto !important;
+    flex: none !important;
+  }
+  .ts-ps-rail {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    width: auto !important;
+    padding: 0 !important;
+    border-bottom: none !important;
+    border-right: 1px solid var(--ts-line, #e5e7eb) !important;
+    margin-right: 6px !important;
+    padding-right: 6px !important;
+  }
+  .ts-ps-head { display: none !important; }
+  .ts-ps-groups {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 4px !important;
+  }
+  .ts-ps-btn {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    border-radius: 8px !important;
+  }
+  .ts-ps-colors {
+    display: flex !important;
+    align-items: center !important;
+    margin-left: 4px !important;
+    gap: 3px !important;
+  }
+  .ts-ps-color {
+    width: 22px !important;
+    height: 22px !important;
+  }
+  .ts-ps-swap {
+    font-size: 11px !important;
+    width: 18px !important;
+    height: 18px !important;
+  }
+  .ts-ps-reset-colors {
+    font-size: 7px !important;
+    padding: 2px !important;
+  }
+  .ts-tool-group {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    border-bottom: none !important;
+    border-right: 1px solid var(--ts-line, #e5e7eb) !important;
+    padding: 0 6px !important;
+    margin-right: 4px !important;
+    gap: 4px !important;
+  }
+  .ts-tool-row {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 4px !important;
+  }
+  .ts-tool-btn {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    border-radius: 8px !important;
+  }
+
+  /* Tool Options Bar: compact & horizontally scrollable */
+  .ts-tool-options-bar {
+    min-height: 34px !important;
+    max-height: 36px !important;
+    padding: 2px 10px !important;
+    font-size: 11px !important;
+    background: var(--ts-panel, #ffffff) !important;
+    border-bottom: 1px solid var(--ts-line, #e5e7eb) !important;
+    flex-shrink: 0 !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+  }
+  .ts-tool-options-bar::-webkit-scrollbar { display: none !important; }
+  .ts-tool-options-inner {
+    gap: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+  .ts-tool-options-bar .ts-tool-options-title {
+    font-size: 10px !important;
+    padding-right: 6px !important;
+  }
+  .ts-tool-options-bar span:not(.ts-tool-options-title):not(button *) {
+    max-width: 140px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    font-size: 10px !important;
+  }
+
+  /* Canvas Area: 100% full width, scaled nicely */
+  .ts-canvas-area {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    width: 100% !important;
+    overflow: hidden !important;
+    position: relative !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  .ts-canvas-scroll {
+    width: 100% !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    padding: 10px 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+    touch-action: pan-x pan-y pinch-zoom !important;
+  }
+  .ts-stage-shell {
+    max-width: min(96vw, 100%) !important;
+    max-height: min(65vh, 100%) !important;
+    width: auto !important;
+    height: auto !important;
+    margin: auto !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  /* Floating zoom controls & bottom sheet toggle */
+  .ts-zoom {
+    position: absolute !important;
+    bottom: 10px !important;
+    right: 10px !important;
+    z-index: 20 !important;
+    padding: 3px 6px !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    border-radius: 999px !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15) !important;
+  }
+  .ts-panel-toggle {
+    position: absolute !important;
+    bottom: 10px !important;
+    left: 10px !important;
+    z-index: 20 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 8px 16px !important;
+    border-radius: 999px !important;
+    background: var(--brand, #7c3aed) !important;
+    color: #ffffff !important;
+    border: none !important;
+    font-size: 11.5px !important;
+    font-weight: 750 !important;
+    box-shadow: 0 4px 16px rgba(124, 58, 237, 0.4) !important;
+    cursor: pointer !important;
+  }
+
+  /* Inspector: slide-up bottom sheet on mobile */
+  .ts-inspector {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 52px !important; /* sits above bottom tool bar */
+    height: 62vh !important;
+    max-height: 75dvh !important;
+    border-radius: 20px 20px 0 0 !important;
+    border-top: 1px solid var(--ts-line-strong, #dfe3e7) !important;
+    border-left: none !important;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.25) !important;
+    z-index: 40 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    background: var(--ts-panel, #ffffff) !important;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+  .ts-editor-root.panel-hidden .ts-inspector {
+    transform: translateY(120%) !important;
+    pointer-events: none !important;
+  }
+
+  /* Mobile sheet header with handle & close */
+  .ts-sheet-header {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    padding: 8px 14px 6px !important;
+    background: var(--ts-panel, #ffffff) !important;
+    border-bottom: 1px solid var(--ts-line, #e5e7eb) !important;
+  }
+  .ts-sheet-handle-bar {
+    width: 44px !important;
+    height: 4px !important;
+    border-radius: 2px !important;
+    background: var(--ts-line-strong, #cbd5e1) !important;
+    margin-bottom: 6px !important;
+    cursor: pointer !important;
+  }
+  .ts-sheet-title-row {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+  }
+  .ts-sheet-title {
+    font-size: 12.5px !important;
+    font-weight: 800 !important;
+    color: var(--ts-ink) !important;
+    letter-spacing: -0.01em !important;
+  }
+  .ts-sheet-close-btn {
+    padding: 4px 10px !important;
+    border-radius: 999px !important;
+    background: var(--ts-bg, #f3f5f4) !important;
+    border: 1px solid var(--ts-line, #e5e7eb) !important;
+    font-size: 11px !important;
+    font-weight: 750 !important;
+    color: var(--ts-ink) !important;
+    cursor: pointer !important;
+  }
+  .ts-panel-nav {
+    display: flex !important;
+    padding: 6px 10px !important;
+    gap: 6px !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    border-bottom: 1px solid var(--ts-line, #e5e7eb) !important;
+  }
+  .ts-panel-tab {
+    padding: 7px 12px !important;
+    font-size: 11px !important;
+    white-space: nowrap !important;
+  }
+  .ts-inspector-scroll {
+    flex: 1 1 auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+    padding-bottom: 24px !important;
+  }
+  .ts-mobile-only {
+    display: flex !important;
+  }
+}
+.cp-shell .ts-topbar { background: var(--paper, #fff); border-bottom: 1px solid var(--ts-line); }
+.cp-shell .ts-btn-primary { background: var(--brand, #7c3aed); color: #fff; box-shadow: 0 10px 20px -12px var(--brand-glow, rgba(124, 58, 237, 0.5)); }
+.cp-shell .ts-btn-primary:hover:not(:disabled) { background: var(--brand-dark, #5f24c9); }
+.cp-shell .ts-btn-ghost { border-color: var(--line, #dfe7e2); color: var(--ink-soft, #35433b); }
+.cp-shell .ts-btn-ghost:hover:not(:disabled) { background: var(--brand-soft, #f3faf6); border-color: var(--brand-line, #bfe3ce); }
+.cp-shell .ts-icon-btn:hover:not(:disabled) { background: var(--brand-soft, #edf8f1); color: var(--brand, #7c3aed); }
+.cp-shell .ts-close { background: var(--paper, #fff); border-color: var(--line, #e5e9e7); }
 .cp-shell .ts-close:hover { background: #fff6f5; border-color: #f0d3cd; color: #b0432f; }
-.cp-shell .ts-back:hover { background: #edf8f1; color: #087d4e; }
-.cp-shell .ts-history { background: #f2f5f3; }
+.cp-shell .ts-back:hover { background: var(--brand-soft, #edf8f1); color: var(--brand, #7c3aed); }
+.cp-shell .ts-history { background: var(--surface, #f2f5f3); }
 .cp-shell .ts-doc-name { font-size: 17px; font-weight: 750; letter-spacing: -.025em; }
-.cp-shell .ts-doc-name:hover { background: #f3faf6; }
-.cp-shell .ts-doc-sub { color: #98a1aa; letter-spacing: .12em; }
+.cp-shell .ts-doc-name:hover { background: var(--surface, #f3faf6); }
+.cp-shell .ts-doc-sub { color: var(--muted, #98a1aa); letter-spacing: .12em; }
 .cp-shell .ts-save-state.is-dirty { color: #b07c12; }
-.cp-shell .ts-canvas-area { background: radial-gradient(130% 100% at 50% 0%, #f4f7f5 0%, #e9eeeb 68%, #e0e6e2 100%); }
+.cp-shell .ts-canvas-area { background: radial-gradient(130% 100% at 50% 0%, var(--brand-soft, #f4f7f5) 0%, var(--surface, #e9eeeb) 68%, var(--canvas, #e0e6e2) 100%); }
 .cp-shell .ts-canvas-scroll { padding: 12px; }
-.cp-shell .ts-stage { box-shadow: 0 30px 70px -30px #24332a66, 0 2px 6px #24332a1a; }
-.cp-shell .ts-zoom { background: #fffffff0; border: 1px solid #e5e9e7; box-shadow: 0 5px 18px #17251c12; }
-.cp-shell .ts-zoom button:hover { background: #edf8f1; color: #087d4e; }
-.cp-shell .ts-inspector { background: #fff; }
-.cp-shell .ts-section { border-bottom-color: #eef0f2; }
-.cp-shell .ts-section h3 { color: #8a949d; letter-spacing: .15em; font-weight: 800; }
-.cp-shell .ts-subhead { border-top-color: #eef0f2; color: #8a949d; letter-spacing: .13em; font-weight: 800; }
-.cp-shell .ts-label { color: #8a949d; letter-spacing: .1em; font-weight: 700; }
-.cp-shell .ts-hint { color: #98a1aa; }
-.cp-shell .ts-seg { background: #f3f5f4; }
-.cp-shell .ts-seg button { color: #6e7880; }
-.cp-shell .ts-seg button.is-active { background: #fff; color: #087d4e; box-shadow: 0 1px 3px #1519221a; }
-.cp-shell .ts-select, .cp-shell .ts-textarea, .cp-shell .ts-input { background: #fff; border-color: #e2e7e4; }
+.cp-shell .ts-stage { box-shadow: 0 30px 70px -30px rgba(0,0,0,0.3), 0 2px 6px rgba(0,0,0,0.1); }
+.cp-shell .ts-zoom { background: var(--paper, #fffffff0); border: 1px solid var(--line, #e5e9e7); box-shadow: 0 5px 18px rgba(0,0,0,0.1); }
+.cp-shell .ts-zoom button:hover { background: var(--brand-soft, #edf8f1); color: var(--brand, #7c3aed); }
+.cp-shell .ts-inspector { background: var(--paper, #fff); }
+.cp-shell .ts-section { border-bottom-color: var(--line, #eef0f2); }
+.cp-shell .ts-section h3 { color: var(--muted, #8a949d); letter-spacing: .15em; font-weight: 800; }
+.cp-shell .ts-subhead { border-top-color: var(--line, #eef0f2); color: var(--muted, #8a949d); letter-spacing: .13em; font-weight: 800; }
+.cp-shell .ts-label { color: var(--muted, #8a949d); letter-spacing: .1em; font-weight: 700; }
+.cp-shell .ts-hint { color: var(--faint, #98a1aa); }
+.cp-shell .ts-seg { background: var(--surface, #f3f5f4); }
+.cp-shell .ts-seg button { color: var(--muted, #6e7880); }
+.cp-shell .ts-seg button.is-active { background: var(--paper, #fff); color: var(--brand, #7c3aed); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.cp-shell .ts-select, .cp-shell .ts-textarea, .cp-shell .ts-input { background: var(--paper, #fff); border-color: var(--line, #e2e7e4); }
 .cp-shell .ts-textarea, .cp-shell .ts-input { font-family: inherit; }
-.cp-shell .ts-range input[type='range'] { background: #e3e9e5; }
-.cp-shell .ts-add-btn { background: #fbfdfc; border-color: #e6ebe8; color: #6b767f; text-transform: none; font-size: 9.5px; font-weight: 650; letter-spacing: .01em; }
-.cp-shell .ts-add-btn:hover { border-color: #0a9f62; background: #f5fbf7; color: #087447; }
-.cp-shell .ts-ornament-chip { background: #f6faf8; color: #89958d; border-color: transparent; }
-.cp-shell .ts-ornament-chip:hover { background: #fff; border-color: #cfe8da; color: #0a9f62; }
-.cp-shell .ts-layer:hover, .cp-shell .ts-layer:focus-visible { background: #f4faf6; color: #1c2025; }
-.cp-shell .ts-layer.is-active { background: #e9f8ef; color: #087d4e; }
-.cp-shell .ts-layer-icon { color: #9aa8a0; }
-.cp-shell .ts-layer.is-active .ts-layer-icon { color: #0a9f62; }
-.cp-shell .ts-layer-actions button:hover { background: #e2f2e8; color: #1c2025; }
-.cp-shell .ts-layer-tools button { border-color: #e5eae7; background: #fff; color: #6e7880; }
-.cp-shell .ts-layer-tools button:hover:not(:disabled) { background: #edf8f1; color: #087d4e; }
-.cp-shell .ts-inspector-foot { background: #f8faf9; border-top-color: #e8eaed; color: #98a1aa; font-size: 9.5px; }
-.cp-shell .ts-panel-toggle { background: #fffffff0; border-color: #dfe7e2; color: #35433b; }
-.cp-shell .ts-panel-toggle:hover { border-color: #0a9f62; color: #087d4e; }
+.cp-shell .ts-range input[type='range'] { background: var(--line, #e3e9e5); }
+.cp-shell .ts-add-btn { background: var(--surface, #fbfdfc); border-color: var(--line, #e6ebe8); color: var(--ink-soft, #6b767f); text-transform: none; font-size: 9.5px; font-weight: 650; letter-spacing: .01em; }
+.cp-shell .ts-add-btn:hover { border-color: var(--brand, #7c3aed); background: var(--brand-soft, #f5fbf7); color: var(--brand-dark, #5f24c9); }
+.cp-shell .ts-ornament-chip { background: var(--surface, #f6faf8); color: var(--muted, #89958d); border-color: transparent; }
+.cp-shell .ts-ornament-chip:hover { background: var(--paper, #fff); border-color: var(--brand-line, #cfe8da); color: var(--brand, #7c3aed); }
+.cp-shell .ts-layer:hover, .cp-shell .ts-layer:focus-visible { background: var(--brand-soft, #f4faf6); color: var(--ink, #1c2025); }
+.cp-shell .ts-layer.is-active { background: var(--brand-soft, #e9f8ef); color: var(--brand, #7c3aed); }
+.cp-shell .ts-layer-icon { color: var(--muted, #9aa8a0); }
+.cp-shell .ts-layer.is-active .ts-layer-icon { color: var(--brand, #7c3aed); }
+.cp-shell .ts-layer-actions button:hover { background: var(--brand-soft, #e2f2e8); color: var(--ink, #1c2025); }
+.cp-shell .ts-layer-tools button { border-color: var(--line, #e5eae7); background: var(--paper, #fff); color: var(--muted, #6e7880); }
+.cp-shell .ts-layer-tools button:hover:not(:disabled) { background: var(--brand-soft, #edf8f1); color: var(--brand, #7c3aed); }
+.cp-shell .ts-inspector-foot { background: var(--surface, #f8faf9); border-top-color: var(--line, #e8eaed); color: var(--muted, #98a1aa); font-size: 9.5px; }
+.cp-shell .ts-panel-toggle { background: var(--brand, #7c3aed); border: none; color: #fff; box-shadow: 0 4px 14px var(--brand-glow, rgba(124, 58, 237, 0.35)); }
+.cp-shell .ts-panel-toggle:hover { background: var(--brand-dark, #5f24c9); }
 
 @media (max-width: 1200px) {
   .cp-grid { columns: 3 200px; }
