@@ -1,6 +1,25 @@
 import { Component, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Check, ImagePlus, Images, Sparkles, Square, Trash2, X } from 'lucide-react'
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  ImagePlus,
+  Images,
+  Sparkles,
+  Square,
+  Trash2,
+  X,
+  UploadCloud,
+  FileText,
+  Layers,
+  Zap,
+  BookOpen,
+  Cloud,
+  Gift,
+  Play,
+  Save,
+} from 'lucide-react'
 import Editor from './template-studio/components/Editor.jsx'
 import TemplateCanvas from './template-studio/components/TemplateCanvas.jsx'
 import { CATEGORY_COUNTS, TEMPLATES, docFromTemplate } from './template-studio/data/templates.js'
@@ -209,6 +228,85 @@ const START_OPTIONS = [
     copy: 'Choose a ready-made layout, then make every detail yours in the editor.',
     points: ['29 layouts', '8 categories', 'Photo-ready slots'],
     cta: 'Browse templates',
+  },
+]
+
+const START_CARDS = [
+  {
+    id: 'photo',
+    variant: 'blue',
+    icon: UploadCloud,
+    image: '/images/poster-card-upload.png',
+    title: 'Upload a photo',
+    copy: 'Turn your own photo into a poster. Upload an image and add text, stickers, effects and more.',
+    pills: [
+      { label: 'Basic editing', icon: '✨' },
+      { label: 'Auto photo edit', icon: '🎨' },
+      { label: 'Save draft', icon: '💾' },
+    ],
+    cta: 'Upload photo',
+    route: '/poster/upload',
+  },
+  {
+    id: 'blank',
+    variant: 'amber',
+    icon: FileText,
+    image: '/images/poster-card-blank.png',
+    title: 'Blank poster',
+    copy: 'Start from an empty canvas and build it with text, shapes, stickers and elements.',
+    pills: [
+      { label: 'Page size (A4, etc.)', icon: '📄' },
+      { label: 'Shapes & text', icon: '📐' },
+      { label: 'HD export', icon: '✨' },
+    ],
+    cta: 'Pick a blank page',
+    route: '/poster/blank',
+  },
+  {
+    id: 'template',
+    variant: 'magenta',
+    icon: Layers,
+    image: '/images/poster-card-template.png',
+    title: 'Predefined template',
+    copy: 'Choose a ready-made layout. Then make it yours with your photo, text and colors.',
+    pills: [
+      { label: '250+ layouts', icon: '🗂' },
+      { label: '8+ categories', icon: '🏷' },
+      { label: 'Photo-ready picks', icon: '🏆' },
+    ],
+    cta: 'Browse templates',
+    route: '/poster/templates',
+  },
+]
+
+const HOW_IT_WORKS_STEPS = [
+  {
+    num: '01',
+    color: 'purple',
+    icon: Images,
+    title: 'Upload many photos',
+    desc: 'Select a batch of photos — portrait, event or product shots all at once.',
+  },
+  {
+    num: '02',
+    color: 'pink',
+    icon: Layers,
+    title: 'One post per image',
+    desc: 'Each upload is split into its own post, ready for its own template.',
+  },
+  {
+    num: '03',
+    color: 'cyan',
+    icon: FileText,
+    title: 'Edit each post',
+    desc: 'Pick a template, add text, change colors, apply stickers and more.',
+  },
+  {
+    num: '04',
+    color: 'green',
+    icon: Save,
+    title: 'Save a draft',
+    desc: 'Resume from the browser or download a high-resolution PNG.',
   },
 ]
 
@@ -635,45 +733,106 @@ export default function CreatePoster() {
   return (
     <div className="cp-shell">
       <main className="cp-page">
-        <header className="cp-head">
-          <Link to="/" className="cp-back"><ArrowLeft size={14} /> Back to the library</Link>
-          <span className="cp-kicker">CREATE POSTER</span>
-          <h1>Turn any photo into <em>a poster.</em></h1>
-          <p>Start with your own photo, a blank page or a ready-made template. Pick a route below, then edit, save a draft and download a print-ready poster whenever you like.</p>
-        </header>
+        {!mode ? (
+          <header className="cp-hero">
+            <div className="cp-hero-body">
+              <div className="cp-hero-content">
+                <Link to="/" className="cp-back"><ArrowLeft size={13} /> Back to the library</Link>
+                <div className="cp-hero-kicker">
+                  <Sparkles size={12} className="cp-sparkle-icon" /> CREATE POSTER
+                </div>
+                <h1 className="cp-hero-title">
+                  Turn any photo into a<br />
+                  stunning <span className="cp-title-accent">Poster</span>
+                </h1>
+                <p className="cp-hero-desc">
+                  Start with your own photo, a blank canvas or a ready-made template. Pick a route below, then edit, save a draft and download a print-ready poster whenever you like.
+                </p>
+                <div className="cp-hero-actions">
+                  <a href="#three-ways" className="cp-hero-btn cp-hero-btn--primary">
+                    <span>Get Started</span>
+                    <ArrowRight size={15} />
+                  </a>
+                  <a href="#how-it-works" className="cp-hero-btn cp-hero-btn--secondary">
+                    <span className="cp-hero-play-icon">▶</span>
+                    <span>Watch How It Works</span>
+                  </a>
+                </div>
+                <div className="cp-hero-values">
+                  <span className="cp-hero-val"><Zap size={14} className="cp-val-icon cp-val-icon--yellow" fill="currentColor" /> Easy to Use</span>
+                  <span className="cp-hero-val"><BookOpen size={14} className="cp-val-icon cp-val-icon--teal" /> Ready Templates</span>
+                  <span className="cp-hero-val"><Cloud size={14} className="cp-val-icon cp-val-icon--purple" /> High-Resolution</span>
+                  <span className="cp-hero-val"><Gift size={14} className="cp-val-icon cp-val-icon--pink" /> Free to Create</span>
+                </div>
+              </div>
+              <div className="cp-hero-visual" aria-hidden="true">
+                <div className="cp-hero-showcase-stage">
+                  <img
+                    src="/images/poster-hero-showcase.png"
+                    alt="Poster showcases"
+                    className="cp-hero-showcase-img"
+                  />
+                </div>
+              </div>
+            </div>
+          </header>
+        ) : (
+          <header className="cp-head cp-head--submode">
+            <Link to="/poster" className="cp-back"><ArrowLeft size={13} /> Back to poster options</Link>
+            <div className="cp-hero-kicker"><Sparkles size={12} /> CREATE POSTER</div>
+            <h1>Turn any photo into <em>a poster.</em></h1>
+          </header>
+        )}
 
         {!mode && (
-        <section className="cp-start" aria-label="Choose how to start">
-          <div className="cp-section-head">
-            <div>
-              <span className="cp-kicker">CHOOSE YOUR START</span>
-              <h2>Three ways to make a poster</h2>
+          <section className="cp-start" id="three-ways" aria-label="Choose how to start">
+            <div className="cp-three-ways-head">
+              <div className="cp-three-ways-title-wrap">
+                <h2 className="cp-three-ways-title">
+                  <span className="cp-sparkle-decor">✨</span> Three ways <span className="cp-title-accent">to make a poster</span> <span className="cp-sparkle-decor">✨</span>
+                </h2>
+              </div>
+              <span className="cp-count">3 options</span>
             </div>
-            <span className="cp-count">3 options</span>
-          </div>
-          <div className="cp-options" aria-label="Poster start options">
-            {START_OPTIONS.map((option) => {
-              const Icon = option.icon
-              return (
-                <Link key={option.id} to={START_ROUTES[option.id]} className="cp-option">
-                  <span className="cp-option-index">{option.index}</span>
-                  <span className="cp-option-stage" aria-hidden="true">
-                    <StartOptionPreview id={option.id} />
-                  </span>
-                  <span className="cp-option-heading">
-                    <span className="cp-option-icon"><Icon size={15} /></span>
-                    <strong>{option.title}</strong>
-                  </span>
-                  <small>{option.copy}</small>
-                  <span className="cp-option-points">
-                    {option.points.map((point) => <span key={point}>{point}</span>)}
-                  </span>
-                  <span className="cp-option-cta">{option.cta} <ArrowRight size={13} /></span>
-                </Link>
-              )
-            })}
-          </div>
-        </section>
+
+            <div className="cp-cards-grid" aria-label="Poster start options">
+              {START_CARDS.map((card) => {
+                const Icon = card.icon
+                return (
+                  <article key={card.id} className={`cp-mock-card cp-mock-card--${card.variant}`}>
+                    <div className="cp-mock-top">
+                      <span className={`cp-mock-icon-badge cp-mock-icon-badge--${card.variant}`}>
+                        <Icon size={18} />
+                      </span>
+                    </div>
+
+                    <div className="cp-mock-art-wrap">
+                      <img src={card.image} alt={card.title} className="cp-mock-art-img" />
+                    </div>
+
+                    <div className="cp-mock-body">
+                      <h3 className="cp-mock-title">{card.title}</h3>
+                      <p className="cp-mock-desc">{card.copy}</p>
+                    </div>
+
+                    <div className="cp-mock-pills">
+                      {card.pills.map((pill) => (
+                        <span key={pill.label} className="cp-mock-pill">
+                          <span className="cp-mock-pill-emoji">{pill.icon}</span>
+                          <span>{pill.label}</span>
+                        </span>
+                      ))}
+                    </div>
+
+                    <Link to={card.route} className={`cp-mock-cta-btn cp-mock-cta-btn--${card.variant}`}>
+                      <span>{card.cta}</span>
+                      <ArrowRight size={14} />
+                    </Link>
+                  </article>
+                )
+              })}
+            </div>
+          </section>
         )}
 
         {mode && (
@@ -915,11 +1074,22 @@ export default function CreatePoster() {
         </div>
 
         {!mode && (
-          <section className="cp-how" aria-label="How it works">
-            <div className="cp-step"><span>01</span><strong>Upload many photos</strong><p>Select a batch at once — portrait, event or product shots all work.</p></div>
-            <div className="cp-step"><span>02</span><strong>One post per image</strong><p>Each upload is split into its own post, ready for its own template.</p></div>
-            <div className="cp-step"><span>03</span><strong>Edit each post</strong><p>Pick a template, then add text, name plates, shapes and your scanned elements.</p></div>
-            <div className="cp-step"><span>04</span><strong>Save a draft</strong><p>Resume from this browser or download a high-resolution PNG.</p></div>
+          <section className="cp-how-row" id="how-it-works" aria-label="How it works">
+            {HOW_IT_WORKS_STEPS.map((step) => {
+              const StepIcon = step.icon
+              return (
+                <div key={step.num} className={`cp-how-card cp-how-card--${step.color}`}>
+                  <div className="cp-how-card-head">
+                    <span className={`cp-how-num cp-how-num--${step.color}`}>{step.num}</span>
+                    <div className="cp-how-icon-title">
+                      <StepIcon size={15} className={`cp-how-icon cp-how-icon--${step.color}`} />
+                      <strong>{step.title}</strong>
+                    </div>
+                  </div>
+                  <p>{step.desc}</p>
+                </div>
+              )
+            })}
           </section>
         )}
 
