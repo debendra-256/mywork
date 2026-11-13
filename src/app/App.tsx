@@ -723,6 +723,42 @@ function FilterBar({
   )
 }
 
+function isPoliticsPrompt(p: Prompt): boolean {
+  if (!p) return false
+  const title = (p.title || '').toLowerCase()
+  const cat = (p.category || '').toLowerCase()
+  const labels = (p.labels || []).map((l) => l.toLowerCase())
+  const hashtags = (p.hashtags || []).map((h) => h.toLowerCase())
+  const text = `${title} ${cat} ${p.description || ''} ${p.promptText || ''}`.toLowerCase()
+
+  const politicalKeywords = /politic|leader|leadership|janata|janseva|chunav|election|minister|mla|mp|tigerstyle|masshero|manofmasses/i
+  return (
+    politicalKeywords.test(title) ||
+    politicalKeywords.test(cat) ||
+    labels.some((l) => politicalKeywords.test(l)) ||
+    hashtags.some((h) => politicalKeywords.test(h)) ||
+    text.includes('political poster') ||
+    text.includes('politics') ||
+    text.includes('indian politics')
+  )
+}
+
+function isBridalPrompt(p: Prompt): boolean {
+  if (!p) return false
+  const title = (p.title || '').toLowerCase()
+  const cat = (p.category || '').toLowerCase()
+  const labels = (p.labels || []).map((l) => l.toLowerCase())
+  const hashtags = (p.hashtags || []).map((h) => h.toLowerCase())
+
+  const bridalKeywords = /bridal|wedding|bride|dulhan|shaadi|shadi|vivah|matrimon/i
+  return (
+    bridalKeywords.test(title) ||
+    bridalKeywords.test(cat) ||
+    labels.some((l) => bridalKeywords.test(l)) ||
+    hashtags.some((h) => bridalKeywords.test(h))
+  )
+}
+
 function HomePage({ prompts, blogStatus, adminLoggedIn = false }: { prompts: Prompt[]; blogStatus: 'idle' | 'loading' | 'connected' | 'error'; menuSections?: SideMenuSection[]; adminLoggedIn?: boolean }) {
   const [active, setActive] = useState('All')
   const [query, setQuery] = useState(() => new URLSearchParams(window.location.search).get('q') ?? '')
@@ -761,6 +797,8 @@ function HomePage({ prompts, blogStatus, adminLoggedIn = false }: { prompts: Pro
   // Deduplicate prompts so posters never appear twice
   const deduplicatedPrompts = useMemo(() => deduplicatePrompts(prompts), [prompts])
   const { categories, hashtags } = useMemo(() => collectPromptFilters(deduplicatedPrompts), [deduplicatedPrompts])
+  const politicsPrompts = useMemo(() => deduplicatedPrompts.filter(isPoliticsPrompt), [deduplicatedPrompts])
+  const bridalPrompts = useMemo(() => deduplicatedPrompts.filter(isBridalPrompt), [deduplicatedPrompts])
 
   const shown = useMemo(() => {
     const term = query.trim().toLowerCase()
@@ -816,7 +854,83 @@ function HomePage({ prompts, blogStatus, adminLoggedIn = false }: { prompts: Pro
   }, [location.hash])
   const title = active === 'All' ? 'All prompts' : active === 'Saved' ? 'Your saved prompts' : active === 'Trending' ? 'Trending prompts' : active === 'Latest' ? 'Latest prompts' : `${active} prompts`
   return <div className={`app-layout ${sidebarVisible ? '' : 'no-sidebar'}`}><SeoHead pageKey="home" /><Header onMenu={() => setSidebarOpen(true)} onJump={jumpTo} onFilter={(filter) => { setActive(filter); setActiveUtility(null); jumpTo('explore') }} adminLoggedIn={adminLoggedIn} /><div className="page-body">{sidebarVisible && <Sidebar open={sidebarOpen} active={active} onHome={() => { setActive('All'); setQuery(''); setActiveUtility(null); setSidebarOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }} activeUtility={activeUtility} onOpenUtility={(id) => { setActiveUtility(id); setSidebarOpen(false); window.setTimeout(() => document.getElementById('home-utility-area')?.scrollIntoView({ behavior: 'smooth' }), 0) }} onSelect={(category) => { setActive(category); setActiveUtility(null); setSidebarOpen(false); document.getElementById('explore')?.scrollIntoView({ behavior: 'smooth' }) }} onClose={() => setSidebarOpen(false)} />}
-    <main className={`main-content ${utilityOpen ? 'recorder-main-wide' : ''}`}><div className={`content-inner ${utilityOpen ? 'recorder-content-wide' : ''}`}>{!utilityOpen && <HomeLanding onJump={jumpTo} onOpenTool={openTool} onNavigate={navigate} />}<div id="home-utility-area">{utilityTool?.overlay ? null : utilityTool && <ToolSurface tool={utilityTool} />}</div>{utilityTool?.overlay && <ToolSurface tool={utilityTool} onClose={() => setActiveUtility(null)} />}<FeatureHero prompts={deduplicatedPrompts} /><ProductScroller />
+    <main className={`main-content ${utilityOpen ? 'recorder-main-wide' : ''}`}><div className={`content-inner ${utilityOpen ? 'recorder-content-wide' : ''}`}>{!utilityOpen && <HomeLanding onJump={jumpTo} onOpenTool={openTool} onNavigate={navigate} />}<div id="home-utility-area">{utilityTool?.overlay ? null : utilityTool && <ToolSurface tool={utilityTool} />}</div>{utilityTool?.overlay && <ToolSurface tool={utilityTool} onClose={() => setActiveUtility(null)} />}        <FeatureHero prompts={deduplicatedPrompts} />
+
+        {politicsPrompts.length > 0 && (
+          <section className="curated-home-section politics-section" id="politics-posters">
+            <div className="curated-section-header">
+              <div>
+                <span className="curated-section-eyebrow">
+                  <ShieldCheck size={14} /> POLITICS &amp; LEADERSHIP
+                </span>
+                <h2 className="curated-section-title">
+                  Political <em>Posters</em>
+                </h2>
+                <p className="curated-section-desc">
+                  Election campaigns, leadership banners, public service &amp; political greeting posters
+                </p>
+              </div>
+              <div className="curated-section-meta">
+                <span className="curated-section-count">
+                  {politicsPrompts.length} {politicsPrompts.length === 1 ? 'POSTER' : 'POSTERS'}
+                </span>
+              </div>
+            </div>
+            <div className="prompt-grid">
+              {politicsPrompts.map((prompt, index) => (
+                <PromptCard
+                  key={`pol-${prompt.id}`}
+                  prompt={prompt}
+                  index={index}
+                  saved={savedIds.includes(prompt.id)}
+                  engagement={engagementFor(counts, prompt.id)}
+                  onToggleSave={() => toggleSave(prompt.id)}
+                  onCopy={() => record(prompt.id, 'copy')}
+                  onHashtag={showHashtag}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {bridalPrompts.length > 0 && (
+          <section className="curated-home-section bridal-section" id="bridal-posters">
+            <div className="curated-section-header">
+              <div>
+                <span className="curated-section-eyebrow eyebrow-bridal">
+                  <Heart size={14} /> BRIDAL &amp; WEDDING
+                </span>
+                <h2 className="curated-section-title">
+                  Bridal <em>Posters</em>
+                </h2>
+                <p className="curated-section-desc">
+                  Indian bridal portraits, wedding celebration collages &amp; ceremonial photo posters
+                </p>
+              </div>
+              <div className="curated-section-meta">
+                <span className="curated-section-count count-bridal">
+                  {bridalPrompts.length} {bridalPrompts.length === 1 ? 'POSTER' : 'POSTERS'}
+                </span>
+              </div>
+            </div>
+            <div className="prompt-grid">
+              {bridalPrompts.map((prompt, index) => (
+                <PromptCard
+                  key={`bridal-${prompt.id}`}
+                  prompt={prompt}
+                  index={index}
+                  saved={savedIds.includes(prompt.id)}
+                  engagement={engagementFor(counts, prompt.id)}
+                  onToggleSave={() => toggleSave(prompt.id)}
+                  onCopy={() => record(prompt.id, 'copy')}
+                  onHashtag={showHashtag}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        <ProductScroller />
       <section className="browse-section" id="explore"><div className="section-topline"><div><span className="section-kicker">THE PROMPT LIBRARY</span><h2>Find your next <em>favorite.</em></h2></div><span className="collection-count">{deduplicatedPrompts.length} IDEAS <span>↗</span></span></div>
         
         <div className="inline-search">

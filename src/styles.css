@@ -2520,4 +2520,149 @@
   }
 }
 
+/* ========================================================
+   Curated Homepage Sections: Politics & Bridal
+   ======================================================== */
+.curated-home-section {
+  margin-bottom: 28px;
+  padding: 24px clamp(16px, 3vw, 28px) 26px;
+  border: 1px solid #e5ebe7;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #fbfdfc 0%, #ffffff 100%);
+  box-shadow: 0 4px 20px rgba(22, 51, 33, 0.04);
+}
+
+.curated-home-section.politics-section {
+  border-color: #dcece1;
+  background: linear-gradient(145deg, #f5faf6 0%, #ffffff 60%, #f7fbf8 100%);
+}
+
+.curated-home-section.bridal-section {
+  border-color: #fce7ef;
+  background: linear-gradient(145deg, #fff8fa 0%, #ffffff 60%, #fdf5f8 100%);
+}
+
+.curated-section-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.curated-section-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #168253;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.curated-section-eyebrow.eyebrow-bridal {
+  color: #d94677;
+}
+
+.curated-section-title {
+  margin: 6px 0 4px;
+  font-size: clamp(23px, 2.8vw, 32px);
+  line-height: 1.15;
+  letter-spacing: -0.04em;
+  color: #1f2937;
+  font-weight: 800;
+}
+
+.curated-section-title em {
+  font-style: normal;
+  color: #0a9f62;
+}
+
+.curated-home-section.bridal-section .curated-section-title em {
+  color: #d94677;
+}
+
+.curated-section-desc {
+  margin: 0;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 1.5;
+  max-width: 620px;
+}
+
+.curated-section-count {
+  padding: 6px 12px;
+  border: 1px solid #d9e9dd;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #168253;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.curated-section-count.count-bridal {
+  border-color: #fbcfe8;
+  color: #be185d;
+  background: #fff;
+}
+
+/* Dark mode support */
+[data-scheme="dark"] .curated-home-section {
+  border-color: #243028;
+  background: #151d18;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+[data-scheme="dark"] .curated-home-section.politics-section {
+  border-color: #1b3524;
+  background: linear-gradient(145deg, #132419 0%, #111a14 100%);
+}
+
+[data-scheme="dark"] .curated-home-section.bridal-section {
+  border-color: #3b1d28;
+  background: linear-gradient(145deg, #27141d 0%, #1a1116 100%);
+}
+
+[data-scheme="dark"] .curated-section-title {
+  color: #f9fafb;
+}
+
+[data-scheme="dark"] .curated-section-desc {
+  color: #9ca3af;
+}
+
+[data-scheme="dark"] .curated-section-count {
+  background: #1b261f;
+  border-color: #264330;
+  color: #4ade80;
+}
+
+[data-scheme="dark"] .curated-section-count.count-bridal {
+  background: #2a1620;
+  border-color: #4c2234;
+  color: #f472b6;
+}
+
+@media (max-width: 650px) {
+  .curated-home-section {
+    padding: 18px 14px 20px;
+    border-radius: 14px;
+    margin-bottom: 20px;
+  }
+  .curated-section-header {
+    margin-bottom: 14px;
+  }
+  .curated-section-title {
+    font-size: 22px;
+  }
+  .curated-section-desc {
+    font-size: 11px;
+  }
+}
+
+
 
