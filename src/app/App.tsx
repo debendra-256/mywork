@@ -22,7 +22,7 @@ import { loadCustomerSession, redeemLicenseCode, signIn, signInWithProvider, sig
 import { loadSocialProviders, mountGoogleSignInButton, requestFacebookToken, type SocialProviderFlags } from '../data/social-login'
 import { WATERMARK_BENEFIT, productPrice, type StoreFeature, type StoreProduct, type StoreSnapshot } from '../domain/store'
 import { createMenuItemId, defaultSideMenus, type SideMenuSection } from '../data/side-menus'
-import { promptHashtags, promptLabels, promptTags, type Prompt } from '../domain/prompt'
+import { promptLabels, promptTags, type Prompt } from '../domain/prompt'
 import { useInView, whenIdle } from './useInView'
 import { InfoPage, type InfoKind } from './InfoPage'
 import AboutUs from './Pages/AboutUs'
@@ -442,24 +442,7 @@ function PromptVideo({ src, title, className }: { src: string; title: string; cl
   )
 }
 
-function PromptCard({ prompt, index, saved, onToggleSave, onCopy, onHashtag }: { prompt: Prompt; index: number; saved: boolean; engagement?: EngagementCounts; onToggleSave: () => void; onCopy: () => void; onHashtag: (tag: string) => void }) {
-  const [copied, setCopied] = useState(false)
-  const [downloading, setDownloading] = useState(false)
-  const copy = async () => {
-    try { await navigator.clipboard.writeText(prompt.promptText); setCopied(true); onCopy(); window.setTimeout(() => setCopied(false), 1500) } catch { setCopied(false) }
-  }
-  const handleDownload = async (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (!prompt.image || downloading) return
-    setDownloading(true)
-    try {
-      await downloadImageFile(prompt.image, `${prompt.slug || prompt.id}.jpg`)
-    } finally {
-      window.setTimeout(() => setDownloading(false), 1200)
-    }
-  }
-  const tags = promptHashtags(prompt)
+function PromptCard({ prompt, index, saved, onToggleSave }: { prompt: Prompt; index: number; saved: boolean; engagement?: EngagementCounts; onToggleSave: () => void; onCopy?: () => void; onHashtag?: (tag: string) => void }) {
   const cardTitle = prompt.title?.trim() || prompt.category || 'Creative Prompt'
   const cardDesc = prompt.description?.trim() || prompt.promptText?.trim() || 'AI photo prompt.'
   return <article className="prompt-tile">
@@ -479,41 +462,16 @@ function PromptCard({ prompt, index, saved, onToggleSave, onCopy, onHashtag }: {
           {prompt.featured && <span className="tile-featured"><Sparkles size={12} /> EDITOR’S PICK</span>}
           <span className="tile-open"><ArrowUpRight size={17} /></span>
         </Link>
-        {prompt.image && (
-          <button
-            type="button"
-            className="tile-image-download"
-            title="Download image"
-            aria-label={`Download ${cardTitle} image`}
-            onClick={handleDownload}
-            disabled={downloading}
-          >
-            <Download size={13} />
-          </button>
-        )}
       </div>
     )}
-    {tags.length > 0 && <div className="tile-hashtags">{tags.map((tag) => <button key={tag} className="tile-hashtag" title={`Show every ${tag} prompt`} onClick={() => onHashtag(tag)}>#{tag}</button>)}</div>}
-    <div className="tile-content"><div className="tile-heading"><Link to={`/prompt/${prompt.slug}`} className="tile-title">{cardTitle}</Link><button className={`tile-save ${saved ? 'is-saved' : ''}`} onClick={onToggleSave} aria-label={saved ? 'Remove from saved' : 'Save prompt'}><Heart size={17} fill={saved ? 'currentColor' : 'none'} /></button></div>
-      <p>{cardDesc}</p>
-      <div className="tile-footer">
-        {!prompt.sourceUrl && <span>{prompt.tool} <b>·</b> {prompt.style}</span>}
-        <div className="tile-footer-actions">
-          {prompt.image && (
-            <button
-              type="button"
-              className="tile-download"
-              title="Download image"
-              aria-label={`Download ${cardTitle} image`}
-              onClick={handleDownload}
-              disabled={downloading}
-            >
-              <Download size={13} />
-            </button>
-          )}
-          <button className="tile-copy" onClick={copy}>{copied ? <Check size={13} /> : <Copy size={13} />}{copied ? 'Copied' : 'Copy prompt'}</button>
-        </div>
+    <div className="tile-content">
+      <div className="tile-heading">
+        <Link to={`/prompt/${prompt.slug}`} className="tile-title">{cardTitle}</Link>
+        <button className={`tile-save ${saved ? 'is-saved' : ''}`} onClick={onToggleSave} aria-label={saved ? 'Remove from saved' : 'Save prompt'}>
+          <Heart size={17} fill={saved ? 'currentColor' : 'none'} />
+        </button>
       </div>
+      <p>{cardDesc}</p>
     </div>
   </article>
 }

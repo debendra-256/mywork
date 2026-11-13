@@ -2664,5 +2664,30 @@
   }
 }
 
+/* Card content spacing without footer actions */
+.prompt-tile .tile-content {
+  padding: 13px 14px 15px;
+}
+
+.prompt-tile .tile-title {
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.prompt-tile .tile-content > p {
+  margin: 6px 0 0;
+  color: #89919b;
+  font-size: 11px;
+  line-height: 1.5;
+  height: auto;
+  max-height: 34px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+
 
 
