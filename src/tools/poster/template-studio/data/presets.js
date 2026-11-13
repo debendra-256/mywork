@@ -1,9 +1,11 @@
 export const ASPECTS = {
-  portrait: { ratio: 5 / 7, label: '5 × 7 in' },
-  square: { ratio: 1, label: 'Square' },
-  story: { ratio: 9 / 16, label: 'Story 9:16' },
-  landscape: { ratio: 7 / 5, label: '7 × 5 in' },
-  banner: { ratio: 4, label: 'Banner 4 × 1' },
+  story: { ratio: 9 / 16, label: 'Instagram Reels / Story (9:16)', shortLabel: '9:16 Reels', dims: '1080 × 1920' },
+  square: { ratio: 1, label: 'Instagram / Facebook Post (1:1)', shortLabel: '1:1 Post', dims: '1080 × 1080' },
+  portrait45: { ratio: 4 / 5, label: 'Instagram Portrait (4:5)', shortLabel: '4:5 Portrait', dims: '1080 × 1350' },
+  landscape169: { ratio: 16 / 9, label: 'Facebook / YouTube (16:9)', shortLabel: '16:9 FB/YT', dims: '1920 × 1080' },
+  portrait: { ratio: 5 / 7, label: 'Flyer / Poster (5 × 7 in)', shortLabel: '5:7 Flyer', dims: '1500 × 2100' },
+  landscape: { ratio: 7 / 5, label: 'Print Landscape (7 × 5 in)', shortLabel: '7:5 Landscape', dims: '2100 × 1500' },
+  banner: { ratio: 4, label: 'Banner Header (4 × 1)', shortLabel: '4:1 Banner', dims: '2400 × 600' },
 }
 
 export const FONTS = [

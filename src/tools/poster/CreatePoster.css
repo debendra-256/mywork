@@ -282,6 +282,98 @@
 .cp-error { margin: 10px 2px 0; padding: 9px 11px; border-radius: 7px; background: #fff0ed; color: #a33d2c; font-size: 10.5px; line-height: 1.5; }
 .cp-note { margin: 9px 2px 0; color: #87938a; font-size: 10.5px; }
 
+/* ---------- Poster Size Presets Selector ---------- */
+.cp-size-section {
+  margin-bottom: 22px;
+}
+.cp-size-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.cp-size-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 13px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8e5;
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: all .18s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+}
+.cp-size-card:hover {
+  border-color: #0a9f62;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px -6px rgba(10, 159, 98, 0.2);
+}
+.cp-size-card.is-active {
+  border-color: #0a9f62;
+  background: #f3faf6;
+  box-shadow: 0 0 0 1px #0a9f62, 0 4px 14px -4px rgba(10, 159, 98, 0.25);
+}
+.cp-size-aspect-preview {
+  width: 34px;
+  height: 42px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #edf3f0;
+  border: 1.5px solid #c9d8d0;
+  border-radius: 6px;
+  transition: all .18s ease;
+}
+.cp-size-card.is-active .cp-size-aspect-preview {
+  background: #0a9f62;
+  border-color: #087447;
+}
+.cp-size-ratio-badge {
+  font-size: 8.5px;
+  font-weight: 800;
+  color: #3b5044;
+  letter-spacing: -.02em;
+}
+.cp-size-card.is-active .cp-size-ratio-badge {
+  color: #ffffff;
+}
+.cp-size-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.cp-size-meta strong {
+  font-size: 11.5px;
+  font-weight: 750;
+  color: #223129;
+  letter-spacing: -.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cp-size-card.is-active .cp-size-meta strong {
+  color: #087447;
+}
+.cp-size-meta small {
+  font-size: 10px;
+  color: #7b8a81;
+  margin-top: 2px;
+}
+
+@media (max-width: 600px) {
+  .cp-size-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .cp-size-card {
+    padding: 9px 10px;
+    gap: 9px;
+  }
+}
+
 .cp-blanks { margin-top: 27px; }
 .cp-blank-row { display: flex; flex-wrap: wrap; gap: 9px; }
 .cp-blank {

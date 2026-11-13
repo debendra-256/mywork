@@ -1854,7 +1854,33 @@ export default function Inspector({
             <span>Paper grain</span>
           </label>
           <div className="ts-field">
-            <span className="ts-label">Canvas size</span>
+            <span className="ts-label">Canvas size (Poster Ratio)</span>
+            <div className="ts-quick-aspects" style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
+              {Object.entries(ASPECTS).slice(0, 5).map(([id, aspect]) => {
+                const isActive = String(doc.aspect) === id
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    className={`ts-quick-aspect-btn${isActive ? ' is-active' : ''}`}
+                    onClick={() => chooseCanvasSize(id)}
+                    style={{
+                      padding: '4px 8px',
+                      borderRadius: 6,
+                      fontSize: '11px',
+                      fontWeight: isActive ? 700 : 500,
+                      background: isActive ? '#0a9f62' : '#f0f3f1',
+                      color: isActive ? '#fff' : '#334038',
+                      border: 'none',
+                      cursor: 'pointer',
+                      transition: 'all .15s ease',
+                    }}
+                  >
+                    {aspect.shortLabel || aspect.label}
+                  </button>
+                )
+              })}
+            </div>
             <select
               className="ts-select"
               value={String(doc.aspect)}
@@ -1864,7 +1890,7 @@ export default function Inspector({
                 <option value={String(bgRatio)}>Original photo</option>
               )}
               {Object.entries(ASPECTS).map(([id, aspect]) => (
-                <option key={id} value={id}>{aspect.label}</option>
+                <option key={id} value={id}>{aspect.label} · {aspect.dims || `${Math.round(aspect.ratio * 100) / 100}:1`}</option>
               ))}
               {!ASPECTS[doc.aspect] && String(doc.aspect) !== String(bgRatio) && (
                 <option value={String(doc.aspect)}>

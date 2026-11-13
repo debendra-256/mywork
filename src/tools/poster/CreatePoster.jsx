@@ -264,13 +264,22 @@ function StartOptionPreview({ id }) {
   )
 }
 
-function blankColorDoc(page) {
+export const POSTER_SIZES = [
+  { id: 'story', name: 'Instagram Reels / Story', ratioLabel: '9:16', desc: '1080 × 1920', ratio: 9 / 16 },
+  { id: 'square', name: 'Instagram / FB Post', ratioLabel: '1:1', desc: '1080 × 1080', ratio: 1 },
+  { id: 'portrait45', name: 'Instagram Portrait', ratioLabel: '4:5', desc: '1080 × 1350', ratio: 4 / 5 },
+  { id: 'landscape169', name: 'Facebook / YouTube', ratioLabel: '16:9', desc: '1920 × 1080', ratio: 16 / 9 },
+  { id: 'portrait', name: 'Poster / Flyer', ratioLabel: '5:7', desc: 'Standard flyer', ratio: 5 / 7 },
+  { id: 'banner', name: 'Banner Header', ratioLabel: '4:1', desc: 'Cover banner', ratio: 4 },
+]
+
+function blankColorDoc(page, aspect = 'story') {
   return {
     templateId: null,
     name: `Blank ${page.name.toLowerCase()} page`,
     category: 'Custom',
     tag: 'Blank page',
-    aspect: 'portrait',
+    aspect: aspect || 'story',
     paletteId: 'monochrome',
     colors: { ...PALETTES.monochrome },
     bg: { type: 'solid', from: page.color, to: page.color, angle: 160, fit: 'cover', zoom: 1, posX: 50, posY: 50, overlay: 0, tint: 'ink', texture: false },
@@ -356,6 +365,8 @@ export default function CreatePoster() {
   const [dragOver, setDragOver] = useState(false)
   const [error, setError] = useState('')
   const [category, setCategory] = useState('All')
+  const [posterSize, setPosterSize] = useState('story')
+  const [sizeFilter, setSizeFilter] = useState('All')
   const [drafts, setDrafts] = useState(() => loadDrafts())
   const [editing, setEditing] = useState(null)
   const [toast, setToast] = useState('')
@@ -537,9 +548,21 @@ export default function CreatePoster() {
   )
 
   const previews = useMemo(() => {
-    const list = TEMPLATES.map((template) => ({ template, doc: docFromTemplate(template.id) }))
-    return category === 'All' ? list : list.filter((item) => item.template.category === category)
-  }, [category])
+    let list = TEMPLATES.map((template) => ({ template, doc: docFromTemplate(template.id) }))
+    if (category !== 'All') {
+      list = list.filter((item) => item.template.category === category)
+    }
+    if (sizeFilter !== 'All') {
+      list = list.filter((item) => {
+        if (sizeFilter === 'story') return item.template.aspect === 'story'
+        if (sizeFilter === 'square') return item.template.aspect === 'square'
+        if (sizeFilter === 'portrait' || sizeFilter === 'portrait45') return item.template.aspect === 'portrait' || item.template.aspect === 'portrait45'
+        if (sizeFilter === 'landscape' || sizeFilter === 'landscape169') return item.template.aspect === 'landscape' || item.template.aspect === 'landscape169'
+        return String(item.template.aspect) === String(sizeFilter)
+      })
+    }
+    return list
+  }, [category, sizeFilter])
 
   const showTemplates = mode === 'template' || (mode === 'photo' && images.length > 0)
 
@@ -552,7 +575,7 @@ export default function CreatePoster() {
     }
   }
 
-  const openBlankPage = (page) => startEditing(blankColorDoc(page))
+  const openBlankPage = (page) => startEditing(blankColorDoc(page, posterSize))
 
   const openDraft = (draft) => startEditing(cloneDoc(draft.doc), draft.id)
 
@@ -747,10 +770,44 @@ export default function CreatePoster() {
 
         {mode === 'blank' && (
         <section className="cp-blanks" aria-label="Blank colour pages">
-          <div className="cp-section-head">
+          <div className="cp-size-section">
+            <div className="cp-section-head">
+              <div>
+                <span className="cp-kicker">STEP 1 · CHOOSE POSTER SIZE</span>
+                <h2>Select poster size & aspect ratio</h2>
+              </div>
+              <span className="cp-count">{POSTER_SIZES.length} sizes</span>
+            </div>
+            <div className="cp-size-grid" role="radiogroup" aria-label="Poster size presets">
+              {POSTER_SIZES.map((size) => {
+                const active = posterSize === size.id
+                return (
+                  <button
+                    key={size.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    className={`cp-size-card${active ? ' is-active' : ''}`}
+                    onClick={() => setPosterSize(size.id)}
+                    title={`Use ${size.name} (${size.ratioLabel})`}
+                  >
+                    <span className="cp-size-aspect-preview">
+                      <span className="cp-size-ratio-badge">{size.ratioLabel}</span>
+                    </span>
+                    <div className="cp-size-meta">
+                      <strong>{size.name}</strong>
+                      <small>{size.desc}</small>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="cp-section-head" style={{ marginTop: 24 }}>
             <div>
-              <span className="cp-kicker">NO PHOTO? START WITH A PAGE</span>
-              <h2>Pick a blank page colour</h2>
+              <span className="cp-kicker">STEP 2 · PICK A COLOUR</span>
+              <h2>Start with a background colour</h2>
             </div>
             <span className="cp-count">{BLANK_PAGES.length} colours</span>
           </div>
@@ -761,7 +818,7 @@ export default function CreatePoster() {
                 type="button"
                 className="cp-blank"
                 onClick={() => openBlankPage(page)}
-                title={`Open a ${page.name.toLowerCase()} blank page`}
+                title={`Open a ${page.name.toLowerCase()} blank page in ${POSTER_SIZES.find((s) => s.id === posterSize)?.name || 'selected size'}`}
               >
                 <span className="cp-blank-swatch" style={{ background: page.color }} />
                 <span className="cp-blank-name">{page.name}</span>
@@ -769,7 +826,9 @@ export default function CreatePoster() {
               </button>
             ))}
           </div>
-          <p className="cp-blank-note">Opens the editor with an empty page in that colour — add text, name plates, shapes and scanned elements on top.</p>
+          <p className="cp-blank-note">
+            Opens the editor in <strong>{POSTER_SIZES.find((s) => s.id === posterSize)?.name} ({POSTER_SIZES.find((s) => s.id === posterSize)?.ratioLabel})</strong> with that colour — add text, name plates, shapes and scanned elements on top.
+          </p>
         </section>
         )}
 
@@ -814,19 +873,37 @@ export default function CreatePoster() {
             </div>
           )}
 
-          <div className="cp-chips" role="tablist" aria-label="Template categories">
-            {categories.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                role="tab"
-                aria-selected={category === item.id}
-                className={`cp-chip${category === item.id ? ' is-active' : ''}`}
-                onClick={() => setCategory(item.id)}
-              >
-                {item.label}
-              </button>
-            ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+            <div className="cp-chips" role="tablist" aria-label="Size filter">
+              {[{ id: 'All', label: 'All Sizes' }, ...POSTER_SIZES].map((s) => {
+                const active = sizeFilter === s.id
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    className={`cp-chip${active ? ' is-active' : ''}`}
+                    onClick={() => setSizeFilter(s.id)}
+                    style={{ fontSize: '10.5px' }}
+                  >
+                    {s.ratioLabel ? `${s.name} (${s.ratioLabel})` : s.label}
+                  </button>
+                )
+              })}
+            </div>
+            <div className="cp-chips" role="tablist" aria-label="Template categories">
+              {categories.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={category === item.id}
+                  className={`cp-chip${category === item.id ? ' is-active' : ''}`}
+                  onClick={() => setCategory(item.id)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="cp-grid">
             {previews.map(({ template, doc }) => (
