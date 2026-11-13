@@ -1636,12 +1636,57 @@
     touch-action: pan-x pan-y pinch-zoom !important;
   }
   .ts-stage-shell {
-    max-width: min(96vw, 100%) !important;
-    max-height: min(65vh, 100%) !important;
-    width: auto !important;
-    height: auto !important;
+    position: relative !important;
+    flex: 0 0 auto !important;
     margin: auto !important;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+    width: min(
+      calc((100vw - 20px) * var(--ts-zoom, 1)),
+      calc((100vh - 116px) * var(--ts-ar, 0.714) * var(--ts-zoom, 1))
+    ) !important;
+    width: min(
+      calc((100vw - 20px) * var(--ts-zoom, 1)),
+      calc((100dvh - 116px) * var(--ts-ar, 0.714) * var(--ts-zoom, 1))
+    ) !important;
+    max-width: calc(100vw - 16px) !important;
+    max-height: calc(100dvh - 110px) !important;
+    aspect-ratio: var(--ts-ar, 0.714) !important;
+    height: auto !important;
+    display: block !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
+  }
+  .ts-stage-shell > .ts-stage {
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 100% !important;
+    min-height: 100% !important;
+    position: relative !important;
+    overflow: hidden !important;
+    display: block !important;
+  }
+  .ts-stage .ts-bg-photo {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    object-fit: cover !important;
+    display: block !important;
+    z-index: 1 !important;
+    pointer-events: none !important;
+  }
+  .ts-stage .ts-el.ts-photo {
+    display: block !important;
+    overflow: hidden !important;
+  }
+  .ts-stage .ts-el.ts-photo img {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    object-fit: cover !important;
+    display: block !important;
+    pointer-events: none !important;
   }
 
   /* Floating zoom controls & bottom sheet toggle */
@@ -1846,7 +1891,8 @@
   .cp-route-link { padding: 6px 9px; font-size: 9px; }
   .cp-mode-content { margin-top: 16px; }
   .cp-post-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-  .cp-post-thumb img { aspect-ratio: 4 / 3; }
+  .cp-post-thumb { width: 100% !important; display: block !important; }
+  .cp-post-thumb img { width: 100% !important; height: auto !important; min-height: 120px !important; aspect-ratio: 4 / 3 !important; object-fit: cover !important; display: block !important; }
   .cp-queue-actions .cp-button { min-height: 33px; padding: 0 10px; font-size: 10px; }
   .cp-post-target { flex-wrap: wrap; }
   .cp-post-switch { margin-left: 0; padding-left: 0; width: 100%; }

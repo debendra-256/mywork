@@ -2903,6 +2903,45 @@ export const css = `
   .ts-card-meta h4 { font-size: 13.5px; }
   .ts-gallery-foot { flex-direction: column; gap: 6px; }
   .ts-stage, .ts-stage.is-interactive, .ts-stage.is-interactive .ts-el, .ts-stage.is-interactive .ts-resize, .ts-stage-resize-bar, .ts-stage-resize-corner { touch-action: none !important; -webkit-user-select: none !important; user-select: none !important; }
+  .ts-stage-shell {
+    margin: auto;
+    width: min(
+      calc((100vw - 20px) * var(--ts-zoom, 1)),
+      calc((100dvh - 116px) * var(--ts-ar, 0.714) * var(--ts-zoom, 1))
+    );
+    max-width: calc(100vw - 16px);
+    max-height: calc(100dvh - 110px);
+    aspect-ratio: var(--ts-ar, 0.714);
+    height: auto;
+    display: block;
+  }
+  .ts-stage-shell > .ts-stage {
+    width: 100%;
+    height: 100%;
+    min-width: 100%;
+    min-height: 100%;
+    position: relative;
+    display: block;
+  }
+  .ts-stage .ts-bg-photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    z-index: 1;
+  }
+  .ts-stage .ts-el.ts-photo {
+    display: block;
+    overflow: hidden;
+  }
+  .ts-stage .ts-el.ts-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
   .ts-editor { grid-template-columns: 1fr; position: relative; }
   .ts-inspector {
     position: fixed;
