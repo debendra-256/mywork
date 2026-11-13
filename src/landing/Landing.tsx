@@ -18,6 +18,8 @@ import {
   Zap,
   FileArchive,
   IdCard,
+  Copy,
+  Check,
 } from 'lucide-react'
 import { useTools } from '../config/toolSettings'
 import { ToolGlyph } from '../config/toolIcons'
@@ -41,8 +43,51 @@ interface LandingSlide {
   secondary: LandingAction
   badge: string
   toolTag: string
-  mockupType: 'poster' | 'shorts' | 'compress' | 'watermark' | 'passport' | 'prompt' | 'recorder'
+  mockupType: 'poster' | 'shorts' | 'compress' | 'watermark' | 'passport' | 'prompt' | 'girls-prompt' | 'recorder'
 }
+
+export const HERO_GIRL_PROMPTS = [
+  {
+    id: 'gp-1',
+    style: 'Golden Hour Film',
+    tag: 'Girls · 35mm Film',
+    image: '/images/prompts/girl-portrait-1.jpg',
+    prompt: 'cinematic golden hour 8k portrait of an Indian girl in soft amber light, natural skin texture, 35mm film grain, editorial --v 6.0',
+    model: 'Midjourney v6',
+  },
+  {
+    id: 'gp-2',
+    style: 'Editorial Fashion',
+    tag: 'Fashion · Studio',
+    image: '/images/prompts/girl-portrait-2.jpg',
+    prompt: 'high-fashion studio portrait of an aesthetic young woman, dramatic rim light, minimalist background, sharp focus, 85mm f/1.4 lens --style raw',
+    model: 'FLUX.1',
+  },
+  {
+    id: 'gp-3',
+    style: 'Sunlit Bokeh',
+    tag: 'Natural · Glow',
+    image: '/images/prompts/girl-portrait-3.jpg',
+    prompt: 'candid sunlit portrait of a smiling girl with windblown hair, soft warm bokeh, photorealistic skin details, Kodak Portra 400 --v 6.0',
+    model: 'ChatGPT 4o',
+  },
+  {
+    id: 'gp-4',
+    style: 'Royal Saree',
+    tag: 'Traditional · Festive',
+    image: '/images/prompts/girl-portrait-4.jpg',
+    prompt: 'graceful Indian woman in a vibrant traditional silk saree, warm temple lighting, regal posture, intricate embroidery details, photorealistic 8k --v 6.0',
+    model: 'Gemini',
+  },
+  {
+    id: 'gp-5',
+    style: 'Studio Portrait',
+    tag: 'Close-Up · 8K',
+    image: '/images/prompts/girl-portrait-5.jpg',
+    prompt: 'ultra-detailed studio beauty portrait of a young woman, softbox diffused lighting, hyper-realistic iris and skin pores, cinematic masterpiece --v 6.0',
+    model: 'Midjourney v6',
+  },
+]
 
 /**
  * Premium Hero Slides showcasing all core ImgMojo creative tools with live posters,
@@ -62,6 +107,34 @@ const slides: LandingSlide[] = [
     badge: 'LIVE STUDIO',
     toolTag: 'poster · studio',
     mockupType: 'poster',
+  },
+  {
+    id: 'girls-prompt',
+    eyebrow: 'Trending Girls AI Prompts',
+    icon: Sparkles,
+    line1: 'Generate breathtaking',
+    line2: 'photorealistic AI prompts for',
+    accent: 'Girls',
+    body: 'Copy verified, viral Midjourney & ChatGPT prompt recipes for cinematic 8K portraits, golden-hour film aesthetics, traditional saree looks, and studio fashion photography.',
+    primary: { label: 'Explore Girls Prompts', jump: 'explore' },
+    secondary: { label: 'Generate AI Prompt', toolId: 'prompt-generator' },
+    badge: 'TRENDING 4K',
+    toolTag: 'girls · prompt',
+    mockupType: 'girls-prompt',
+  },
+  {
+    id: 'prompt',
+    eyebrow: 'AI Prompt Generator',
+    icon: Wand2,
+    line1: 'Generate high-converting',
+    line2: 'prompts for Midjourney &',
+    accent: 'ChatGPT',
+    body: 'Craft photorealistic, cinematic and artistic prompt recipes tailored to top generative AI models with 1 click.',
+    primary: { label: 'Generate Prompts', toolId: 'prompt-generator' },
+    secondary: { label: 'Prompt Library', jump: 'explore' },
+    badge: 'GPT & FLUX',
+    toolTag: 'prompt · engine',
+    mockupType: 'prompt',
   },
   {
     id: 'shorts',
@@ -118,20 +191,6 @@ const slides: LandingSlide[] = [
     badge: 'BIOMETRIC',
     toolTag: 'passport · 35x45',
     mockupType: 'passport',
-  },
-  {
-    id: 'prompt',
-    eyebrow: 'AI Prompt Generator',
-    icon: Sparkles,
-    line1: 'Generate high-converting',
-    line2: 'prompts for Midjourney &',
-    accent: 'ChatGPT',
-    body: 'Craft photorealistic, cinematic and artistic prompt recipes tailored to top generative AI models with 1 click.',
-    primary: { label: 'Generate Prompts', toolId: 'prompt-generator' },
-    secondary: { label: 'Prompt Library', jump: 'explore' },
-    badge: 'GPT & FLUX',
-    toolTag: 'prompt · engine',
-    mockupType: 'prompt',
   },
   {
     id: 'recorder',
@@ -362,12 +421,29 @@ export function HomeLanding({
 }
 
 /**
- * Interactive Premium Tool Poster art featuring the ImgMojo mark,
+ * Interactive Premium Tool Poster art featuring live prompt image showcases (girls & portraits),
  * dedicated tool canvas layouts, live status badges, and subtle floating accents.
  */
 function HeroArt({ slide }: { slide: LandingSlide }) {
+  const isPromptSlide = slide.mockupType === 'girls-prompt' || slide.mockupType === 'prompt'
+  const [activePromptIndex, setActivePromptIndex] = useState(0)
+  const [copied, setCopied] = useState(false)
+
+  const currentPrompt = HERO_GIRL_PROMPTS[activePromptIndex % HERO_GIRL_PROMPTS.length]
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    try {
+      void navigator.clipboard.writeText(currentPrompt.prompt)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Fallback
+    }
+  }
+
   return (
-    <div className={`landing-art landing-art-${slide.mockupType}`} aria-hidden="true">
+    <div className={`landing-art landing-art-${slide.mockupType}`}>
       <span className="landing-art-glow" />
 
       <div className="landing-art-screen">
@@ -383,93 +459,154 @@ function HeroArt({ slide }: { slide: LandingSlide }) {
 
         {/* WINDOW CANVAS */}
         <div className="landing-art-body">
-          <div className="landing-art-canvas">
-            <div className="landing-art-logo-wrap">
-              <img
-                src="/images/imgmojo-mark.png"
-                alt="ImgMojo"
-                width={84}
-                height={84}
-                className="landing-art-logo"
-              />
-              <span className="landing-art-tool-pill">{slide.eyebrow}</span>
-            </div>
+          <div className={`landing-art-canvas ${isPromptSlide ? 'canvas-prompt-mode' : ''}`}>
+            {isPromptSlide ? (
+              <div className="art-prompt-girls-showcase">
+                <div className="art-prompt-img-container">
+                  <img
+                    src={currentPrompt.image}
+                    alt={currentPrompt.style}
+                    className="art-prompt-main-image"
+                  />
+                  <div className="art-prompt-img-overlay" />
 
-            {/* DYNAMIC TOOL POSTER MOCKUP ELEMENTS */}
-            {slide.mockupType === 'shorts' && (
-              <div className="art-tool-overlay art-overlay-shorts">
-                <div className="shorts-phone-frame">
-                  <div className="shorts-phone-notch" />
-                  <div className="shorts-play-btn">
-                    <Play size={14} fill="currentColor" />
+                  {/* Floating Prompt Tag Badge */}
+                  <span className="art-prompt-style-badge">
+                    <Sparkles size={11} />
+                    <span>{currentPrompt.tag}</span>
+                  </span>
+
+                  {/* Model Pill */}
+                  <span className="art-prompt-model-badge">
+                    {currentPrompt.model}
+                  </span>
+
+                  {/* Prompt Text Snippet Bar */}
+                  <div className="art-prompt-snippet-bar">
+                    <div className="art-prompt-snippet-content">
+                      <span className="art-prompt-syntax">/imagine</span>
+                      <p className="art-prompt-snippet-text">{currentPrompt.prompt}</p>
+                    </div>
+                    <button
+                      type="button"
+                      className={`art-prompt-copy-btn ${copied ? 'is-copied' : ''}`}
+                      onClick={handleCopy}
+                      title="Copy prompt"
+                    >
+                      {copied ? <Check size={11} /> : <Copy size={11} />}
+                      <span>{copied ? 'Copied!' : 'Copy'}</span>
+                    </button>
                   </div>
-                  <div className="shorts-progress-bar">
-                    <div className="shorts-progress-fill" />
+                </div>
+
+                {/* Thumbnails to switch between girls prompt styles */}
+                <div className="art-prompt-thumbs" role="tablist" aria-label="Choose girl prompt style">
+                  {HERO_GIRL_PROMPTS.map((item, idx) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`art-prompt-thumb-pill ${activePromptIndex === idx ? 'is-active' : ''}`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setActivePromptIndex(idx)
+                      }}
+                      title={item.style}
+                    >
+                      <img src={item.image} alt={item.style} />
+                      <span>{item.style}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <>
+                {slide.mockupType === 'poster' ? (
+                  <div className="art-poster-preview-wrap">
+                    <img src="/images/poster-card-upload.png" alt="Poster Studio" className="art-poster-bg-img" />
+                    <span className="art-poster-overlay-pill">🎨 250+ Templates</span>
                   </div>
-                </div>
-              </div>
-            )}
+                ) : slide.mockupType === 'passport' ? (
+                  <div className="art-passport-preview-wrap">
+                    <img src="/sample-portrait.jpg" alt="Biometric Passport" className="art-passport-bg-img" />
+                    <div className="passport-biometric-box" />
+                    <span className="art-passport-overlay-pill">35 × 45 mm</span>
+                  </div>
+                ) : (
+                  <div className="landing-art-logo-wrap">
+                    <img
+                      src="/images/imgmojo-mark.png"
+                      alt="ImgMojo"
+                      width={84}
+                      height={84}
+                      className="landing-art-logo"
+                    />
+                    <span className="landing-art-tool-pill">{slide.eyebrow}</span>
+                  </div>
+                )}
 
-            {slide.mockupType === 'poster' && (
-              <div className="art-tool-overlay art-overlay-poster">
-                <div className="poster-grid-preview">
-                  <div className="poster-slot active" />
-                  <div className="poster-slot" />
-                  <div className="poster-slot" />
-                </div>
-              </div>
-            )}
+                {/* DYNAMIC TOOL POSTER MOCKUP ELEMENTS */}
+                {slide.mockupType === 'shorts' && (
+                  <div className="art-tool-overlay art-overlay-shorts">
+                    <div className="shorts-phone-frame">
+                      <div className="shorts-phone-notch" />
+                      <div className="shorts-play-btn">
+                        <Play size={14} fill="currentColor" />
+                      </div>
+                      <div className="shorts-progress-bar">
+                        <div className="shorts-progress-fill" />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-            {slide.mockupType === 'compress' && (
-              <div className="art-tool-overlay art-overlay-compress">
-                <div className="compress-meter-pill">
-                  <strong>-90%</strong>
-                  <small>Optimized</small>
-                </div>
-              </div>
-            )}
+                {slide.mockupType === 'compress' && (
+                  <div className="art-tool-overlay art-overlay-compress">
+                    <div className="compress-meter-pill">
+                      <strong>-90%</strong>
+                      <small>Optimized</small>
+                    </div>
+                  </div>
+                )}
 
-            {slide.mockupType === 'watermark' && (
-              <div className="art-tool-overlay art-overlay-watermark">
-                <div className="watermark-brush-halo">
-                  <Wand2 size={16} />
-                </div>
-              </div>
-            )}
+                {slide.mockupType === 'watermark' && (
+                  <div className="art-tool-overlay art-overlay-watermark">
+                    <div className="watermark-brush-halo">
+                      <Wand2 size={16} />
+                    </div>
+                  </div>
+                )}
 
-            {slide.mockupType === 'passport' && (
-              <div className="art-tool-overlay art-overlay-passport">
-                <div className="passport-biometric-box" />
-              </div>
-            )}
-
-            {slide.mockupType === 'prompt' && (
-              <div className="art-tool-overlay art-overlay-prompt">
-                <div className="prompt-syntax-tags">
-                  <span>/imagine</span>
-                  <span>--v 6</span>
-                </div>
-              </div>
-            )}
-
-            {slide.mockupType === 'recorder' && (
-              <div className="art-tool-overlay art-overlay-recorder">
-                <div className="recorder-audio-waves">
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                </div>
-              </div>
+                {slide.mockupType === 'recorder' && (
+                  <div className="art-tool-overlay art-overlay-recorder">
+                    <div className="recorder-audio-waves">
+                      <span />
+                      <span />
+                      <span />
+                      <span />
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
           {/* RIGHT SIDE TOOL PROPERTY BARS */}
           <div className="landing-art-side">
-            <i className="side-bar side-bar-primary" />
-            <i className="side-bar side-bar-accent" />
-            <i className="side-bar side-bar-subtle" />
-            <i className="side-bar side-bar-highlight" />
+            {isPromptSlide ? (
+              <div className="art-side-prompt-specs">
+                <span className="art-spec-pill spec-model">{currentPrompt.model}</span>
+                <span className="art-spec-pill spec-quality">8K UHD</span>
+                <span className="art-spec-pill spec-raw">--style raw</span>
+                <span className="art-spec-pill spec-ar">16:9 / 9:16</span>
+              </div>
+            ) : (
+              <>
+                <i className="side-bar side-bar-primary" />
+                <i className="side-bar side-bar-accent" />
+                <i className="side-bar side-bar-subtle" />
+                <i className="side-bar side-bar-highlight" />
+              </>
+            )}
           </div>
         </div>
       </div>

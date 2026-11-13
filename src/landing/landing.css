@@ -427,6 +427,308 @@ html[data-scheme="dark"] .landing-art-tool-pill {
   color: #38bdf8;
 }
 
+/* ---------- Girls & AI Prompt Hero Showcase ---------- */
+.landing-art-canvas.canvas-prompt-mode,
+.landing-art-girls-prompt .landing-art-canvas,
+.landing-art-prompt .landing-art-canvas {
+  padding: 0;
+  display: flex !important;
+  flex-direction: column !important;
+  background: #0b0f19 !important;
+  border-color: rgba(124, 58, 237, 0.45) !important;
+  box-shadow: 0 16px 36px -12px rgba(124, 58, 237, 0.3) !important;
+  overflow: hidden;
+  position: relative;
+}
+
+.art-prompt-girls-showcase {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.art-prompt-img-container {
+  position: relative;
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  background: #020617;
+}
+
+.art-prompt-main-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.art-prompt-girls-showcase:hover .art-prompt-main-image {
+  transform: scale(1.05);
+}
+
+.art-prompt-img-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.25) 0%,
+    transparent 35%,
+    rgba(10, 15, 30, 0.6) 65%,
+    rgba(10, 15, 30, 0.95) 100%
+  );
+  pointer-events: none;
+}
+
+.art-prompt-style-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #f8fafc;
+  font-size: 9.5px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 2;
+}
+
+.art-prompt-model-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  color: #ffffff;
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  box-shadow: 0 4px 10px rgba(124, 58, 237, 0.4);
+  z-index: 2;
+}
+
+.art-prompt-snippet-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 6px 8px;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  z-index: 3;
+}
+
+.art-prompt-snippet-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.art-prompt-syntax {
+  flex: none;
+  font-size: 8.5px;
+  font-weight: 800;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.art-prompt-snippet-text {
+  margin: 0;
+  font-size: 9px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+
+.art-prompt-copy-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.art-prompt-copy-btn:hover {
+  background: #7c3aed;
+  border-color: #a855f7;
+  transform: translateY(-1px);
+}
+
+.art-prompt-copy-btn.is-copied {
+  background: #10b981;
+  border-color: #34d399;
+}
+
+/* Thumbnail Switcher Pills */
+.art-prompt-thumbs {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 6px;
+  background: #0f172a;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.art-prompt-thumbs::-webkit-scrollbar {
+  display: none;
+}
+
+.art-prompt-thumb-pill {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px 2px 2px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #94a3b8;
+  font-size: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.art-prompt-thumb-pill img {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+.art-prompt-thumb-pill:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.art-prompt-thumb-pill.is-active {
+  background: rgba(124, 58, 237, 0.35);
+  border-color: #a855f7;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(124, 58, 237, 0.4);
+}
+
+/* Right Side Specs for Prompt Slide */
+.art-side-prompt-specs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: center;
+  height: 100%;
+}
+
+.art-spec-pill {
+  font-size: 8px;
+  font-weight: 800;
+  padding: 3px 6px;
+  border-radius: 5px;
+  text-align: center;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spec-model {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.spec-quality {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.spec-raw {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.spec-ar {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+html[data-scheme="dark"] .spec-model { background: #3b0764; color: #d8b4fe; }
+html[data-scheme="dark"] .spec-quality { background: #082f49; color: #7dd3fc; }
+html[data-scheme="dark"] .spec-raw { background: #451a03; color: #fde68a; }
+html[data-scheme="dark"] .spec-ar { background: #1e293b; color: #cbd5e1; }
+
+/* Poster & Passport Previews in HeroArt */
+.art-poster-preview-wrap,
+.art-passport-preview-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.art-poster-bg-img,
+.art-passport-bg-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.art-poster-overlay-pill,
+.art-passport-overlay-pill {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.82);
+  backdrop-filter: blur(6px);
+  color: #ffffff;
+  font-size: 8.5px;
+  font-weight: 750;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
 /* Tool specific mockup overlay elements */
 .art-tool-overlay {
   position: absolute;
