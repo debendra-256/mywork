@@ -250,5 +250,16 @@
     "height": 595,
     "slots": [],
     "createdAt": 1731450016000
+  },
+  {
+    "id": "el_festival_ratha_yatra_odia",
+    "name": "Ratha Yatra Shubhechha (Odia)",
+    "tag": "Festivals",
+    "src": "/ScannedElement/el_festival_ratha_yatra_odia.png",
+    "aspect": 1.478,
+    "width": 1008,
+    "height": 682,
+    "slots": [],
+    "createdAt": 1731450017000
   }
 ]
