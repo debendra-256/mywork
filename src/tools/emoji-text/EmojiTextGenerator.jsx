@@ -3,7 +3,19 @@ import {
   Check,
   ChevronDown,
   Copy,
+  Eye,
+  FileText,
+  Heart,
+  Layers,
+  PenTool,
+  Share2,
+  Shuffle,
   Smile,
+  Sparkles,
+  Star,
+  Trash2,
+  Type,
+  User,
   X,
 } from 'lucide-react'
 import { appConfig } from '../../config/app.config'
@@ -127,6 +139,7 @@ export const STYLE_CATEGORIES_MAP = {
 }
 
 const maxLength = 280
+const favoritesKey = 'promptseen:emoji-text-favorites'
 
 function WhatsAppIcon({ size = 16, className = '' }) {
   return (
@@ -145,8 +158,72 @@ function WhatsAppIcon({ size = 16, className = '' }) {
   )
 }
 
+function InstagramIcon({ size = 16, className = '' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+    </svg>
+  )
+}
+
+function FacebookIcon({ size = 16, className = '' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
+    </svg>
+  )
+}
+
+function YoutubeIcon({ size = 16, className = '' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"></path>
+      <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" fill="#ffffff"></polygon>
+    </svg>
+  )
+}
+
+function XSocialIcon({ size = 14, className = '' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path>
+    </svg>
+  )
+}
+
+function TelegramIcon({ size = 16, className = '' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"></path>
+    </svg>
+  )
+}
+
 const whatsappBase = appConfig.promptSharing?.messaging?.find((target) => target.id === 'whatsapp')?.baseUrl ?? 'https://wa.me/'
 const whatsappUrl = (value) => `${whatsappBase}?text=${encodeURIComponent(value)}`
+
+const randomPool = [
+  'hello',
+  'Good Morning ☀️',
+  'Game Over 🎮',
+  'Stay Cool 😎',
+  'Queen 💖',
+  'King 👑',
+  'Level 99 Noob',
+  'Happy Birthday 🎉',
+  'Free Fire',
+  'Love You ❤️',
+  'Toxic Player ☠️',
+  'Angel 🪽',
+  'Cyberpunk ⚡',
+  'Vibes ✨',
+  'Pro Gamer 🕹️',
+  'Dream Big 🚀',
+  'Sunshine 🌻',
+  'Legend ⚔️',
+]
 
 // FAQ list for schema and on-page content
 const faqs = [
@@ -182,9 +259,22 @@ export default function EmojiTextGenerator() {
     return 'hello'
   })
   const [view, setView] = useState('all')
+  const [favorites, setFavorites] = useState(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(favoritesKey) ?? '[]')
+      return new Set(Array.isArray(stored) ? stored.filter((id) => typeof id === 'string') : [])
+    } catch {
+      return new Set()
+    }
+  })
   const [copiedKey, setCopiedKey] = useState('')
   const [notice, setNotice] = useState('')
   const [openFaq, setOpenFaq] = useState(null)
+  const [previewPlatform, setPreviewPlatform] = useState('instagram')
+  const [livePreviewOpen, setLivePreviewOpen] = useState(true)
+  const [decorateOpen, setDecorateOpen] = useState(true)
+  const [toolsOpen, setToolsOpen] = useState(true)
+
   const copiedTimer = useRef(0)
   const inputRef = useRef(null)
 
@@ -327,6 +417,24 @@ export default function EmojiTextGenerator() {
       }))
   }, [text, view])
 
+  const featuredOutput = useMemo(() => {
+    const pick = results.find((r) => r.id === 'bold-italic') || results[0]
+    return pick ? pick.output : (text || 'hello')
+  }, [results, text])
+
+  const toggleFavorite = (id, e) => {
+    if (e) e.stopPropagation()
+    setFavorites((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      try {
+        localStorage.setItem(favoritesKey, JSON.stringify([...next]))
+      } catch {}
+      return next
+    })
+  }
+
   const markCopied = (key, label, failed) => {
     window.clearTimeout(copiedTimer.current)
     setCopiedKey(failed ? '' : key)
@@ -346,12 +454,159 @@ export default function EmojiTextGenerator() {
     }
   }
 
+  const handleRandomText = () => {
+    const available = randomPool.filter((p) => p !== text)
+    const picked = available[Math.floor(Math.random() * available.length)] || 'Fancy Text'
+    setText(picked)
+  }
+
+  const handleCopyAll = () => {
+    if (!results.length) return
+    const allText = results.map((r) => r.output).join('\n')
+    void copy('all', 'All styles', allText)
+  }
+
+  const handleShare = async () => {
+    const shareText = featuredOutput || text || 'hello'
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Fancy Font Generator',
+          text: shareText,
+          url: window.location.href,
+        })
+        return
+      } catch {}
+    }
+    window.open(whatsappUrl(shareText), '_blank', 'noopener,noreferrer')
+  }
+
+  const applyDecoration = (type) => {
+    const current = text.trim() || 'hello'
+    if (type === 'symbol') {
+      setText(`★ ${current} ★`)
+    } else if (type === 'emoji') {
+      setText(`✨ ${current} ✨`)
+    } else if (type === 'case') {
+      if (current === current.toUpperCase()) {
+        setText(current.toLowerCase())
+      } else {
+        setText(current.toUpperCase())
+      }
+    }
+  }
+
+  const sourceText = text || 'hello'
+
   return (
     <div className="emoji-text-wrapper">
-      <div className="et-modern-container">
-        {/* Search / Text Input Bar */}
-        <div className="et-search-section">
-          <div className="et-search-box">
+      {/* 1. Header Hero Banner with 3D elements & Turquoise Waves */}
+      <header className="ff-hero-banner">
+        <div className="ff-hero-inner">
+          {/* Left 3D Card: Aa with yellow sparkle */}
+          <div className="ff-hero-card ff-hero-card-left" aria-hidden="true">
+            <div className="ff-3d-box">
+              <span className="ff-3d-text-blue">Aa</span>
+            </div>
+            <span className="ff-sparkle-gold">✦</span>
+          </div>
+
+          {/* Center Titles & Social Platform Badges */}
+          <div className="ff-hero-center">
+            <h1 className="ff-hero-title">
+              Fancy Font Generator
+              <svg className="ff-crown-icon" viewBox="0 0 24 24" width="28" height="28" fill="none" aria-hidden="true">
+                <path d="M2 5l4 14h12l4-14-6 7-4-7-4 7-6-7z" fill="#facc15" stroke="#eab308" strokeWidth="1.5" />
+              </svg>
+            </h1>
+            <p className="ff-hero-sub">
+              Create stylish fonts & cool text for your bios, posts, usernames and social profiles.
+            </p>
+
+            {/* Social Platform Badges Row */}
+            <div className="ff-social-pills">
+              <button
+                type="button"
+                className="ff-social-pill ff-pill-ig"
+                title="Instagram Fonts"
+                onClick={() => setPreviewPlatform('instagram')}
+                aria-label="Instagram preview"
+              >
+                <InstagramIcon size={16} />
+              </button>
+              <button
+                type="button"
+                className="ff-social-pill ff-pill-wa"
+                title="WhatsApp Fonts"
+                onClick={() => setPreviewPlatform('whatsapp')}
+                aria-label="WhatsApp preview"
+              >
+                <WhatsAppIcon size={16} />
+              </button>
+              <button
+                type="button"
+                className="ff-social-pill ff-pill-fb"
+                title="Facebook Fonts"
+                onClick={() => setPreviewPlatform('facebook')}
+                aria-label="Facebook preview"
+              >
+                <FacebookIcon size={16} />
+              </button>
+              <button
+                type="button"
+                className="ff-social-pill ff-pill-yt"
+                title="YouTube Fonts"
+                onClick={() => setPreviewPlatform('youtube')}
+                aria-label="YouTube preview"
+              >
+                <YoutubeIcon size={16} />
+              </button>
+              <button
+                type="button"
+                className="ff-social-pill ff-pill-x"
+                title="X Fonts"
+                aria-label="X preview"
+              >
+                <XSocialIcon size={14} />
+              </button>
+              <button
+                type="button"
+                className="ff-social-pill ff-pill-tg"
+                title="Telegram Fonts"
+                aria-label="Telegram preview"
+              >
+                <TelegramIcon size={16} />
+              </button>
+              <span className="ff-social-pill ff-pill-more">+ More</span>
+            </div>
+          </div>
+
+          {/* Right 3D Card: Aa with blue star & 3D pencil */}
+          <div className="ff-hero-card ff-hero-card-right" aria-hidden="true">
+            <div className="ff-3d-box ff-3d-box-purple">
+              <span className="ff-3d-text-purple">Aa</span>
+            </div>
+            <span className="ff-star-blue">✦</span>
+            <div className="ff-3d-pencil">✏️</div>
+          </div>
+        </div>
+      </header>
+
+      {/* 2. Main 2-Column Responsive Workspace */}
+      <main className="ff-workspace">
+        {/* Left Column: Main Generator Panel */}
+        <section className="ff-generator-panel" aria-label="Font Generator">
+          {/* Header Row: ✏️ Your Text and 5/280 */}
+          <div className="ff-panel-header">
+            <div className="ff-panel-title">
+              <span className="ff-pencil-emoji" aria-hidden="true">✏️</span>
+              <h2>Your Text</h2>
+            </div>
+            <span className="ff-char-count">{text.length}/{maxLength}</span>
+          </div>
+
+          {/* Input Box */}
+          <div className="ff-input-wrapper">
             <input
               ref={inputRef}
               type="text"
@@ -359,28 +614,83 @@ export default function EmojiTextGenerator() {
               maxLength={maxLength}
               onChange={(e) => setText(e.target.value)}
               placeholder="hello"
-              className="et-search-input"
-              aria-label="Enter text to convert"
+              className="ff-main-input"
+              aria-label="Text to generate stylish fonts"
             />
             {text ? (
               <button
                 type="button"
-                className="et-search-clear-btn"
+                className="ff-input-clear-btn"
                 onClick={() => {
                   setText('')
                   inputRef.current?.focus()
                 }}
-                aria-label="Clear text"
+                aria-label="Clear text input"
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             ) : null}
           </div>
-        </div>
 
-        {/* Category Filter Pills Row */}
-        <div className="et-categories-section">
-          <div className="et-categories-row" role="tablist" aria-label="Font categories">
+          {/* Quick Actions Row */}
+          <div className="ff-actions-row">
+            <button
+              type="button"
+              className="ff-btn-primary"
+              onClick={() => {
+                if (!text) setText('hello')
+                inputRef.current?.focus()
+              }}
+            >
+              <Sparkles size={16} /> Generate Styles
+            </button>
+
+            <button
+              type="button"
+              className="ff-btn-outline"
+              onClick={() => {
+                setText('')
+                inputRef.current?.focus()
+              }}
+            >
+              <Trash2 size={14} /> Clear
+            </button>
+
+            <button
+              type="button"
+              className="ff-btn-outline"
+              onClick={handleRandomText}
+            >
+              <Shuffle size={14} /> Random Text
+            </button>
+
+            <button
+              type="button"
+              className="ff-btn-outline"
+              onClick={() => setText('ImgMojo Fancy')}
+            >
+              <FileText size={14} /> Sample Text
+            </button>
+
+            <button
+              type="button"
+              className="ff-btn-outline"
+              onClick={handleCopyAll}
+            >
+              <Copy size={14} /> Copy All
+            </button>
+
+            <button
+              type="button"
+              className="ff-btn-outline"
+              onClick={handleShare}
+            >
+              <Share2 size={14} /> Share ⨠
+            </button>
+          </div>
+
+          {/* Category Filter Pills Row */}
+          <div className="ff-categories-bar" role="tablist" aria-label="Font categories">
             {CATEGORIES.map((cat) => {
               const isActive = view === cat.id
               return (
@@ -389,7 +699,7 @@ export default function EmojiTextGenerator() {
                   type="button"
                   role="tab"
                   aria-selected={isActive}
-                  className={`et-category-pill ${isActive ? 'is-active' : ''}`}
+                  className={`ff-category-pill ${isActive ? 'is-active' : ''}`}
                   onClick={() => setView(cat.id)}
                 >
                   {cat.label}
@@ -397,43 +707,56 @@ export default function EmojiTextGenerator() {
               )
             })}
           </div>
-        </div>
 
-        {/* 3-Column Font Cards Grid */}
-        <section className="et-cards-section" aria-label="Generated font styles">
+          {/* 3-Column Font Cards Grid */}
           {results.length > 0 ? (
-            <div className="et-cards-grid">
+            <div className="ff-cards-grid">
               {results.map((style) => {
                 const isCopied = copiedKey === style.id
+                const isFavorited = favorites.has(style.id)
                 return (
                   <article
                     key={style.id}
-                    className={`et-card ${isCopied ? 'is-copied' : ''}`}
+                    className={`ff-card ${isCopied ? 'is-copied' : ''}`}
                     onClick={() => copy(style.id, style.name, style.output)}
                     role="button"
                     tabIndex={0}
                     aria-label={`Copy ${style.name} style`}
+                    title="Click to copy"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault()
                         copy(style.id, style.name, style.output)
                       }
                     }}
-                    title="Click to copy"
                   >
-                    <div className="et-card-body">
-                      <div className="et-card-text">{style.output}</div>
+                    <div className="ff-card-body">
+                      <span className="ff-card-text">{style.output}</span>
                     </div>
 
-                    <div className="et-card-footer" onClick={(e) => e.stopPropagation()}>
-                      <span className="et-card-tag">{style.name}</span>
+                    <div className="ff-card-foot" onClick={(e) => e.stopPropagation()}>
+                      <span className="ff-card-tag">{style.name}</span>
 
-                      <div className="et-card-actions">
+                      <div className="ff-card-actions">
+                        <button
+                          type="button"
+                          className={`ff-card-icon-btn ff-card-heart ${isFavorited ? 'is-fav' : ''}`}
+                          onClick={(e) => toggleFavorite(style.id, e)}
+                          title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+                          aria-label="Favorite style"
+                        >
+                          <Heart
+                            size={15}
+                            fill={isFavorited ? '#ef4444' : 'none'}
+                            color={isFavorited ? '#ef4444' : 'currentColor'}
+                          />
+                        </button>
+
                         <a
                           href={whatsappUrl(style.output)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="et-card-action-btn et-card-wa"
+                          className="ff-card-icon-btn ff-card-wa"
                           title="Share on WhatsApp"
                           aria-label={`Share ${style.name} on WhatsApp`}
                           onClick={(e) => e.stopPropagation()}
@@ -443,7 +766,7 @@ export default function EmojiTextGenerator() {
 
                         <button
                           type="button"
-                          className={`et-card-action-btn et-card-copy ${isCopied ? 'is-copied' : ''}`}
+                          className={`ff-card-icon-btn ff-card-copy ${isCopied ? 'is-copied' : ''}`}
                           onClick={(e) => {
                             e.stopPropagation()
                             copy(style.id, style.name, style.output)
@@ -451,7 +774,7 @@ export default function EmojiTextGenerator() {
                           title={isCopied ? 'Copied!' : 'Copy'}
                           aria-label={isCopied ? 'Copied' : 'Copy'}
                         >
-                          {isCopied ? <Check size={14} /> : <Copy size={14} />}
+                          {isCopied ? <Check size={14} color="#16a34a" /> : <Copy size={14} />}
                         </button>
                       </div>
                     </div>
@@ -460,13 +783,13 @@ export default function EmojiTextGenerator() {
               })}
             </div>
           ) : (
-            <div className="et-empty-state">
+            <div className="ff-empty-state">
               <Smile size={36} />
               <h3>No fonts found</h3>
               <p>Please select 'All' category or try typing different words.</p>
               <button
                 type="button"
-                className="et-empty-reset-btn"
+                className="ff-empty-reset-btn"
                 onClick={() => {
                   setView('all')
                   setText('hello')
@@ -478,14 +801,283 @@ export default function EmojiTextGenerator() {
           )}
         </section>
 
-        {/* Floating Copied Toast */}
-        {notice && (
-          <div className="et-floating-toast" role="status">
-            <Check size={16} />
-            <span>{notice}</span>
+        {/* Right Column: Sidebar Widgets */}
+        <aside className="ff-sidebar" aria-label="Tools and Previews">
+          {/* Widget 1: Live Preview */}
+          <div className="ff-widget-card">
+            <button
+              type="button"
+              className="ff-widget-head"
+              onClick={() => setLivePreviewOpen(!livePreviewOpen)}
+              aria-expanded={livePreviewOpen}
+            >
+              <div className="ff-widget-title">
+                <Eye size={18} className="ff-icon-cyan" />
+                <h3>Live Preview</h3>
+              </div>
+              <ChevronDown size={18} className={`ff-widget-chevron ${livePreviewOpen ? 'is-open' : ''}`} />
+            </button>
+
+            {livePreviewOpen && (
+              <div className="ff-widget-body">
+                {/* Social Platform Tabs */}
+                <div className="ff-preview-tabs">
+                  <button
+                    type="button"
+                    className={`ff-preview-tab ${previewPlatform === 'instagram' ? 'is-active' : ''}`}
+                    onClick={() => setPreviewPlatform('instagram')}
+                  >
+                    <InstagramIcon size={14} /> Instagram
+                  </button>
+                  <button
+                    type="button"
+                    className={`ff-preview-tab ${previewPlatform === 'whatsapp' ? 'is-active' : ''}`}
+                    onClick={() => setPreviewPlatform('whatsapp')}
+                  >
+                    <WhatsAppIcon size={14} /> WhatsApp
+                  </button>
+                  <button
+                    type="button"
+                    className={`ff-preview-tab ${previewPlatform === 'facebook' ? 'is-active' : ''}`}
+                    onClick={() => setPreviewPlatform('facebook')}
+                  >
+                    <FacebookIcon size={14} /> Facebook
+                  </button>
+                  <button
+                    type="button"
+                    className={`ff-preview-tab ${previewPlatform === 'youtube' ? 'is-active' : ''}`}
+                    onClick={() => setPreviewPlatform('youtube')}
+                  >
+                    <YoutubeIcon size={14} /> YouTube
+                  </button>
+                </div>
+
+                {/* Social Profile Mockup Box */}
+                <div className="ff-mockup-box">
+                  {previewPlatform === 'instagram' && (
+                    <div className="ff-ig-mockup">
+                      <div className="ff-ig-top">
+                        <div className="ff-ig-avatar-ring">
+                          <div className="ff-ig-avatar" />
+                        </div>
+                        <div className="ff-ig-stats">
+                          <div className="ff-ig-stat"><strong>128</strong><span>Posts</span></div>
+                          <div className="ff-ig-stat"><strong>10.5K</strong><span>Followers</span></div>
+                          <div className="ff-ig-stat"><strong>256</strong><span>Following</span></div>
+                        </div>
+                      </div>
+                      <div className="ff-ig-styled-text">{featuredOutput}</div>
+                      <p className="ff-ig-sub">This is how your text will look on Instagram.</p>
+                    </div>
+                  )}
+
+                  {previewPlatform === 'whatsapp' && (
+                    <div className="ff-wa-mockup">
+                      <div className="ff-wa-bubble">
+                        <span className="ff-wa-text">{featuredOutput}</span>
+                        <span className="ff-wa-time">10:45 AM <span className="ff-wa-ticks">✓✓</span></span>
+                      </div>
+                      <p className="ff-ig-sub">This is how your text will look on WhatsApp.</p>
+                    </div>
+                  )}
+
+                  {previewPlatform === 'facebook' && (
+                    <div className="ff-fb-mockup">
+                      <div className="ff-fb-header">
+                        <div className="ff-fb-avatar" />
+                        <div>
+                          <strong>Alex Morgan</strong>
+                          <span className="ff-fb-time">Just now · 🌍</span>
+                        </div>
+                      </div>
+                      <div className="ff-fb-text">{featuredOutput}</div>
+                      <p className="ff-ig-sub">This is how your text will look on Facebook.</p>
+                    </div>
+                  )}
+
+                  {previewPlatform === 'youtube' && (
+                    <div className="ff-yt-mockup">
+                      <div className="ff-yt-header">
+                        <div className="ff-yt-avatar" />
+                        <div>
+                          <strong>@GamerVibe</strong>
+                          <span className="ff-yt-time">2 hours ago</span>
+                        </div>
+                      </div>
+                      <div className="ff-yt-text">{featuredOutput}</div>
+                      <p className="ff-ig-sub">This is how your text will look on YouTube.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+
+          {/* Widget 2: Decorate Your Text */}
+          <div className="ff-widget-card">
+            <button
+              type="button"
+              className="ff-widget-head"
+              onClick={() => setDecorateOpen(!decorateOpen)}
+              aria-expanded={decorateOpen}
+            >
+              <div className="ff-widget-title">
+                <Sparkles size={18} className="ff-icon-cyan" />
+                <h3>Decorate Your Text</h3>
+              </div>
+              <ChevronDown size={18} className={`ff-widget-chevron ${decorateOpen ? 'is-open' : ''}`} />
+            </button>
+
+            {decorateOpen && (
+              <div className="ff-widget-body">
+                <div className="ff-decorate-tabs">
+                  <button
+                    type="button"
+                    className="ff-decorate-tab"
+                    onClick={() => applyDecoration('symbol')}
+                  >
+                    ☆ Add Symbols
+                  </button>
+                  <button
+                    type="button"
+                    className="ff-decorate-tab"
+                    onClick={() => applyDecoration('emoji')}
+                  >
+                    😊 Add Emojis
+                  </button>
+                  <button
+                    type="button"
+                    className="ff-decorate-tab"
+                    onClick={() => applyDecoration('case')}
+                  >
+                    🔤 Text Case
+                  </button>
+                </div>
+
+                <div className="ff-presets-row">
+                  <button
+                    type="button"
+                    className="ff-preset-btn"
+                    onClick={() => setText(`★ ${sourceText} ★`)}
+                  >
+                    ★ {sourceText} ★
+                  </button>
+                  <button
+                    type="button"
+                    className="ff-preset-btn"
+                    onClick={() => setText(`♡ ${sourceText} ♡`)}
+                  >
+                    ♡ {sourceText} ♡
+                  </button>
+                  <button
+                    type="button"
+                    className="ff-preset-btn"
+                    onClick={() => setText(`꧁ ${sourceText} ꧂`)}
+                  >
+                    ꧁ {sourceText} ꧂
+                  </button>
+                  <button
+                    type="button"
+                    className="ff-preset-btn"
+                    onClick={() => setText(`⁂ ${sourceText} ⁂`)}
+                  >
+                    ⁂ {sourceText} ⁂
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Widget 3: Useful Tools */}
+          <div className="ff-widget-card">
+            <button
+              type="button"
+              className="ff-widget-head"
+              onClick={() => setToolsOpen(!toolsOpen)}
+              aria-expanded={toolsOpen}
+            >
+              <div className="ff-widget-title">
+                <Layers size={18} className="ff-icon-cyan" />
+                <h3>Useful Tools</h3>
+              </div>
+              <ChevronDown size={18} className={`ff-widget-chevron ${toolsOpen ? 'is-open' : ''}`} />
+            </button>
+
+            {toolsOpen && (
+              <div className="ff-widget-body">
+                <div className="ff-tools-grid">
+                  <button
+                    type="button"
+                    className="ff-tool-item"
+                    onClick={() => setText('⚡Shadow_Hunter⚡')}
+                  >
+                    <div className="ff-tool-icon-wrap ff-tool-blue">
+                      <User size={16} />
+                    </div>
+                    <div className="ff-tool-info">
+                      <strong>Stylish Name</strong>
+                      <span>Generator</span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="ff-tool-item"
+                    onClick={() => setText('✨ Dreamer | Creating Vibes 🚀')}
+                  >
+                    <div className="ff-tool-icon-wrap ff-tool-purple">
+                      <PenTool size={16} />
+                    </div>
+                    <div className="ff-tool-info">
+                      <strong>Bio Generator</strong>
+                      <span>(Instagram, Gaming)</span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="ff-tool-item"
+                    onClick={() => setView('shapes')}
+                  >
+                    <div className="ff-tool-icon-wrap ff-tool-orange">
+                      <Star size={16} />
+                    </div>
+                    <div className="ff-tool-info">
+                      <strong>Symbol Library</strong>
+                      <span>(★ ♡ 𓆩 ...)</span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="ff-tool-item"
+                    onClick={() => {
+                      if (text === text.toUpperCase()) setText(text.toLowerCase())
+                      else setText(text.toUpperCase())
+                    }}
+                  >
+                    <div className="ff-tool-icon-wrap ff-tool-cyan">
+                      <Type size={16} />
+                    </div>
+                    <div className="ff-tool-info">
+                      <strong>Text Case Converter</strong>
+                      <span>(UPPER, lower, Title)</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </aside>
+      </main>
+
+      {/* Floating Copied Toast */}
+      {notice && (
+        <div className="et-floating-toast" role="status">
+          <Check size={16} />
+          <span>{notice}</span>
+        </div>
+      )}
 
       {/* Semantic On-Page SEO Content Section */}
       <section className="emoji-text-seo-section">
