@@ -2,7 +2,7 @@ import type { Prompt } from '../domain/prompt'
 
 /** PromptWale-inspired category labels used by the prototype UI. */
 export const promptCategories = [
-  'Trending', 'Latest', 'Boys', 'Girls', 'Birthday', 'Diwali', 'Chhath Puja', 'Bhai Dooj', 'Kids',
+  'Trending', 'Latest', 'Political', 'Boys', 'Girls', 'Birthday', 'Diwali', 'Chhath Puja', 'Bhai Dooj', 'Kids',
   'Couple', 'Karwa Chauth', 'Bike Lover', 'Thar Lover', 'Parents', 'Video Pro', 'Girl Saree',
   'Punjabi Style', 'Gemini', 'ChatGPT', 'Gautam Buddha', 'Navratri', 'Garba Dandiya', 'Durga Puja',
   'Baba Saheb Ambedkar', 'Premanand Maharaj', 'Radha Rani', 'Holi', 'Raksha Bandhan', 'Republic Day',
@@ -13,6 +13,22 @@ const image = (id: string) => `https://images.unsplash.com/${id}?auto=format&fit
 
 /** Local presentation data keeps the frontend browseable before the CMS is connected. */
 export const promptCatalog: Prompt[] = [
+  {
+    id: 'catalog-political-01',
+    slug: 'election-campaign-leadership-poster',
+    title: 'Political Leadership & Election Campaign Poster',
+    description: 'Dynamic election campaign poster of a leader addressing a rally with inspiring atmosphere and party colors.',
+    promptText: 'Create a powerful, inspiring election campaign poster of {{LEADER_NAME|a visionary leader}} addressing an energetic rally of citizens. Dramatic golden-hour lighting, triumphant posture, vivid crowd silhouettes in the background, cinematic 8k resolution, photorealistic editorial style, high contrast, clean negative space at the bottom for typography --v 6.0 --style raw',
+    category: 'Political',
+    tool: 'Midjourney v6',
+    style: 'Campaign Poster',
+    featured: true,
+    createdAt: '2026-11-14',
+    hashtags: ['#political', '#election', '#chunav', '#leader', '#campaign'],
+    labels: ['Political', 'Posters', 'Campaign', 'Election'],
+    image: '/templates/lotus-parliament.png',
+    imageAlt: 'Political leadership campaign poster',
+  },
   { id: 'catalog-girls-01', slug: 'cinematic-golden-hour-girl-portrait', title: 'Cinematic Golden Hour Film Portrait', description: 'Warm amber glow, natural 35mm film grain, candid editorial depth.', promptText: 'cinematic golden hour 8k portrait of an Indian girl in soft amber light, natural skin texture, 35mm film grain, shallow depth of field, 85mm lens, candid expression --v 6.0 --style raw', category: 'Girls', tool: 'Midjourney v6', style: 'Film portrait', featured: true, createdAt: '2026-11-13', image: '/images/prompts/girl-portrait-1.jpg', imageAlt: 'Cinematic golden hour girl portrait' },
   { id: 'catalog-girls-02', slug: 'royal-heritage-saree-portrait', title: 'Royal Heritage Saree Portrait', description: 'Graceful traditional silk saree in rich temple ambiance.', promptText: 'graceful Indian woman in a vibrant traditional silk saree, warm temple lighting, regal posture, intricate embroidery details, photorealistic 8k, soft shadows --v 6.0', category: 'Girl Saree', tool: 'Gemini', style: 'Editorial', featured: true, createdAt: '2026-11-12', image: '/images/prompts/girl-portrait-4.jpg', imageAlt: 'Royal heritage saree portrait' },
   { id: 'catalog-girls-03', slug: 'high-fashion-studio-editorial', title: 'High-Fashion Studio Editorial Portrait', description: 'Studio rim light, minimalist background, crisp hyper-detailed focus.', promptText: 'high-fashion studio portrait of an aesthetic young woman, dramatic rim light, minimalist dark slate background, sharp focus, 85mm f/1.4 lens, Hasselblad H6D-100c --v 6.0 --style raw', category: 'Girls', tool: 'FLUX.1', style: 'Studio 8K', featured: true, createdAt: '2026-11-11', image: '/images/prompts/girl-portrait-2.jpg', imageAlt: 'High-fashion editorial girl portrait' },

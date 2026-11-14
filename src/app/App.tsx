@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ChevronDown, Clock3, Copy, DatabaseBackup, Download, Facebook, Video, Flame, Headphones, Heart, Home, ImagePlus, Images, Instagram, KeyRound, Layers, LayoutDashboard, LayoutGrid, Linkedin, Lock, LockOpen, LogOut, Mail, Menu, MessageCircle, Play, Plus, RotateCcw, Search, Share2, ShieldCheck, SlidersHorizontal, Sparkles, Store, Sun, Trash2, Twitter, X, Zap } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ChevronDown, Clock3, Copy, DatabaseBackup, Download, Facebook, Video, Flame, Headphones, Heart, Home, ImagePlus, Images, Instagram, KeyRound, Layers, LayoutDashboard, LayoutGrid, Linkedin, Lock, LockOpen, LogOut, Mail, Menu, MessageCircle, Move, Play, Plus, RotateCcw, Search, Share2, ShieldCheck, SlidersHorizontal, Sparkles, Store, Sun, Trash2, Twitter, Upload, X, Zap } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { appConfig } from '../config/app.config'
 import { toolsConfig, type ToolDefinition, type ToolIcon } from '../config/ToolsConfig'
@@ -803,24 +803,29 @@ function FilterBar({
   )
 }
 
-function isPoliticsPrompt(p: Prompt): boolean {
+export function isPoliticalBlog(p: Prompt | null | undefined): boolean {
   if (!p) return false
   const title = (p.title || '').toLowerCase()
   const cat = (p.category || '').toLowerCase()
-  const labels = (p.labels || []).map((l) => l.toLowerCase())
-  const hashtags = (p.hashtags || []).map((h) => h.toLowerCase())
+  const labels = (p.labels || []).map((l) => (l || '').toLowerCase().replace(/^#+/, '').trim())
+  const hashtags = (p.hashtags || []).map((h) => (h || '').toLowerCase().replace(/^#+/, '').trim())
   const text = `${title} ${cat} ${p.description || ''} ${p.promptText || ''}`.toLowerCase()
 
-  const politicalKeywords = /politic|leader|leadership|janata|janseva|chunav|election|minister|mla|mp|tigerstyle|masshero|manofmasses/i
+  const politicalKeywords = /politic|leader|leadership|janata|janseva|chunav|election|minister|mla|mp|tigerstyle|masshero|manofmasses|neta|bjp|congress|aam\s*aadmi|bjd|cpim|cpi|shiv\s*sena|samajwadi/i
+
   return (
+    hashtags.some((h) => politicalKeywords.test(h) || h.includes('politic')) ||
+    labels.some((l) => politicalKeywords.test(l) || l.includes('politic')) ||
     politicalKeywords.test(title) ||
     politicalKeywords.test(cat) ||
-    labels.some((l) => politicalKeywords.test(l)) ||
-    hashtags.some((h) => politicalKeywords.test(h)) ||
     text.includes('political poster') ||
     text.includes('politics') ||
     text.includes('indian politics')
   )
+}
+
+function isPoliticsPrompt(p: Prompt): boolean {
+  return isPoliticalBlog(p)
 }
 
 function isBridalPrompt(p: Prompt): boolean {
@@ -1425,6 +1430,147 @@ export function applyPromptCustomizations(
   })
 }
 
+export interface PartyLogo {
+  id: string
+  name: string
+  partyName: string
+  src: string
+}
+
+export const POLITICAL_PARTY_LOGOS: PartyLogo[] = [
+  { id: 'lotus', name: 'LOTUS', partyName: 'Lotus (BJP)', src: '/templates/logos/logo-lotus.png' },
+  { id: 'hand', name: 'HAND', partyName: 'Hand (INC)', src: '/templates/logos/logo-hand.png' },
+  { id: 'broom', name: 'BROOM', partyName: 'Broom (AAP)', src: '/templates/logos/logo-broom.png' },
+  { id: 'clock', name: 'CLOCK', partyName: 'Clock (NCP)', src: '/templates/logos/logo-clock.png' },
+  { id: 'hammer', name: 'HAMMER & SICKLE', partyName: 'Hammer & Sickle (CPI-M)', src: '/templates/logos/logo-hammer.png' },
+]
+
+export interface PosterSizeOption {
+  id: string
+  label: string
+  instruction: string
+}
+
+export const POSTER_SIZES: PosterSizeOption[] = [
+  { id: '', label: '-- Select Poster Size (Default) --', instruction: '' },
+  { id: 'instagram_post', label: 'Instagram Post (Square 1:1 · 1080 × 1080)', instruction: 'Format as Instagram Post (1:1 square ratio, 1080x1080 px)' },
+  { id: 'instagram_portrait', label: 'Instagram Portrait (4:5 · 1080 × 1350)', instruction: 'Format as Instagram Portrait (4:5 aspect ratio, 1080x1350 px)' },
+  { id: 'instagram_story', label: 'Instagram Story / Reel (9:16 · 1080 × 1920)', instruction: 'Format as Instagram Story / Reel (9:16 vertical ratio, 1080x1920 px)' },
+  { id: 'facebook_cover', label: 'Facebook Cover (16:9 · 1200 × 630)', instruction: 'Format as Facebook Cover (16:9 landscape ratio, 1200x630 px)' },
+  { id: 'facebook_post', label: 'Facebook Post (1.91:1 · 1200 × 628)', instruction: 'Format as Facebook Post (1.91:1 ratio, 1200x628 px)' },
+  { id: 'youtube_thumbnail', label: 'YouTube Thumbnail (16:9 · 1280 × 720)', instruction: 'Format as YouTube Thumbnail (16:9 widescreen ratio, 1280x720 px)' },
+  { id: 'twitter_post', label: 'Twitter / X Post (16:9 · 1200 × 675)', instruction: 'Format as Twitter / X Post (16:9 aspect ratio, 1200x675 px)' },
+  { id: 'linkedin_banner', label: 'LinkedIn Banner (4:1 · 1584 × 396)', instruction: 'Format as LinkedIn Banner (4:1 banner ratio, 1584x396 px)' },
+  { id: 'campaign_poster', label: 'Campaign / Event Poster (2:3 · 1000 × 1500)', instruction: 'Format as Campaign / Event Poster (2:3 vertical ratio, 1000x1500 px)' },
+  { id: 'rally_banner', label: 'Wide Banner / Hoarding (21:9 · 2560 × 1080)', instruction: 'Format as Wide Banner / Hoarding (21:9 ultra-wide ratio, 2560x1080 px)' },
+]
+
+function getPositionDescription(x: number, y: number): string {
+  const v = y < 35 ? 'top' : y > 65 ? 'bottom' : 'center'
+  const h = x < 35 ? 'left' : x > 65 ? 'right' : 'center'
+  if (v === 'center' && h === 'center') return 'positioned at center'
+  if (v === 'center') return `positioned at ${h}`
+  if (h === 'center') return `positioned at ${v}`
+  return `positioned at ${v}-${h}`
+}
+
+export interface PlacedEmblem {
+  id: string
+  partyId: string
+  name: string
+  src: string
+  x: number // percentage 0-100
+  y: number // percentage 0-100
+  size: number // pixel size, e.g. 58
+}
+
+async function downloadCompositePoster(
+  imageUrl: string,
+  emblems: PlacedEmblem[],
+  fileName: string
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = async () => {
+      try {
+        const canvas = document.createElement('canvas')
+        canvas.width = img.naturalWidth || img.width
+        canvas.height = img.naturalHeight || img.height
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          resolve(false)
+          return
+        }
+        ctx.drawImage(img, 0, 0)
+
+        // Draw each placed emblem in order
+        for (const emb of emblems) {
+          await new Promise<void>((res) => {
+            const emblemImg = new Image()
+            emblemImg.crossOrigin = 'anonymous'
+            emblemImg.onload = () => {
+              try {
+                const scaleRatio = canvas.width / 420
+                const badgeSize = Math.max(20, Math.round(emb.size * scaleRatio))
+                const centerX = Math.round(canvas.width * (emb.x / 100))
+                const centerY = Math.round(canvas.height * (emb.y / 100))
+
+                ctx.save()
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.35)'
+                ctx.shadowBlur = Math.round(badgeSize * 0.15)
+                ctx.shadowOffsetY = Math.round(badgeSize * 0.05)
+                ctx.beginPath()
+                ctx.arc(centerX, centerY, badgeSize / 2, 0, Math.PI * 2)
+                ctx.fillStyle = '#ffffff'
+                ctx.fill()
+                ctx.restore()
+
+                const pad = Math.round(badgeSize * 0.08)
+                ctx.save()
+                ctx.beginPath()
+                ctx.arc(centerX, centerY, badgeSize / 2 - 1, 0, Math.PI * 2)
+                ctx.clip()
+                ctx.drawImage(
+                  emblemImg,
+                  centerX - badgeSize / 2 + pad,
+                  centerY - badgeSize / 2 + pad,
+                  badgeSize - pad * 2,
+                  badgeSize - pad * 2
+                )
+                ctx.restore()
+              } catch {}
+              res()
+            }
+            emblemImg.onerror = () => res()
+            emblemImg.src = emb.src
+          })
+        }
+
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            resolve(false)
+            return
+          }
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = fileName
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+          URL.revokeObjectURL(url)
+          resolve(true)
+        }, 'image/jpeg', 0.95)
+      } catch {
+        resolve(false)
+      }
+    }
+    img.onerror = () => resolve(false)
+    img.src = imageUrl
+  })
+}
+
 function PromptPage({ prompts }: { prompts: Prompt[] }) {
   const { slug = '' } = useParams()
   const navigate = useNavigate()
@@ -1444,10 +1590,250 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
     (item) => item.slug === slug || item.id === slug || normalizeSlug(item.slug) === normalizeSlug(slug || '')
   )
 
+  const isPolitical = useMemo(() => isPoliticalBlog(prompt), [prompt])
+  const [selectedPosterSize, setSelectedPosterSize] = useState('')
+  const [selectedParty, setSelectedParty] = useState('')
+  const [customPartyName, setCustomPartyName] = useState('')
+  const partyInputRef = useRef<HTMLInputElement>(null)
+
+  // Symbol simulation & multiple draggable emblems on political poster
+  const [placedEmblems, setPlacedEmblems] = useState<PlacedEmblem[]>([])
+  const [selectedEmblemId, setSelectedEmblemId] = useState<string | null>(null)
+  const [draggingEmblemId, setDraggingEmblemId] = useState<string | null>(null)
+  const [isResizing, setIsResizing] = useState(false)
+  const [resizingEmblemId, setResizingEmblemId] = useState<string | null>(null)
+  const [resizeStart, setResizeStart] = useState<{ startX: number; startY: number; initialSize: number } | null>(null)
+  const [customUploadedLogos, setCustomUploadedLogos] = useState<PartyLogo[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const posterRef = useRef<HTMLDivElement>(null)
+
+  const allPartyLogos = useMemo(
+    () => [...POLITICAL_PARTY_LOGOS, ...customUploadedLogos],
+    [customUploadedLogos]
+  )
+
+  const selectedEmblem = useMemo(
+    () => placedEmblems.find((e) => e.id === selectedEmblemId) || placedEmblems[placedEmblems.length - 1],
+    [placedEmblems, selectedEmblemId]
+  )
+
+  const addOrPlaceEmblem = (partyId: string, xPercent?: number, yPercent?: number, emblemSize = 58) => {
+    const partyObj = [...POLITICAL_PARTY_LOGOS, ...customUploadedLogos].find((p) => p.id === partyId)
+    if (!partyObj) return
+    const defaultX = xPercent !== undefined ? xPercent : (placedEmblems.length % 2 === 0 ? 14 : 84)
+    const defaultY = yPercent !== undefined ? yPercent : (placedEmblems.length < 2 ? 14 : 76)
+    const newEmblem: PlacedEmblem = {
+      id: `emb_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      partyId: partyObj.id,
+      name: partyObj.partyName,
+      src: partyObj.src,
+      x: Math.max(6, Math.min(94, Math.round(defaultX))),
+      y: Math.max(6, Math.min(94, Math.round(defaultY))),
+      size: emblemSize,
+    }
+    setPlacedEmblems((prev) => [...prev, newEmblem])
+    setSelectedEmblemId(newEmblem.id)
+    setSelectedParty(partyObj.id)
+
+    // Sync into any template variable for logo or photo if currently empty or default
+    for (const p of placeholders) {
+      const k = p.canonicalKey
+      if (k === 'LOGO' || k.includes('LOGO') || k.includes('PARTY_LOGO') || k.includes('EMBLEM')) {
+        setCustomValues((prev) => {
+          if (!prev[k] || prev[k] === p.defaultValue) {
+            return { ...prev, [k]: `${partyObj.partyName} logo` }
+          }
+          return prev
+        })
+      }
+    }
+  }
+
+  const handlePosterDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'copy'
+  }
+
+  const handlePosterDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    const partyId = e.dataTransfer.getData('text/party-id')
+    if (partyId && posterRef.current) {
+      const rect = posterRef.current.getBoundingClientRect()
+      let xPercent = ((e.clientX - rect.left) / rect.width) * 100
+      let yPercent = ((e.clientY - rect.top) / rect.height) * 100
+      xPercent = Math.max(6, Math.min(94, xPercent))
+      yPercent = Math.max(6, Math.min(94, yPercent))
+      addOrPlaceEmblem(partyId, xPercent, yPercent)
+    }
+  }
+
+  const handleEmblemPointerDown = (e: React.PointerEvent, id: string) => {
+    if (
+      (e.target as HTMLElement).closest('.poster-resize-handle') ||
+      (e.target as HTMLElement).closest('.emblem-delete-btn')
+    ) {
+      return
+    }
+    e.preventDefault()
+    e.stopPropagation()
+    setSelectedEmblemId(id)
+    setDraggingEmblemId(id)
+    try {
+      ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+    } catch {}
+  }
+
+  const handleEmblemPointerMove = (e: React.PointerEvent) => {
+    if (!draggingEmblemId || !posterRef.current) return
+    const rect = posterRef.current.getBoundingClientRect()
+    let xPercent = ((e.clientX - rect.left) / rect.width) * 100
+    let yPercent = ((e.clientY - rect.top) / rect.height) * 100
+    xPercent = Math.max(6, Math.min(94, xPercent))
+    yPercent = Math.max(6, Math.min(94, yPercent))
+    setPlacedEmblems((prev) =>
+      prev.map((emb) =>
+        emb.id === draggingEmblemId
+          ? { ...emb, x: Math.round(xPercent), y: Math.round(yPercent) }
+          : emb
+      )
+    )
+  }
+
+  const handleEmblemPointerUp = (e: React.PointerEvent) => {
+    if (draggingEmblemId) {
+      setDraggingEmblemId(null)
+      try {
+        ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
+      } catch {}
+    }
+  }
+
+  const handleResizePointerDown = (e: React.PointerEvent, emblem: PlacedEmblem) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsResizing(true)
+    setResizingEmblemId(emblem.id)
+    setSelectedEmblemId(emblem.id)
+    setResizeStart({
+      startX: e.clientX,
+      startY: e.clientY,
+      initialSize: emblem.size,
+    })
+    try {
+      ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+    } catch {}
+  }
+
+  const handleResizePointerMove = (e: React.PointerEvent) => {
+    if (!isResizing || !resizingEmblemId || !resizeStart) return
+    const dx = e.clientX - resizeStart.startX
+    const dy = e.clientY - resizeStart.startY
+    const delta = (dx + dy) / 2
+    const newSize = Math.max(28, Math.min(240, Math.round(resizeStart.initialSize + delta * 1.6)))
+    setPlacedEmblems((prev) =>
+      prev.map((emb) => (emb.id === resizingEmblemId ? { ...emb, size: newSize } : emb))
+    )
+  }
+
+  const handleResizePointerUp = (e: React.PointerEvent) => {
+    if (isResizing) {
+      setIsResizing(false)
+      setResizingEmblemId(null)
+      setResizeStart(null)
+      try {
+        ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
+      } catch {}
+    }
+  }
+
+  const handleUploadPngLogo = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const isPng = file.type === 'image/png' || file.name.toLowerCase().endsWith('.png')
+    if (!isPng) {
+      alert('Please upload a PNG format image (transparent PNG recommended).')
+      e.target.value = ''
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        const customId = `uploaded_${Date.now()}`
+        const displayName = file.name.replace(/\.[^/.]+$/, '').trim() || 'Custom Logo'
+        const newLogo: PartyLogo = {
+          id: customId,
+          name: displayName.slice(0, 9).toUpperCase(),
+          partyName: displayName,
+          src: reader.result,
+        }
+        setCustomUploadedLogos((prev) => [...prev, newLogo])
+
+        // Directly place emblem on poster immediately (avoiding React state batching race condition)
+        const newEmblem: PlacedEmblem = {
+          id: `emb_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          partyId: customId,
+          name: displayName,
+          src: reader.result,
+          x: 50,
+          y: 50,
+          size: 68,
+        }
+        setPlacedEmblems((prev) => [...prev, newEmblem])
+        setSelectedEmblemId(newEmblem.id)
+        setSelectedParty(customId)
+
+        // Automatically sync into any LOGO / PHOTO / IMAGE placeholder in template variables
+        for (const p of placeholders) {
+          const k = p.canonicalKey
+          if (
+            k === 'LOGO' ||
+            k.includes('LOGO') ||
+            k === 'PHOTO' ||
+            k.includes('PHOTO') ||
+            k === 'IMAGE' ||
+            k.includes('IMAGE') ||
+            k.includes('EMBLEM') ||
+            k.includes('PICTURE')
+          ) {
+            setCustomValues((prev) => ({
+              ...prev,
+              [k]: `uploaded photo (${displayName})`,
+            }))
+          }
+        }
+      }
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
+
+  const handleRemoveEmblem = (id: string) => {
+    setPlacedEmblems((prev) => prev.filter((emb) => emb.id !== id))
+    if (selectedEmblemId === id) setSelectedEmblemId(null)
+  }
+
+  const handleClearAllEmblems = () => {
+    setPlacedEmblems([])
+    setSelectedEmblemId(null)
+    setSelectedParty('')
+  }
+
   const handleDownload = async () => {
     if (!prompt?.image || downloading) return
     setDownloading(true)
     try {
+      if (isPolitical && placedEmblems.length > 0) {
+        const ok = await downloadCompositePoster(
+          prompt.image,
+          placedEmblems,
+          `${prompt.slug || prompt.id}.jpg`
+        )
+        if (ok) {
+          setDownloadSuccess(true)
+          window.setTimeout(() => setDownloadSuccess(false), 2000)
+          return
+        }
+      }
       const ok = await downloadImageFile(prompt.image, `${prompt.slug || prompt.id}.jpg`)
       if (ok) {
         setDownloadSuccess(true)
@@ -1488,21 +1874,112 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
       }
     }
     setCustomValues(initial)
+    setSelectedPosterSize('')
+    setSelectedParty('')
+    setCustomPartyName('')
+    setPlacedEmblems([])
+    setSelectedEmblemId(null)
     setCopiedCustom(false)
     setCopied(false)
   }, [prompt?.id, prompt?.promptText, placeholders])
 
-  const effectivePrompt = useMemo(
-    () => (prompt ? applyPromptCustomizations(prompt.promptText, customValues) : ''),
-    [prompt, customValues]
-  )
+  const effectivePrompt = useMemo(() => {
+    if (!prompt) return ''
+
+    // Auto-fill any LOGO / PHOTO / IMAGE template placeholders with uploaded photo or placed emblem if not manually typed
+    const valuesForCustomization: Record<string, string> = { ...customValues }
+    const placedUploaded = placedEmblems.filter((e) => e.partyId.startsWith('uploaded_'))
+    const placedParty = placedEmblems.filter((e) => !e.partyId.startsWith('uploaded_'))
+    const latestUploaded = placedUploaded[placedUploaded.length - 1] || customUploadedLogos[customUploadedLogos.length - 1]
+
+    for (const p of placeholders) {
+      const k = p.canonicalKey
+      const isPhotoOrLogoKey =
+        k === 'LOGO' ||
+        k.includes('LOGO') ||
+        k === 'PHOTO' ||
+        k.includes('PHOTO') ||
+        k === 'IMAGE' ||
+        k.includes('IMAGE') ||
+        k.includes('EMBLEM') ||
+        k.includes('PICTURE')
+
+      if (isPhotoOrLogoKey && (!valuesForCustomization[k] || !valuesForCustomization[k].trim())) {
+        if (latestUploaded) {
+          const upName = ('partyName' in latestUploaded && latestUploaded.partyName) ? latestUploaded.partyName : latestUploaded.name
+          valuesForCustomization[k] = `uploaded photo (${upName})`
+        } else if (placedParty.length > 0) {
+          valuesForCustomization[k] = placedParty.map((e) => `${e.name} party emblem`).join(', ')
+        } else if (customPartyName.trim()) {
+          valuesForCustomization[k] = `${customPartyName.trim()} party emblem`
+        } else if (selectedParty && selectedParty !== 'custom') {
+          const partyObj = allPartyLogos.find((l) => l.id === selectedParty)
+          if (partyObj) valuesForCustomization[k] = `${partyObj.partyName} logo`
+        }
+      }
+    }
+
+    const base = applyPromptCustomizations(prompt.promptText, valuesForCustomization)
+    const instructions: string[] = []
+
+    // 1. Poster Size instruction (For every post)
+    if (selectedPosterSize) {
+      const sizeOpt = POSTER_SIZES.find((s) => s.id === selectedPosterSize)
+      if (sizeOpt && sizeOpt.instruction) {
+        instructions.push(`- Poster Size: ${sizeOpt.instruction}`)
+      }
+    }
+
+    // 2. Uploaded Photo instruction (Ensures uploaded photo is always included in the prompt)
+    if (placedUploaded.length > 0) {
+      const photoDescs = placedUploaded.map((emb) => {
+        const pos = getPositionDescription(emb.x, emb.y)
+        return `the uploaded photo / image "${emb.name}" (${pos})`
+      })
+      instructions.push(`- Uploaded Photo: Incorporate ${photoDescs.join(' and ')} prominently in the design, preserving face details and natural identity`)
+    } else if (customUploadedLogos.length > 0) {
+      const photoNames = customUploadedLogos.map((u) => `"${u.partyName || u.name}"`).join(', ')
+      instructions.push(`- Uploaded Photo: Incorporate the uploaded photo / image (${photoNames}) prominently into the poster design`)
+    }
+
+    // 3. Party Flags & Emblems instruction (Only for Political Blogs)
+    if (isPolitical) {
+      if (placedParty.length > 0) {
+        const descriptions = placedParty.map((emb) => {
+          const pos = getPositionDescription(emb.x, emb.y)
+          return `${emb.name} party emblem (${pos})`
+        })
+        instructions.push(`- Party Flag / Emblem: Include ${descriptions.join(' and ')} prominently in the poster design`)
+      } else if (customPartyName.trim()) {
+        instructions.push(`- Party Flag / Emblem: Include ${customPartyName.trim()} party flag and emblem prominently in the poster design`)
+      } else if (selectedParty && selectedParty !== 'custom') {
+        const partyObj = allPartyLogos.find((p) => p.id === selectedParty)
+        if (partyObj && !partyObj.id.startsWith('uploaded_')) {
+          instructions.push(`- Party Flag / Emblem: Include ${partyObj.partyName} party flag and emblem prominently in the poster design`)
+        }
+      }
+    }
+
+    if (instructions.length > 0) {
+      return `${base}\n\nInstruction:\n${instructions.join('\n')}`
+    }
+    return base
+  }, [prompt, customValues, selectedPosterSize, isPolitical, selectedParty, customPartyName, placedEmblems, allPartyLogos, customUploadedLogos, placeholders])
 
   const isCustomized = useMemo(() => {
-    return placeholders.some((p) => {
+    const hasCustomPlaceholder = placeholders.some((p) => {
       const current = customValues[p.canonicalKey]
       return current !== undefined && current !== p.defaultValue
     })
-  }, [placeholders, customValues])
+    return (
+      hasCustomPlaceholder ||
+      Boolean(selectedPosterSize) ||
+      Boolean(selectedParty) ||
+      Boolean(customPartyName.trim()) ||
+      placedEmblems.length > 0 ||
+      customUploadedLogos.length > 0
+    )
+  }, [placeholders, customValues, selectedPosterSize, selectedParty, customPartyName, placedEmblems, customUploadedLogos])
 
   const handleValueChange = (canonicalKey: string, val: string) => {
     setCustomValues((prev) => ({
@@ -1519,6 +1996,12 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
       }
     }
     setCustomValues(initial)
+    setSelectedPosterSize('')
+    setSelectedParty('')
+    setCustomPartyName('')
+    setPlacedEmblems([])
+    setSelectedEmblemId(null)
+    setCustomUploadedLogos([])
   }
 
   const handleCustomizeAndCopy = async () => {
@@ -1627,18 +2110,205 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
         </button>
         <div className="detail-columns">
           <div className="detail-cover-wrapper">
-            <div className={`detail-cover ${prompt.video ? 'detail-cover-video' : ''}`}>
+            <div
+              ref={posterRef}
+              className={`detail-cover ${prompt.video ? 'detail-cover-video' : ''} ${isPolitical ? 'detail-cover-simulatable' : ''}`}
+              onDragOver={isPolitical ? handlePosterDragOver : undefined}
+              onDrop={isPolitical ? handlePosterDrop : undefined}
+            >
               {prompt.video ? (
                 <PromptVideo src={prompt.video} title={prompt.title} className="detail-video-iframe" poster={prompt.image} />
               ) : prompt.image ? (
-                <img src={imageAtWidth(prompt.image, 1600) || prompt.image} alt={prompt.imageAlt || prompt.title} />
+                <img src={imageAtWidth(prompt.image, 1600) || prompt.image} alt={prompt.imageAlt || prompt.title} draggable={false} />
               ) : (
                 <span className="tile-image-fallback">
                   <Sparkles size={28} />
                 </span>
               )}
               <span className="detail-cover-tag">{prompt.category}</span>
+
+              {/* Simulation of Party Symbol / Logo on Political Poster (Multiple draggable & resizable emblems) */}
+              {isPolitical && (
+                <>
+                  {placedEmblems.map((emblem) => {
+                    const isSelected = selectedEmblemId === emblem.id
+                    const isDragging = draggingEmblemId === emblem.id
+                    return (
+                      <div
+                        key={emblem.id}
+                        className={`poster-symbol-overlay ${isDragging ? 'is-dragging' : ''} ${isSelected ? 'is-selected' : ''}`}
+                        style={{
+                          left: `${emblem.x}%`,
+                          top: `${emblem.y}%`,
+                          width: `${emblem.size}px`,
+                          height: `${emblem.size}px`,
+                        }}
+                        onPointerDown={(e) => handleEmblemPointerDown(e, emblem.id)}
+                        onPointerMove={handleEmblemPointerMove}
+                        onPointerUp={handleEmblemPointerUp}
+                        onPointerCancel={handleEmblemPointerUp}
+                        title={`Drag to reposition "${emblem.name}". Drag bottom-right corner to resize.`}
+                      >
+                        <div className="poster-symbol-badge">
+                          <img src={emblem.src} alt={emblem.name} draggable={false} />
+                        </div>
+
+                        {/* Interactive Corner Resize Handle */}
+                        <div
+                          className="poster-resize-handle"
+                          onPointerDown={(e) => handleResizePointerDown(e, emblem)}
+                          onPointerMove={handleResizePointerMove}
+                          onPointerUp={handleResizePointerUp}
+                          onPointerCancel={handleResizePointerUp}
+                          title="Drag corner handle to resize logo"
+                        >
+                          <span className="resize-handle-dot" />
+                        </div>
+
+                        {/* Delete emblem button */}
+                        <button
+                          type="button"
+                          className="emblem-delete-btn"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleRemoveEmblem(emblem.id)
+                          }}
+                          title="Remove this emblem"
+                        >
+                          <X size={11} />
+                        </button>
+
+                        <span className="poster-symbol-drag-hint">
+                          <Move size={9} /> {emblem.size}px
+                        </span>
+                      </div>
+                    )
+                  })}
+
+                  {placedEmblems.length === 0 && (
+                    <div className="poster-sim-hint-banner">
+                      <Sparkles size={11} /> Drag &amp; drop party logos onto poster (supports multiple logos &amp; custom PNG upload)
+                    </div>
+                  )}
+                </>
+              )}
             </div>
+
+            {/* Simulation controls toolbar (Shown when one or more emblems placed on political poster) */}
+            {isPolitical && placedEmblems.length > 0 && (
+              <div className="poster-simulation-toolbar">
+                <div className="sim-toolbar-label">
+                  <Sparkles size={12} />
+                  <span>Placed:</span>
+                  <strong>{placedEmblems.length} {placedEmblems.length === 1 ? 'Emblem' : 'Emblems'}</strong>
+                  {selectedEmblem && (
+                    <span className="sim-selected-pill">
+                      Selected: <em>{selectedEmblem.name}</em> ({selectedEmblem.size}px)
+                    </span>
+                  )}
+                </div>
+                <div className="sim-toolbar-actions">
+                  {selectedEmblem && (
+                    <>
+                      <div className="sim-position-group" title="Quick alignment for selected emblem">
+                        <span className="sim-sublabel">Pos:</span>
+                        <button
+                          type="button"
+                          className="sim-pos-btn"
+                          onClick={() => {
+                            setPlacedEmblems((prev) =>
+                              prev.map((e) => (e.id === selectedEmblem.id ? { ...e, x: 14, y: 14 } : e))
+                            )
+                          }}
+                          title="Top-Left"
+                        >
+                          TL
+                        </button>
+                        <button
+                          type="button"
+                          className="sim-pos-btn"
+                          onClick={() => {
+                            setPlacedEmblems((prev) =>
+                              prev.map((e) => (e.id === selectedEmblem.id ? { ...e, x: 86, y: 14 } : e))
+                            )
+                          }}
+                          title="Top-Right"
+                        >
+                          TR
+                        </button>
+                        <button
+                          type="button"
+                          className="sim-pos-btn"
+                          onClick={() => {
+                            setPlacedEmblems((prev) =>
+                              prev.map((e) => (e.id === selectedEmblem.id ? { ...e, x: 14, y: 76 } : e))
+                            )
+                          }}
+                          title="Bottom-Left"
+                        >
+                          BL
+                        </button>
+                        <button
+                          type="button"
+                          className="sim-pos-btn"
+                          onClick={() => {
+                            setPlacedEmblems((prev) =>
+                              prev.map((e) => (e.id === selectedEmblem.id ? { ...e, x: 86, y: 76 } : e))
+                            )
+                          }}
+                          title="Bottom-Right"
+                        >
+                          BR
+                        </button>
+                        <button
+                          type="button"
+                          className="sim-pos-btn"
+                          onClick={() => {
+                            setPlacedEmblems((prev) =>
+                              prev.map((e) => (e.id === selectedEmblem.id ? { ...e, x: 50, y: 50 } : e))
+                            )
+                          }}
+                          title="Center"
+                        >
+                          Center
+                        </button>
+                      </div>
+                      <div className="sim-size-group" title="Quick size presets for selected emblem">
+                        <span className="sim-sublabel">Size:</span>
+                        {[
+                          { label: 'SM', val: 46 },
+                          { label: 'MD', val: 64 },
+                          { label: 'LG', val: 86 },
+                          { label: 'XL', val: 110 },
+                        ].map((sz) => (
+                          <button
+                            key={sz.label}
+                            type="button"
+                            className={`sim-size-btn ${Math.abs(selectedEmblem.size - sz.val) < 8 ? 'is-active' : ''}`}
+                            onClick={() => {
+                              setPlacedEmblems((prev) =>
+                                prev.map((e) => (e.id === selectedEmblem.id ? { ...e, size: sz.val } : e))
+                              )
+                            }}
+                          >
+                            {sz.label}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    className="sim-clear-btn"
+                    onClick={handleClearAllEmblems}
+                    title="Remove all placed emblems"
+                  >
+                    <Trash2 size={11} /> Clear All
+                  </button>
+                </div>
+              </div>
+            )}
+
             {prompt.image && (
               <div className="detail-cover-bar">
                 <button
@@ -1657,9 +2327,11 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
                   title="Customize & copy prompt"
                   onClick={() => {
                     void handleCustomizeAndCopy()
-                    if (placeholders.length > 0 && customizerRef.current) {
+                    if (customizerRef.current) {
                       customizerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                      firstInputRef.current?.focus()
+                      if (placeholders.length > 0) {
+                        firstInputRef.current?.focus()
+                      }
                     }
                   }}
                 >
@@ -1682,91 +2354,235 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
             </div>
             <h1>{prompt.title}</h1>
 
-            {placeholders.length > 0 && (
-              <div className="prompt-customizer-card" ref={customizerRef}>
-                <div className="prompt-customizer-header">
-                  <div className="prompt-customizer-title-group">
-                    <span className="prompt-customizer-badge-icon">
-                      <Sparkles size={16} />
-                    </span>
-                    <div>
-                      <h3 className="prompt-customizer-title">Customize &amp; Personalize Prompt</h3>
-                      <p className="prompt-customizer-subtitle">
-                        Edit the variables below to customize your prompt in real-time
-                      </p>
-                    </div>
+            {/* Prompt Customization Studio Card */}
+            <div className="prompt-customizer-card" ref={customizerRef}>
+              <div className="prompt-customizer-header">
+                <div className="prompt-customizer-title-group">
+                  <span className="prompt-customizer-badge-icon">
+                    <Sparkles size={16} />
+                  </span>
+                  <div>
+                    <h3 className="prompt-customizer-title">Customize Prompt &amp; Poster Settings</h3>
+                    <p className="prompt-customizer-subtitle">
+                      {isPolitical
+                        ? 'Select poster size, party flag & customize variables in real-time'
+                        : 'Select poster size & customize variables in real-time'}
+                    </p>
                   </div>
-                  {isCustomized && (
-                    <button
-                      type="button"
-                      className="prompt-customizer-reset"
-                      onClick={handleResetDefaults}
-                      title="Reset variables to defaults"
+                </div>
+                {isCustomized && (
+                  <button
+                    type="button"
+                    className="prompt-customizer-reset"
+                    onClick={handleResetDefaults}
+                    title="Reset all customized settings"
+                  >
+                    <RotateCcw size={12} />
+                    <span>Reset</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="prompt-customizer-sections">
+                {/* 1. Poster Size Dropdown (For every Post) */}
+                <div className="prompt-customizer-field prompt-size-field">
+                  <label htmlFor="poster-size-select" className="prompt-customizer-label">
+                    <span className="field-name">
+                      <Layers size={13} style={{ verticalAlign: 'middle', marginRight: 5 }} />
+                      Poster Size / Format
+                    </span>
+                    <span className="field-required-tag">For Every Post</span>
+                  </label>
+                  <div className="prompt-customizer-select-wrapper">
+                    <select
+                      id="poster-size-select"
+                      className="prompt-customizer-select"
+                      value={selectedPosterSize}
+                      onChange={(e) => setSelectedPosterSize(e.target.value)}
                     >
-                      <RotateCcw size={12} />
-                      <span>Reset</span>
-                    </button>
-                  )}
+                      {POSTER_SIZES.map((size) => (
+                        <option key={size.id} value={size.id}>
+                          {size.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown size={14} className="prompt-select-arrow" />
+                  </div>
                 </div>
 
-                <div className="prompt-customizer-inputs">
-                  {placeholders.map((p, idx) => (
-                    <div key={p.canonicalKey} className="prompt-customizer-field">
-                      <label htmlFor={`field-${p.canonicalKey}`} className="prompt-customizer-label">
-                        <span className="field-name">{p.label}</span>
-                        {p.defaultValue && (
-                          <span className="field-default-tag" title={`Default: ${p.defaultValue}`}>
-                            Default: {p.defaultValue}
-                          </span>
-                        )}
+                {/* 2. Template Variables (If any {{PLACEHOLDER}} exist) */}
+                {placeholders.length > 0 && (
+                  <div className="prompt-customizer-variables-block">
+                    <div className="prompt-customizer-section-subhead">
+                      <Sparkles size={12} style={{ verticalAlign: 'middle', marginRight: 5 }} />
+                      Template Variables
+                    </div>
+                    <div className="prompt-customizer-inputs">
+                      {placeholders.map((p, idx) => (
+                        <div key={p.canonicalKey} className="prompt-customizer-field">
+                          <label htmlFor={`field-${p.canonicalKey}`} className="prompt-customizer-label">
+                            <span className="field-name">{p.label}</span>
+                            {p.defaultValue && (
+                              <span className="field-default-tag" title={`Default: ${p.defaultValue}`}>
+                                Default: {p.defaultValue}
+                              </span>
+                            )}
+                          </label>
+                          <div className="prompt-customizer-input-wrapper">
+                            <input
+                              id={`field-${p.canonicalKey}`}
+                              ref={idx === 0 ? firstInputRef : undefined}
+                              type="text"
+                              className="prompt-customizer-text-input"
+                              value={customValues[p.canonicalKey] ?? p.defaultValue}
+                              placeholder={p.defaultValue || `Enter ${p.label}...`}
+                              onChange={(e) => handleValueChange(p.canonicalKey, e.target.value)}
+                            />
+                            {customValues[p.canonicalKey] && (
+                              <button
+                                type="button"
+                                className="prompt-customizer-clear-btn"
+                                onClick={() => handleValueChange(p.canonicalKey, '')}
+                                title="Clear"
+                                aria-label={`Clear ${p.label}`}
+                              >
+                                <X size={12} />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. Party Logos & Emblems (Only for Political Blogs) */}
+                {isPolitical && (
+                  <div className="prompt-party-section">
+                    <div className="prompt-party-header">
+                      <div className="prompt-party-title-row">
+                        <span className="prompt-party-title">PARTY LOGOS &amp; EMBLEMS</span>
+                        <span className="prompt-party-count">{POLITICAL_PARTY_LOGOS.length}</span>
+                        <span className="prompt-political-badge">Political Blog</span>
+                      </div>
+                      <span className="prompt-party-hint">
+                        Select a party flag / emblem to include in the prompt, or enter a custom party name below:
+                      </span>
+                    </div>
+
+                    <div className="prompt-party-logo-grid">
+                      {/* Hidden file input restricted strictly to PNG */}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/png,.png"
+                        onChange={handleUploadPngLogo}
+                        style={{ display: 'none' }}
+                      />
+
+                      {allPartyLogos.map((item) => {
+                        const countOnPoster = placedEmblems.filter((e) => e.partyId === item.id).length
+                        const isUploaded = item.id.startsWith('uploaded_')
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            draggable={true}
+                            onDragStart={(e) => e.dataTransfer.setData('text/party-id', item.id)}
+                            className={`prompt-party-chip ${countOnPoster > 0 ? 'is-selected' : ''} ${isUploaded ? 'is-custom-uploaded' : ''}`}
+                            onClick={() => addOrPlaceEmblem(item.id)}
+                            title={`Drag onto poster or click to add ${item.partyName} (Can drag & drop multiple times)`}
+                          >
+                            <span className="prompt-party-thumb">
+                              <img src={item.src} alt={item.name} loading="lazy" />
+                              {countOnPoster > 0 && (
+                                <span className="prompt-party-check" title={`${countOnPoster} placed on poster`}>
+                                  {countOnPoster > 1 ? countOnPoster : <Check size={10} />}
+                                </span>
+                              )}
+                            </span>
+                            <span className="prompt-party-name">
+                              {item.name}
+                              {isUploaded && <span className="uploaded-png-badge">PNG</span>}
+                            </span>
+                          </button>
+                        )
+                      })}
+
+                      {/* OTHER... Button to upload custom PNG logo */}
+                      <button
+                        type="button"
+                        className="prompt-party-chip prompt-party-other-chip"
+                        onClick={() => fileInputRef.current?.click()}
+                        title="Click to upload another party emblem or logo (Must be PNG format)"
+                      >
+                        <span className="prompt-party-thumb prompt-party-other-thumb">
+                          <Upload size={18} />
+                        </span>
+                        <span className="prompt-party-name">OTHER...</span>
+                        <span className="prompt-party-subtag">PNG Upload</span>
+                      </button>
+                    </div>
+
+                    {/* If party is not available, ask to add party flag Name */}
+                    <div className="prompt-party-custom-field">
+                      <label htmlFor="custom-party-input" className="prompt-customizer-label">
+                        <span className="field-name">Not in list? Add Party Flag Name</span>
+                        {customPartyName.trim() && <span className="field-active-tag">Custom Active</span>}
                       </label>
                       <div className="prompt-customizer-input-wrapper">
                         <input
-                          id={`field-${p.canonicalKey}`}
-                          ref={idx === 0 ? firstInputRef : undefined}
+                          id="custom-party-input"
+                          ref={partyInputRef}
                           type="text"
                           className="prompt-customizer-text-input"
-                          value={customValues[p.canonicalKey] ?? p.defaultValue}
-                          placeholder={p.defaultValue || `Enter ${p.label}...`}
-                          onChange={(e) => handleValueChange(p.canonicalKey, e.target.value)}
+                          value={customPartyName}
+                          placeholder="Type your party flag name (e.g. BJD Conch, Shiv Sena Bow & Arrow, TMC Flowers, SP Cycle...)"
+                          onChange={(e) => {
+                            setCustomPartyName(e.target.value)
+                            if (e.target.value.trim()) {
+                              setSelectedParty('custom')
+                            } else if (selectedParty === 'custom') {
+                              setSelectedParty('')
+                            }
+                          }}
                         />
-                        {customValues[p.canonicalKey] && (
+                        {customPartyName && (
                           <button
                             type="button"
                             className="prompt-customizer-clear-btn"
-                            onClick={() => handleValueChange(p.canonicalKey, '')}
-                            title="Clear"
-                            aria-label={`Clear ${p.label}`}
+                            onClick={() => {
+                              setCustomPartyName('')
+                              if (selectedParty === 'custom') setSelectedParty('')
+                            }}
+                            title="Clear custom party"
+                            aria-label="Clear custom party"
                           >
                             <X size={12} />
                           </button>
                         )}
                       </div>
                     </div>
-                  ))}
-                </div>
-
-                <div className="prompt-customizer-action-row">
-                  <button
-                    type="button"
-                    className="prompt-customizer-btn-primary"
-                    onClick={handleCustomizeAndCopy}
-                  >
-                    {copiedCustom ? <Check size={16} /> : <Sparkles size={16} />}
-                    <span>{copiedCustom ? 'Copied Customized Prompt!' : 'Customize & Copy Prompt'}</span>
-                    <ArrowRight size={15} />
-                  </button>
-                  <span className="prompt-customizer-hint">
-                    ✨ Live prompt updates below as you type
-                  </span>
-                </div>
+                  </div>
+                )}
               </div>
-            )}
 
-            <div className="detail-prompt-label">
-              THE PROMPT <span>READY TO COPY</span>
+              <div className="prompt-customizer-action-row">
+                <button
+                  type="button"
+                  className="prompt-customizer-btn-primary"
+                  onClick={handleCustomizeAndCopy}
+                >
+                  {copiedCustom ? <Check size={16} /> : <Sparkles size={16} />}
+                  <span>{copiedCustom ? 'Copied Customized Prompt!' : 'Customize & Copy Prompt'}</span>
+                  <ArrowRight size={15} />
+                </button>
+                <span className="prompt-customizer-hint">
+                  ✨ Customizations are applied automatically when you copy
+                </span>
+              </div>
             </div>
-            <div className="detail-prompt-text">{effectivePrompt}</div>
+
             <div className="detail-action-buttons">
               <button className="copy-large" onClick={copy}>
                 {copied ? <Check size={16} /> : <Copy size={16} />}

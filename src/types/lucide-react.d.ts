@@ -65,6 +65,7 @@ declare module 'lucide-react' {
   export const Monitor: LucideIcon
   export const MonitorPlay: LucideIcon
   export const Moon: LucideIcon
+  export const Move: LucideIcon
   export const Network: LucideIcon
   export const Palette: LucideIcon
   export const PanelLeft: LucideIcon
