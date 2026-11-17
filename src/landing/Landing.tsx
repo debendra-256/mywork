@@ -531,6 +531,15 @@ function HeroArt({ slide }: { slide: LandingSlide }) {
                     <div className="passport-biometric-box" />
                     <span className="art-passport-overlay-pill">35 × 45 mm</span>
                   </div>
+                ) : slide.mockupType === 'recorder' ? (
+                  <div className="art-recorder-preview-wrap">
+                    <img
+                      src="/images/screen-recorder-preview.jpg"
+                      alt="Studio Screen Recorder"
+                      className="art-recorder-bg-img"
+                    />
+                    <span className="art-recorder-overlay-pill">🔴 4K · 60 FPS</span>
+                  </div>
                 ) : (
                   <div className="landing-art-logo-wrap">
                     <img
@@ -572,17 +581,6 @@ function HeroArt({ slide }: { slide: LandingSlide }) {
                   <div className="art-tool-overlay art-overlay-watermark">
                     <div className="watermark-brush-halo">
                       <Wand2 size={16} />
-                    </div>
-                  </div>
-                )}
-
-                {slide.mockupType === 'recorder' && (
-                  <div className="art-tool-overlay art-overlay-recorder">
-                    <div className="recorder-audio-waves">
-                      <span />
-                      <span />
-                      <span />
-                      <span />
                     </div>
                   </div>
                 )}
