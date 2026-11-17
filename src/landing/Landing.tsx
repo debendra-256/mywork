@@ -538,7 +538,6 @@ function HeroArt({ slide }: { slide: LandingSlide }) {
                       alt="Studio Screen Recorder"
                       className="art-recorder-bg-img"
                     />
-                    <span className="art-recorder-overlay-pill">🔴 4K · 60 FPS</span>
                   </div>
                 ) : (
                   <div className="landing-art-logo-wrap">
