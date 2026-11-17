@@ -87,71 +87,10 @@ const content: Record<InfoKind, InfoContent> = {
     sections: [
       {
         paragraphs: [
-          'Last Updated: November 11, 2026',
-          'Welcome to ImgMojo (https://www.imgmojo.com/). Your privacy is important to us. This Privacy Policy explains how we collect, use, store, and protect information when you visit or use our website and online tools.',
-          'By accessing ImgMojo, you agree to the practices described in this Privacy Policy.',
-        ],
-      },
-      {
-        heading: '1. About ImgMojo',
-        paragraphs: [
-          'ImgMojo is a software platform that provides free online tools to help users perform everyday digital tasks, including image editing, image compression, file conversion, QR code generation, screen recording, PDF utilities, and other online services.',
-          'Our goal is to make useful digital tools accessible to everyone.',
-        ],
-      },
-      {
-        heading: '2. Information We Collect',
-        paragraphs: [
-          'We may collect certain types of information when you visit or use our website.',
-          'Personal Information: We do not require users to create an account to access our publicly available tools. However, we may collect personal information when you voluntarily contact us through email or other communication channels.',
-        ],
-        bullets: [
-          'Name, email address, message contents, and any other details you voluntarily provide.',
-          'Non-Personal Technical Information: IP address, browser type and version, device information, operating system, pages visited, date and time of visits, and referring website addresses.',
-        ],
-      },
-      {
-        heading: '3. How We Use Your Information',
-        paragraphs: [
-          'We may use collected information to operate and maintain our website, improve tools performance, respond to support requests, understand usage, monitor security, and display advertising where applicable.',
-          'We do not sell personal information to third parties.',
-        ],
-      },
-      {
-        heading: '4. Cookies and Tracking Technologies',
-        paragraphs: [
-          'ImgMojo may use cookies and similar technologies to remember user preferences, understand traffic, analyse performance, and support advertising services. You can manage or disable cookies through your browser settings.',
-        ],
-      },
-      {
-        heading: '5. Google AdSense and Third-Party Advertising',
-        paragraphs: [
-          'We may use third-party advertising services, including Google AdSense. Google and its partners may use cookies to serve ads based on visits to this or other websites. Learn more at https://policies.google.com/technologies/partner-sites and manage ad settings at https://adssettings.google.com/.',
-        ],
-      },
-      {
-        heading: '6. Third-Party Services and Links',
-        paragraphs: [
-          'Our website may contain links to third-party services that have their own privacy policies. ImgMojo is not responsible for the privacy practices of external sites.',
-        ],
-      },
-      {
-        heading: '7. File Uploads and Online Tools',
-        paragraphs: [
-          'Some tools allow users to process or convert files. Depending on the tool, processing occurs directly in your browser or through servers. We handle uploaded files only as necessary to provide the functionality.',
-        ],
-      },
-      {
-        heading: '8. Data Security & Children’s Privacy',
-        paragraphs: [
-          'We take reasonable measures to protect our website and data, though no internet transmission is 100% secure. ImgMojo is not designed to collect personal information from children.',
-        ],
-      },
-      {
-        heading: '9. Your Privacy Rights & Contact',
-        paragraphs: [
-          'Depending on your location, you may request access, correction, or deletion of your personal data, or manage cookie preferences.',
-          'For any questions or requests, contact us at: Email: Imgmojo@gmail.com | Website: https://www.imgmojo.com/',
+          'Last Updated: November 17, 2026',
+          'Welcome to ImgMojo (https://www.imgmojo.com/). Your privacy is important to us. This Privacy Policy explains how ImgMojo collects, accesses, uses, processes, stores, shares, and protects information when you visit or use our website, Android application, and online tools.',
+          'This policy applies to all ImgMojo services, including image editing, image compression, file conversion, QR code generation, screen recording, PDF utilities, video tools, and other digital services.',
+          'By accessing or using ImgMojo, you acknowledge that you have read this Privacy Policy.',
         ],
       },
     ],
