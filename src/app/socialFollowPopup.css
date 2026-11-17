@@ -1,0 +1,730 @@
+/* ==========================================================================
+   Social Follow Scroll Popup (Instagram & Facebook)
+   ========================================================================== */
+
+@keyframes sfpOverlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sfpOverlayFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes sfpModalSpringIn {
+  0% {
+    opacity: 0;
+    transform: translateY(32px) scale(0.92);
+  }
+  65% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.015);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes sfpModalOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(20px) scale(0.94);
+  }
+}
+
+@keyframes sfpFloatLeft {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-8deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(-4deg);
+  }
+}
+
+@keyframes sfpFloatRight {
+  0%,
+  100% {
+    transform: translateY(0) rotate(8deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(4deg);
+  }
+}
+
+@keyframes sfpPulseRing {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 7px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+@keyframes sfpShimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.sfp-Overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.62);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  animation: sfpOverlayFadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.sfp-Overlay.is-closing {
+  animation: sfpOverlayFadeOut 0.24s ease forwards;
+}
+
+.sfp-Modal {
+  position: relative;
+  width: min(100%, 460px);
+  border-radius: 26px;
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow:
+    0 32px 72px -12px rgba(15, 23, 42, 0.38),
+    0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+  overflow: hidden;
+  animation: sfpModalSpringIn 0.44s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.sfp-Modal.is-closing {
+  animation: sfpModalOut 0.22s ease forwards;
+}
+
+html[data-scheme="dark"] .sfp-Modal {
+  background: #0f172a;
+  border-color: rgba(51, 65, 85, 0.85);
+  box-shadow:
+    0 32px 80px -12px rgba(0, 0, 0, 0.78),
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+}
+
+/* Ambient Decorative Glows */
+.sfp-Glow {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  filter: blur(55px);
+  opacity: 0.24;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.sfp-GlowInsta {
+  top: -60px;
+  left: -50px;
+  background: radial-gradient(circle, #fd1d1d 0%, #833ab4 70%, transparent 100%);
+}
+
+.sfp-GlowFb {
+  bottom: -60px;
+  right: -50px;
+  background: radial-gradient(circle, #1877f2 0%, #38bdf8 70%, transparent 100%);
+}
+
+/* Close Button */
+.sfp-CloseBtn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 5;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(15, 23, 42, 0.38);
+  backdrop-filter: blur(8px);
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition:
+    transform 0.25s ease,
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.sfp-CloseBtn:hover {
+  transform: rotate(90deg) scale(1.06);
+  background: rgba(15, 23, 42, 0.68);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+/* Top Visual Hero Banner */
+.sfp-Banner {
+  position: relative;
+  padding: 28px 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.sfp-BannerMesh {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    125deg,
+    #833ab4 0%,
+    #e1306c 34%,
+    #fd1d1d 55%,
+    #fcb045 76%,
+    #1877f2 100%
+  );
+  background-size: 200% 200%;
+  animation: sfpShimmer 8s ease infinite;
+  opacity: 0.94;
+  z-index: -1;
+}
+
+.sfp-BannerMesh::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.26) 0%, transparent 45%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.04) 0%, rgba(15, 23, 42, 0.32) 100%);
+}
+
+/* Floating Avatar Cluster */
+.sfp-AvatarCluster {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 2px;
+}
+
+.sfp-CenterBrand {
+  position: relative;
+  width: 68px;
+  height: 68px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 10px;
+  box-shadow:
+    0 14px 30px rgba(15, 23, 42, 0.28),
+    0 0 0 3px rgba(255, 255, 255, 0.45);
+  display: grid;
+  place-items: center;
+  z-index: 2;
+}
+
+.sfp-BrandLogo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.sfp-VerifiedTick {
+  position: absolute;
+  bottom: -5px;
+  right: -5px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #1877f2;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 4px 10px rgba(24, 119, 242, 0.45);
+}
+
+.sfp-OrbitBadge {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  border-radius: 16px;
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  text-decoration: none;
+  box-shadow:
+    0 10px 24px rgba(15, 23, 42, 0.26),
+    0 0 0 2px rgba(255, 255, 255, 0.42);
+  transition: transform 0.25s ease;
+}
+
+.sfp-OrbitInsta {
+  background: linear-gradient(135deg, #833ab4 0%, #fd1d1d 55%, #fcb045 100%);
+  animation: sfpFloatLeft 3.6s ease-in-out infinite;
+}
+
+.sfp-OrbitFb {
+  background: linear-gradient(135deg, #1877f2 0%, #0a58ca 100%);
+  animation: sfpFloatRight 3.6s ease-in-out infinite;
+}
+
+.sfp-MicroFloat {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 2px solid #ffffff;
+  font-size: 9px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+}
+
+.sfp-MicroHeart {
+  background: #f43f5e;
+  color: #ffffff;
+}
+
+.sfp-MicroSparkle {
+  background: #f59e0b;
+  color: #ffffff;
+}
+
+/* Community Live Pill */
+.sfp-CommunityPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 13px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #ffffff;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.sfp-PulseDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  animation: sfpPulseRing 1.8s infinite;
+}
+
+/* Modal Body */
+.sfp-Body {
+  position: relative;
+  z-index: 1;
+  padding: 22px 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.sfp-Title {
+  margin: 0 0 8px;
+  font-size: clamp(20px, 4.5vw, 24px);
+  font-weight: 850;
+  line-height: 1.22;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+}
+
+html[data-scheme="dark"] .sfp-Title {
+  color: #f8fafc;
+}
+
+.sfp-GradientInsta {
+  background: linear-gradient(90deg, #833ab4 0%, #e1306c 55%, #fd1d1d 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.sfp-GradientFb {
+  background: linear-gradient(90deg, #1877f2 0%, #0284c7 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.sfp-Subtitle {
+  margin: 0 0 18px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #475569;
+  max-width: 38ch;
+}
+
+html[data-scheme="dark"] .sfp-Subtitle {
+  color: #94a3b8;
+}
+
+/* Interactive Social Channel Cards */
+.sfp-Cards {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  margin-bottom: 16px;
+}
+
+.sfp-Card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 13px 14px;
+  border-radius: 18px;
+  text-decoration: none;
+  text-align: left;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  transition:
+    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    background 0.25s ease;
+}
+
+html[data-scheme="dark"] .sfp-Card {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.sfp-CardInsta:hover {
+  transform: translateY(-2px);
+  background: #fff5f7;
+  border-color: rgba(225, 48, 108, 0.45);
+  box-shadow: 0 12px 26px -10px rgba(225, 48, 108, 0.28);
+}
+
+html[data-scheme="dark"] .sfp-CardInsta:hover {
+  background: rgba(225, 48, 108, 0.1);
+  border-color: rgba(225, 48, 108, 0.55);
+}
+
+.sfp-CardFb:hover {
+  transform: translateY(-2px);
+  background: #f0f7ff;
+  border-color: rgba(24, 119, 242, 0.45);
+  box-shadow: 0 12px 26px -10px rgba(24, 119, 242, 0.28);
+}
+
+html[data-scheme="dark"] .sfp-CardFb:hover {
+  background: rgba(24, 119, 242, 0.12);
+  border-color: rgba(24, 119, 242, 0.55);
+}
+
+.sfp-CardIcon {
+  flex: 0 0 46px;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.sfp-IconInsta {
+  background: linear-gradient(135deg, #833ab4 0%, #fd1d1d 52%, #fcb045 100%);
+}
+
+.sfp-IconFb {
+  background: linear-gradient(135deg, #1877f2 0%, #0d5bd9 100%);
+}
+
+.sfp-CardInfo {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sfp-CardNameRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.sfp-CardNameRow strong {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+html[data-scheme="dark"] .sfp-CardNameRow strong {
+  color: #f8fafc;
+}
+
+.sfp-HandleTag {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
+  color: #475569;
+}
+
+html[data-scheme="dark"] .sfp-HandleTag {
+  background: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+}
+
+.sfp-CardVerified {
+  color: #1877f2;
+  flex-shrink: 0;
+}
+
+.sfp-CardDesc {
+  font-size: 12px;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+html[data-scheme="dark"] .sfp-CardDesc {
+  color: #94a3b8;
+}
+
+.sfp-FollowBtn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 750;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sfp-BtnInsta {
+  background: linear-gradient(135deg, #833ab4 0%, #e1306c 55%, #fd1d1d 100%);
+  box-shadow: 0 4px 12px rgba(225, 48, 108, 0.32);
+}
+
+.sfp-BtnFb {
+  background: linear-gradient(135deg, #1877f2 0%, #0d5bd9 100%);
+  box-shadow: 0 4px 12px rgba(24, 119, 242, 0.32);
+}
+
+.sfp-Card:hover .sfp-FollowBtn {
+  transform: scale(1.04);
+}
+
+.sfp-Card:hover .sfp-FollowBtn svg {
+  transform: translate(2px, -2px);
+}
+
+.sfp-FollowBtn svg {
+  transition: transform 0.2s ease;
+}
+
+/* Perks Row */
+.sfp-Perks {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.sfp-PerkItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+html[data-scheme="dark"] .sfp-PerkItem {
+  background: #1e293b;
+  color: #cbd5e1;
+}
+
+.sfp-PerkIconFlame {
+  color: #f97316;
+}
+
+.sfp-PerkIconGift {
+  color: #ec4899;
+}
+
+.sfp-PerkIconStar {
+  color: #eab308;
+}
+
+/* Dismiss Footer Link */
+.sfp-DismissLink {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.sfp-DismissLink:hover {
+  color: #0f172a;
+  text-decoration: underline;
+}
+
+html[data-scheme="dark"] .sfp-DismissLink:hover {
+  color: #f8fafc;
+}
+
+/* Minimized Floating Launcher Pill */
+.sfp-Launcher {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 9990;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px 7px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 28px -6px rgba(15, 23, 42, 0.22);
+  cursor: pointer;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+html[data-scheme="dark"] .sfp-Launcher {
+  background: rgba(15, 23, 42, 0.92);
+  border-color: #334155;
+  box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.6);
+}
+
+.sfp-Launcher:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 16px 34px -6px rgba(15, 23, 42, 0.3);
+}
+
+.sfp-LauncherIcons {
+  display: inline-flex;
+  align-items: center;
+}
+
+.sfp-LauncherIcon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  border: 2px solid #ffffff;
+}
+
+html[data-scheme="dark"] .sfp-LauncherIcon {
+  border-color: #0f172a;
+}
+
+.sfp-LauncherInsta {
+  background: linear-gradient(135deg, #833ab4 0%, #fd1d1d 55%, #fcb045 100%);
+  z-index: 2;
+}
+
+.sfp-LauncherFb {
+  background: linear-gradient(135deg, #1877f2 0%, #0d5bd9 100%);
+  margin-left: -7px;
+  z-index: 1;
+}
+
+.sfp-LauncherText {
+  font-size: 12px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+html[data-scheme="dark"] .sfp-LauncherText {
+  color: #f8fafc;
+}
+
+/* Mobile Responsive Adjustments */
+@media (max-width: 520px) {
+  .sfp-Overlay {
+    padding: 14px;
+  }
+
+  .sfp-Modal {
+    border-radius: 22px;
+  }
+
+  .sfp-Banner {
+    padding: 22px 16px 16px;
+  }
+
+  .sfp-Body {
+    padding: 18px 16px 16px;
+  }
+
+  .sfp-Card {
+    padding: 11px 12px;
+    gap: 10px;
+  }
+
+  .sfp-CardIcon {
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+  }
+
+  .sfp-CardDesc {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+  }
+
+  .sfp-FollowBtn {
+    padding: 7px 11px;
+    font-size: 11.5px;
+  }
+}

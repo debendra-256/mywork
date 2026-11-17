@@ -7,6 +7,7 @@ import './styles.css'
 import './landing/landing.css'
 import './theme/themes.css'
 import './tools/sidebar/sidebarLayout.css'
+import './app/socialFollowPopup.css'
 import { applyCachedTheme, ensureSiteTheme } from './theme/siteTheme'
 import { ensureSidebarSettings } from './tools/sidebar/sidebarSettings'
 
