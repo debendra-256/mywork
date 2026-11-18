@@ -24,6 +24,42 @@ function configFile(env) {
   return path.resolve(env.TOOLS_CONFIG_FILE || path.join(process.cwd(), 'data', 'tools-config.json'));
 }
 
+function trendingFile(env) {
+  return path.resolve(env.TRENDING_TODAY_FILE || path.join(process.cwd(), 'data', 'trending-today.json'));
+}
+
+const defaultTrending = {
+  version: 1,
+  postIds: [],
+  customItems: [],
+  hashtag: 'Political',
+};
+
+function normalizeTrending(input) {
+  const source = input && typeof input === 'object' ? input : {};
+  const postIds = Array.isArray(source.postIds)
+    ? source.postIds.map((id) => String(id ?? '').trim()).filter(Boolean).slice(0, 24)
+    : [];
+  const customItems = Array.isArray(source.customItems)
+    ? source.customItems
+        .map((item) => ({
+          id: String(item?.id ?? '').trim(),
+          title: String(item?.title ?? '').trim().slice(0, 140),
+          image: String(item?.image ?? '').trim(),
+          slug: String(item?.slug ?? '').trim(),
+        }))
+        .filter((item) => item.id && item.image)
+        .slice(0, 24)
+    : [];
+  const hashtag = String(source.hashtag ?? 'Political').trim().slice(0, 60) || 'Political';
+  return { version: 1, postIds, customItems, hashtag };
+}
+
+function isTrendingRequest(request) {
+  const url = String(request.url ?? '');
+  return url.includes('type=trending-today') || request.body?.type === 'trending-today';
+}
+
 function emptyConfig() {
   return { version: 1, overrides: {}, customTools: [] };
 }
@@ -77,7 +113,15 @@ async function writeConfig(env, config) {
 
 export default async function handler(request, response, env = process.env) {
   response.setHeader('Cache-Control', 'no-store');
+  const trendingMode = isTrendingRequest(request);
   if (request.method === 'GET') {
+    if (trendingMode) {
+      try {
+        return response.status(200).json(normalizeTrending(await safeReadJson(trendingFile(env))));
+      } catch {
+        return response.status(200).json(defaultTrending);
+      }
+    }
     try {
       return response.status(200).json(await readConfig(env));
     } catch {
@@ -86,7 +130,16 @@ export default async function handler(request, response, env = process.env) {
   }
   if (request.method === 'PUT') {
     if (!isValidAdminSession(request, env) && !(await hasBloggerAuthorization(request)))
-      return response.status(401).json({ error: 'Admin sign-in is required to manage tools.' });
+      return response.status(401).json({ error: 'Admin sign-in is required to manage settings.' });
+    if (trendingMode) {
+      try {
+        const next = normalizeTrending(request.body ?? {});
+        await safeWriteJson(trendingFile(env), next);
+        return response.status(200).json(next);
+      } catch (error) {
+        return response.status(400).json({ error: error instanceof Error ? error.message : 'Could not save Trending Today settings.' });
+      }
+    }
     try {
       const next = normalizeConfig(request.body ?? {});
       await writeConfig(env, next);

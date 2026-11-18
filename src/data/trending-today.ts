@@ -82,7 +82,7 @@ const getSettings = () => currentSettings
 
 export function ensureTrendingTodaySettings() {
   if (request) return request
-  request = fetch('/api/trending-today', { headers: { Accept: 'application/json' }, cache: 'no-store' })
+  request = fetch('/api/tools-config?type=trending-today', { headers: { Accept: 'application/json' }, cache: 'no-store' })
     .then(async (response) => {
       if (!response.ok) throw new Error(`Could not load Trending Today (${response.status}).`)
       const data = normalizeTrendingTodaySettings(await response.json())
@@ -111,14 +111,14 @@ export async function saveTrendingTodaySettings(next: TrendingTodaySettings): Pr
   commit(normalized)
   try {
     const token = getBloggerAccessTokenIfAvailable()
-    const response = await fetch('/api/trending-today', {
+    const response = await fetch('/api/tools-config?type=trending-today', {
       method: 'PUT',
       credentials: 'same-origin',
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify(normalized),
+      body: JSON.stringify({ ...normalized, type: 'trending-today' }),
     })
     if (response.ok) {
       const saved = normalizeTrendingTodaySettings(await response.json())

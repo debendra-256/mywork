@@ -11,7 +11,6 @@ import siteThemeHandler from './api/site-theme.js'
 import sidebarSettingsHandler from './api/sidebar-settings.js'
 import sendContactMailHandler from './api/contact.js'
 import scannedElementsHandler from './api/scanned-elements.js'
-import trendingTodayHandler from './api/trending-today.js'
 
 type ApiHandler = (request: any, response: any, env: Record<string, string>) => Promise<unknown>
 
@@ -46,7 +45,6 @@ function localApiMiddleware() {
       server.middlewares.use('/api/tools-config', jsonApi(toolsConfigHandler))
       server.middlewares.use('/api/site-theme', jsonApi(siteThemeHandler))
       server.middlewares.use('/api/sidebar-settings', jsonApi(sidebarSettingsHandler))
-      server.middlewares.use('/api/trending-today', jsonApi(trendingTodayHandler))
       server.middlewares.use('/api/scanned-elements', jsonApi(scannedElementsHandler))
       server.middlewares.use('/api/contact', jsonApi(sendContactMailHandler))
       server.middlewares.use('/api/poster-photo', posterPhotoHandler)
