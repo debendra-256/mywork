@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   ArrowRight,
   FileText,
@@ -10,6 +10,10 @@ import {
 } from 'lucide-react'
 import { useTools } from '../config/toolSettings'
 import { ToolGlyph } from '../config/toolIcons'
+import { promptCatalog } from '../data/prompt-catalog'
+import { responsiveImage } from '../data/prompt-image'
+import { useTrendingTodaySettings } from '../data/trending-today'
+import type { Prompt } from '../domain/prompt'
 
 interface CategoryCardItem {
   id: string
@@ -59,55 +63,86 @@ const categories: CategoryCardItem[] = [
   },
 ]
 
-const TRENDING_TODAY_THUMBS = [
-  {
-    id: 'tt-1',
-    image: '/images/trending-thumb-1.jpg',
-    title: 'Sunglasses Bridal Portrait',
-  },
-  {
-    id: 'tt-2',
-    image: '/images/trending-thumb-2.jpg',
-    title: 'Golden Temple Sunrise',
-  },
-  {
-    id: 'tt-3',
-    image: '/images/trending-thumb-3.jpg',
-    title: 'Divine Mahadev Art',
-  },
-  {
-    id: 'tt-4',
-    image: '/images/trending-thumb-4.jpg',
-    title: 'Autumn Golden Avenue',
-  },
-  {
-    id: 'tt-5',
-    image: '/images/trending-thumb-5.jpg',
-    title: 'Cyberpunk Neon Supercar',
-  },
-  {
-    id: 'tt-6',
-    image: '/images/trending-thumb-6.jpg',
-    title: 'Serene Sunset Mountain Lake',
-  },
-]
+const POLITICAL_FALLBACK_PROMPTS = promptCatalog.filter(
+  (p) =>
+    p.category.toLowerCase().includes('politic') ||
+    (p.hashtags ?? []).some((h) => h.toLowerCase().includes('politic'))
+)
 
 export function HomeLanding({
   onJump,
   onOpenTool,
   onNavigate,
+  allPrompts = [],
+  politicalPrompts = [],
 }: {
   onJump: (id: string) => void
   onOpenTool: (toolId: string) => void
   onNavigate: (href: string) => void
+  allPrompts?: Prompt[]
+  politicalPrompts?: Prompt[]
+  onSelectCategory?: (category: string) => void
 }) {
   const [showAll, setShowAll] = useState(false)
   const { utility, libraryMenu, feature } = useTools()
+  const trendingSettings = useTrendingTodaySettings()
   const allTools = [
     ...utility,
     ...libraryMenu.filter((tool) => tool.load || tool.href),
     ...feature,
   ]
+
+  // Trending Today displays Admin-selected posts first, then fills with Political hashtag posts in the same 6-slot strip area
+  const trendingPoliticalPosts = useMemo(() => {
+    const result: Array<{ id: string; title: string; image?: string; imageAlt?: string; slug: string }> = []
+    const seen = new Set<string>()
+
+    // 1. Admin-pinned post IDs (in exact admin order)
+    for (const pinnedId of trendingSettings.postIds) {
+      const found =
+        allPrompts.find((p) => p.id === pinnedId || p.slug === pinnedId) ||
+        politicalPrompts.find((p) => p.id === pinnedId || p.slug === pinnedId) ||
+        promptCatalog.find((p) => p.id === pinnedId || p.slug === pinnedId)
+      if (found && found.image && !seen.has(found.id)) {
+        seen.add(found.id)
+        result.push(found)
+      } else {
+        const snapshot = trendingSettings.customItems.find((c) => c.id === pinnedId || c.slug === pinnedId)
+        if (snapshot && snapshot.image && !seen.has(snapshot.id)) {
+          seen.add(snapshot.id)
+          result.push(snapshot)
+        }
+      }
+    }
+
+    // 2. Any extra custom items saved by Admin
+    for (const custom of trendingSettings.customItems) {
+      if (custom.image && !seen.has(custom.id)) {
+        seen.add(custom.id)
+        result.push(custom)
+      }
+    }
+
+    // 3. Fill remaining slots up to 6 with Political hashtag posts
+    for (const p of politicalPrompts) {
+      if (result.length >= 6) break
+      if (p.image && !seen.has(p.id)) {
+        seen.add(p.id)
+        result.push(p)
+      }
+    }
+
+    // 4. Fallback political catalog items if fewer than 6
+    for (const p of POLITICAL_FALLBACK_PROMPTS) {
+      if (result.length >= 6) break
+      if (p.image && !seen.has(p.id)) {
+        seen.add(p.id)
+        result.push(p)
+      }
+    }
+
+    return result.slice(0, 6)
+  }, [allPrompts, politicalPrompts, trendingSettings])
 
   const handleCategoryClick = (category: CategoryCardItem) => {
     if (category.toggleAll) {
@@ -333,7 +368,7 @@ export function HomeLanding({
         )}
       </section>
 
-      {/* TRENDING TODAY STRIP */}
+      {/* TRENDING TODAY STRIP — Political Hashtag Posts */}
       <section className="landing-trending-today" aria-label="Trending Today">
         <div className="landing-trending-head">
           <h3 className="landing-trending-title">
@@ -345,7 +380,7 @@ export function HomeLanding({
           <button
             type="button"
             className="landing-trending-viewall"
-            onClick={() => onJump('explore')}
+            onClick={() => onNavigate('/Globalsearch')}
           >
             <span>View All</span>
             <ArrowRight size={14} />
@@ -353,15 +388,22 @@ export function HomeLanding({
         </div>
 
         <div className="landing-trending-strip">
-          {TRENDING_TODAY_THUMBS.map((item) => (
+          {trendingPoliticalPosts.map((item) => (
             <button
               type="button"
               key={item.id}
               className="landing-trending-thumb"
-              onClick={() => onJump('explore')}
+              onClick={() => onNavigate(`/prompt/${item.slug}`)}
               title={item.title}
             >
-              <img src={item.image} alt={item.title} loading="lazy" />
+              <img
+                {...responsiveImage(
+                  item.image || '/templates/lotus-parliament.png',
+                  '(max-width: 700px) 45vw, 18vw'
+                )}
+                alt={item.imageAlt || item.title}
+                loading="lazy"
+              />
             </button>
           ))}
         </div>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ChevronDown, Clock3, Copy, DatabaseBackup, Download, Facebook, Video, Flame, Headphones, Heart, Home, ImagePlus, Images, Instagram, KeyRound, Layers, LayoutDashboard, LayoutGrid, Linkedin, Lock, LockOpen, LogOut, Mail, Menu, MessageCircle, Move, Play, Plus, RotateCcw, Search, Share2, ShieldCheck, SlidersHorizontal, Sparkles, Store, Sun, Trash2, Twitter, Upload, X, Zap } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { appConfig } from '../config/app.config'
@@ -22,7 +22,8 @@ import { loadCustomerSession, redeemLicenseCode, signIn, signInWithProvider, sig
 import { loadSocialProviders, mountGoogleSignInButton, requestFacebookToken, type SocialProviderFlags } from '../data/social-login'
 import { WATERMARK_BENEFIT, productPrice, type StoreFeature, type StoreProduct, type StoreSnapshot } from '../domain/store'
 import { createMenuItemId, defaultSideMenus, type SideMenuSection } from '../data/side-menus'
-import { promptLabels, promptTags, type Prompt } from '../domain/prompt'
+import { saveTrendingTodaySettings, useTrendingTodaySettings } from '../data/trending-today'
+import { isPosterPrompt, promptLabels, promptTags, type Prompt } from '../domain/prompt'
 import { useInView, whenIdle } from './useInView'
 import { InfoPage, type InfoKind } from './InfoPage'
 import AboutUs from './Pages/AboutUs'
@@ -30,6 +31,8 @@ import ContactUs from './Pages/ContactUs'
 import PrivacyPolicy from './Pages/PrivacyPolicy'
 import { SocialFollowPopup } from './SocialFollowPopup'
 import { SeoHead } from '../seo/SeoHead'
+
+const PromptsContext = createContext<Prompt[]>(promptCatalog)
 
 const promptRepository = createPromptRepository({
   contentProvider: appConfig.contentProvider,
@@ -286,30 +289,411 @@ function TopMenu({ onJump, onFilter, signedIn }: { onJump?: (id: string) => void
   })}</div>
 }
 
-function Header({ onMenu, onJump, onFilter, adminLoggedIn = false }: { onMenu: () => void; onJump?: (id: string) => void; onFilter?: (filter: string) => void; adminLoggedIn?: boolean }) {
-  const [search, setSearch] = useState('')
+function Header({
+  onMenu,
+  onJump,
+  onFilter,
+  onSearch,
+  adminLoggedIn = false,
+  prompts: propPrompts,
+}: {
+  onMenu: () => void
+  onJump?: (id: string) => void
+  onFilter?: (filter: string) => void
+  onSearch?: (query: string) => void
+  adminLoggedIn?: boolean
+  prompts?: Prompt[]
+}) {
+  const [search, setSearch] = useState(() => new URLSearchParams(window.location.search).get('q') ?? '')
   const [searchOpen, setSearchOpen] = useState(false)
+  const [autocompleteOpen, setAutocompleteOpen] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(-1)
+  const searchFormRef = useRef<HTMLFormElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
+  const location = useLocation()
+  const contextPrompts = useContext(PromptsContext)
+  const { utility, libraryMenu, feature } = useTools()
   const signedIn = adminLoggedIn || hasBloggerSession()
+
+  useEffect(() => {
+    const qParam = new URLSearchParams(location.search).get('q')
+    if (qParam !== null) setSearch(qParam)
+  }, [location.search])
+
+  useEffect(() => {
+    if (!autocompleteOpen) return
+    const onPointerDown = (event: MouseEvent) => {
+      if (searchFormRef.current && !searchFormRef.current.contains(event.target as Node)) {
+        setAutocompleteOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    return () => document.removeEventListener('mousedown', onPointerDown)
+  }, [autocompleteOpen])
+
+  const allPrompts = useMemo(
+    () => deduplicatePrompts(propPrompts ?? contextPrompts).filter((p) => !isPosterPrompt(p)),
+    [propPrompts, contextPrompts]
+  )
+
+  const { categories: dynamicCategories, hashtags: dynamicHashtags } = useMemo(
+    () => collectPromptFilters(allPrompts),
+    [allPrompts]
+  )
+
+  const allTools = useMemo(
+    () => [...utility, ...libraryMenu, ...feature].filter((t) => t.enabled !== false),
+    [utility, libraryMenu, feature]
+  )
+
+  const trimmed = search.trim()
+  const lowerQuery = trimmed.toLowerCase()
+  const cleanQuery = lowerQuery.replace(/^#+/, '')
+
+  const matchingTags = useMemo(() => {
+    const combined: { key: string; label: string; isHash: boolean; count: number }[] = []
+    const seen = new Set<string>()
+    for (const cat of dynamicCategories) {
+      if (!seen.has(cat.key)) {
+        seen.add(cat.key)
+        combined.push({ key: cat.key, label: cat.label, isHash: false, count: cat.count })
+      }
+    }
+    for (const tag of dynamicHashtags) {
+      if (!seen.has(tag.key)) {
+        seen.add(tag.key)
+        combined.push({ key: tag.key, label: tag.label, isHash: true, count: tag.count })
+      }
+    }
+    for (const preset of promptCategories) {
+      const k = preset.toLowerCase()
+      if (!seen.has(k) && k !== 'trending' && k !== 'latest') {
+        seen.add(k)
+        combined.push({ key: k, label: preset, isHash: false, count: 0 })
+      }
+    }
+    if (!cleanQuery) {
+      return combined.slice(0, 8)
+    }
+    return combined
+      .filter((item) => item.key.includes(cleanQuery) || item.label.toLowerCase().includes(cleanQuery))
+      .sort((a, b) => {
+        const aStarts = a.key.startsWith(cleanQuery) ? 1 : 0
+        const bStarts = b.key.startsWith(cleanQuery) ? 1 : 0
+        return bStarts - aStarts || b.count - a.count
+      })
+      .slice(0, 6)
+  }, [dynamicCategories, dynamicHashtags, cleanQuery])
+
+  const matchingPromptsResult = useMemo(() => {
+    if (!cleanQuery) {
+      const top = [...allPrompts]
+        .filter((p) => Boolean(p.image))
+        .sort((a, b) => Number(b.featured) - Number(a.featured) || b.createdAt.localeCompare(a.createdAt))
+        .slice(0, 5)
+      return { items: top, total: allPrompts.length }
+    }
+
+    const scored: { prompt: Prompt; score: number }[] = []
+    for (const p of allPrompts) {
+      const titleLower = (p.title || '').toLowerCase()
+      const catLower = (p.category || '').toLowerCase()
+      const tagsLower = promptTags(p)
+      const toolLower = (p.tool || '').toLowerCase()
+      const styleLower = (p.style || '').toLowerCase()
+      const descLower = (p.description || '').toLowerCase()
+      const promptTextLower = (p.promptText || '').toLowerCase()
+
+      let score = 0
+      if (titleLower === cleanQuery) score += 100
+      else if (titleLower.startsWith(cleanQuery)) score += 75
+      else if (titleLower.includes(cleanQuery)) score += 50
+
+      if (catLower === cleanQuery || catLower.includes(cleanQuery)) score += 45
+      if (tagsLower.some((t) => t === cleanQuery || t.startsWith(cleanQuery))) score += 40
+      else if (tagsLower.some((t) => t.includes(cleanQuery))) score += 28
+
+      if (toolLower.includes(cleanQuery) || styleLower.includes(cleanQuery)) score += 20
+      if (descLower.includes(cleanQuery) || promptTextLower.includes(cleanQuery)) score += 12
+
+      if (score > 0) {
+        scored.push({ prompt: p, score: score + (p.featured ? 3 : 0) })
+      }
+    }
+
+    scored.sort((a, b) => b.score - a.score || b.prompt.createdAt.localeCompare(a.prompt.createdAt))
+    return {
+      items: scored.slice(0, 7).map((entry) => entry.prompt),
+      total: scored.length,
+    }
+  }, [allPrompts, cleanQuery])
+
+  const matchingTools = useMemo(() => {
+    if (!cleanQuery) return []
+    return allTools
+      .filter((t) => `${t.title} ${t.id}`.toLowerCase().includes(cleanQuery))
+      .slice(0, 3)
+  }, [allTools, cleanQuery])
+
   const submit = (event: FormEvent) => {
     event.preventDefault()
-    navigate(`/?q=${encodeURIComponent(search)}#explore`)
+    if (activeIndex >= 0 && activeIndex < matchingPromptsResult.items.length) {
+      const chosen = matchingPromptsResult.items[activeIndex]
+      setAutocompleteOpen(false)
+      setActiveIndex(-1)
+      navigate(`/prompt/${chosen.slug}`)
+      return
+    }
+    setAutocompleteOpen(false)
+    setActiveIndex(-1)
+    if (location.pathname === '/' && onSearch) {
+      onSearch(trimmed)
+    } else {
+      navigate(`/?q=${encodeURIComponent(trimmed)}#explore`)
+    }
   }
-  return <header className="topbar">
-    <button className="menu-toggle" onClick={onMenu} aria-label="Open navigation"><Menu size={21} /></button>
-    <Link to="/" className="brand" aria-label="ImgMojo">
-      <img className="brand-header-logo" src="/images/imgmojo-logo.png" alt="ImgMojo" />
-    </Link>
-    <TopMenu onJump={onJump} onFilter={onFilter} signedIn={signedIn} />
-    <div className="top-actions">
-      <form className={`top-search ${searchOpen ? 'is-open' : ''}`} onSubmit={submit}>
-        <button type="button" className="top-search-toggle" aria-label={searchOpen ? 'Close search' : 'Search the site'} aria-expanded={searchOpen} onClick={() => setSearchOpen((open) => !open)}><Search size={18} /></button>
-        {searchOpen && <input autoFocus value={search} onChange={(event) => setSearch(event.target.value)} onBlur={() => { if (!search) setSearchOpen(false) }} onKeyDown={(event) => { if (event.key === 'Escape') { setSearch(''); setSearchOpen(false) } }} placeholder="Search tools, prompts, ideas" aria-label="Search prompts" />}
-      </form>
-      <ThemeMenu />
-      <Link className="creator-link" to={signedIn ? '/admin' : '/login'}><LayoutDashboard size={15} />{signedIn ? 'Dashboard' : 'Log in'}</Link>
-    </div>
-  </header>
+
+  const handleSelectPrompt = (prompt: Prompt) => {
+    setAutocompleteOpen(false)
+    setActiveIndex(-1)
+    navigate(`/prompt/${prompt.slug}`)
+  }
+
+  const handleSelectTag = (label: string) => {
+    setAutocompleteOpen(false)
+    setActiveIndex(-1)
+    if (location.pathname === '/' && onFilter) {
+      onFilter(label)
+    } else {
+      navigate(`/?filter=${encodeURIComponent(label)}#explore`)
+    }
+  }
+
+  const handleSelectTool = (tool: ToolDefinition) => {
+    setAutocompleteOpen(false)
+    setActiveIndex(-1)
+    if (tool.placement === 'utility') {
+      try {
+        window.sessionStorage.setItem('imgmojo:open-utility', tool.id)
+      } catch {}
+      if (location.pathname === '/') window.dispatchEvent(new Event('imgmojo:open-utility'))
+      else navigate('/')
+      return
+    }
+    if (tool.href) navigate(tool.href)
+  }
+
+  return (
+    <header className="topbar">
+      <button className="menu-toggle" onClick={onMenu} aria-label="Open navigation">
+        <Menu size={21} />
+      </button>
+      <Link to="/" className="brand" aria-label="ImgMojo">
+        <img className="brand-header-logo" src="/images/imgmojo-logo.png" alt="ImgMojo" />
+      </Link>
+      <TopMenu onJump={onJump} onFilter={onFilter} signedIn={signedIn} />
+      <div className="top-actions">
+        <form
+          ref={searchFormRef}
+          className={`top-search is-always-wide ${searchOpen || autocompleteOpen ? 'is-open' : ''}`}
+          onSubmit={submit}
+          role="search"
+        >
+          <button
+            type="button"
+            className="top-search-toggle"
+            aria-label="Search prompts"
+            onClick={() => {
+              setSearchOpen(true)
+              setAutocompleteOpen(true)
+              inputRef.current?.focus()
+            }}
+          >
+            <Search size={18} />
+          </button>
+          <input
+            ref={inputRef}
+            value={search}
+            onFocus={() => {
+              setSearchOpen(true)
+              setAutocompleteOpen(true)
+            }}
+            onChange={(event) => {
+              setSearch(event.target.value)
+              setAutocompleteOpen(true)
+              setActiveIndex(-1)
+              if (location.pathname === '/' && onSearch) {
+                onSearch(event.target.value)
+              }
+            }}
+            onKeyDown={(event) => {
+              const count = matchingPromptsResult.items.length
+              if (event.key === 'ArrowDown' && count > 0) {
+                event.preventDefault()
+                setAutocompleteOpen(true)
+                setActiveIndex((prev) => (prev + 1) % count)
+              } else if (event.key === 'ArrowUp' && count > 0) {
+                event.preventDefault()
+                setAutocompleteOpen(true)
+                setActiveIndex((prev) => (prev <= 0 ? count - 1 : prev - 1))
+              } else if (event.key === 'Escape') {
+                setAutocompleteOpen(false)
+                setSearchOpen(false)
+                setActiveIndex(-1)
+              }
+            }}
+            placeholder="Search all prompts, #hashtags, categories, tools, ideas..."
+            aria-label="Search all prompts"
+            aria-autocomplete="list"
+            aria-expanded={autocompleteOpen}
+            autoComplete="off"
+          />
+          {search && (
+            <button
+              type="button"
+              className="top-search-clear"
+              aria-label="Clear search"
+              onClick={() => {
+                setSearch('')
+                setActiveIndex(-1)
+                if (location.pathname === '/' && onSearch) onSearch('')
+                inputRef.current?.focus()
+              }}
+            >
+              <X size={15} />
+            </button>
+          )}
+
+          {autocompleteOpen && (
+            <div className="top-search-autocomplete" role="listbox" aria-label="Prompt suggestions">
+              {matchingTags.length > 0 && (
+                <div className="autocomplete-section">
+                  <div className="autocomplete-section-title">
+                    <Sparkles size={12} />
+                    <span>{cleanQuery ? 'Matching Categories & Hashtags' : 'Popular Categories & Hashtags'}</span>
+                  </div>
+                  <div className="autocomplete-tags-row">
+                    {matchingTags.map((tag) => (
+                      <button
+                        type="button"
+                        key={tag.key}
+                        className={`autocomplete-tag-chip ${tag.isHash ? 'is-hash' : ''}`}
+                        onClick={() => handleSelectTag(tag.label)}
+                      >
+                        <span>{tag.label.startsWith('#') ? tag.label : tag.isHash ? `#${tag.label}` : tag.label}</span>
+                        {tag.count > 0 && <small>{tag.count}</small>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="autocomplete-section">
+                <div className="autocomplete-section-title">
+                  <Flame size={12} />
+                  <span>
+                    {cleanQuery
+                      ? `Matching Prompts (${matchingPromptsResult.total})`
+                      : 'Suggested Prompts'}
+                  </span>
+                </div>
+                {matchingPromptsResult.items.length > 0 ? (
+                  <div className="autocomplete-prompt-list">
+                    {matchingPromptsResult.items.map((item, idx) => {
+                      const itemTags = promptLabels(item).slice(0, 3)
+                      return (
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected={idx === activeIndex}
+                          key={item.id}
+                          className={`autocomplete-prompt-item ${idx === activeIndex ? 'is-active' : ''}`}
+                          onMouseEnter={() => setActiveIndex(idx)}
+                          onClick={() => handleSelectPrompt(item)}
+                        >
+                          <div className="autocomplete-prompt-thumb">
+                            {item.image ? (
+                              <img src={imageAtWidth(item.image, 120)} alt="" loading="lazy" />
+                            ) : (
+                              <Sparkles size={16} />
+                            )}
+                          </div>
+                          <div className="autocomplete-prompt-meta">
+                            <strong className="autocomplete-prompt-title">
+                              {item.title || item.category || 'Creative Prompt'}
+                            </strong>
+                            <div className="autocomplete-prompt-sub">
+                              <span className="autocomplete-prompt-cat">{item.category}</span>
+                              {itemTags.map((t) => (
+                                <span key={t} className="autocomplete-prompt-hash">
+                                  #{t.replace(/^#+/, '')}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                          <ArrowUpRight size={15} className="autocomplete-prompt-arrow" />
+                        </button>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="autocomplete-empty">
+                    No exact prompt found for “{trimmed}”. Press Enter to search the full library.
+                  </div>
+                )}
+              </div>
+
+              {matchingTools.length > 0 && (
+                <div className="autocomplete-section">
+                  <div className="autocomplete-section-title">
+                    <Layers size={12} />
+                    <span>Matching Tools</span>
+                  </div>
+                  <div className="autocomplete-prompt-list">
+                    {matchingTools.map((tool) => (
+                      <button
+                        type="button"
+                        key={tool.id}
+                        className="autocomplete-prompt-item is-tool-item"
+                        onClick={() => handleSelectTool(tool)}
+                      >
+                        <div className="autocomplete-prompt-thumb is-tool-thumb">
+                          <ToolGlyph icon={tool.icon} size={16} />
+                        </div>
+                        <div className="autocomplete-prompt-meta">
+                          <strong className="autocomplete-prompt-title">{tool.title}</strong>
+                          <div className="autocomplete-prompt-sub">
+                            <span className="autocomplete-prompt-cat">Creative Tool</span>
+                          </div>
+                        </div>
+                        <ArrowRight size={14} className="autocomplete-prompt-arrow" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <button type="submit" className="autocomplete-footer-btn">
+                <Search size={14} />
+                <span>
+                  {cleanQuery
+                    ? `View all results for "${trimmed}" (${matchingPromptsResult.total})`
+                    : `Explore all ${allPrompts.length} prompts in library`}
+                </span>
+                <ArrowRight size={14} />
+              </button>
+            </div>
+          )}
+        </form>
+        <ThemeMenu />
+        <Link className="creator-link" to={signedIn ? '/admin' : '/login'}>
+          <LayoutDashboard size={15} />
+          {signedIn ? 'Dashboard' : 'Log in'}
+        </Link>
+      </div>
+    </header>
+  )
 }
 
 /**
@@ -600,15 +984,63 @@ function PromptCard({ prompt, index, saved, onToggleSave }: { prompt: Prompt; in
 }
 
 function FeatureHero({ prompts }: { prompts: Prompt[] }) {
-  const source = prompts.length >= 4 ? prompts : [...prompts, ...promptCatalog.filter((item) => !prompts.some((prompt) => prompt.id === item.id))]
-  const trending = [...source].sort((a, b) => Number(b.featured) - Number(a.featured) || b.createdAt.localeCompare(a.createdAt)).slice(0, 4)
-  return <section className="feature-hero trending-hero" id="trending">
-    <div className="trending-hero-heading"><div><span className="feature-eyebrow"><Flame size={14} /> TRENDING NOW</span></div><span className="trending-hero-count">TOP 04</span></div>
-    <div className="trending-template-grid">{trending.map((prompt, index) => <Link className="trending-template-card" to={`/prompt/${prompt.slug}`} key={prompt.id}>
-      <div className={`trending-template-image template-image-${index}`}>{prompt.image ? <img {...responsiveImage(prompt.image, '(max-width: 700px) 44vw, 22vw')} alt={prompt.imageAlt || prompt.title} loading="lazy" /> : <Sparkles size={28} />}<span className="trending-template-rank">0{index + 1}</span><span className="trending-template-tag">{prompt.featured ? 'TRENDING' : prompt.category}</span></div>
-      <div className="trending-template-copy"><span>{prompt.tool} <b>·</b> {prompt.style}</span><h2>{prompt.title}</h2><p>{prompt.description}</p><span className="trending-template-open">View template <ArrowUpRight size={14} /></span></div>
-    </Link>)}</div>
-  </section>
+  const nonPoliticalPrompts = prompts.filter((item) => !isPoliticalBlog(item) && !isPosterPrompt(item) && Boolean(item.image))
+  const nonPoliticalCatalog = promptCatalog.filter((item) => !isPoliticalBlog(item) && Boolean(item.image))
+  const source =
+    nonPoliticalPrompts.length >= 4
+      ? nonPoliticalPrompts
+      : [
+          ...nonPoliticalPrompts,
+          ...nonPoliticalCatalog.filter(
+            (item) => !nonPoliticalPrompts.some((prompt) => prompt.id === item.id)
+          ),
+        ]
+  const trending = [...source]
+    .sort((a, b) => Number(b.featured) - Number(a.featured) || b.createdAt.localeCompare(a.createdAt))
+    .slice(0, 4)
+  return (
+    <section className="feature-hero trending-hero" id="trending">
+      <div className="trending-hero-heading">
+        <div>
+          <span className="feature-eyebrow viral-prompts-eyebrow">
+            <Flame size={15} /> Viral Prompts
+          </span>
+        </div>
+        <span className="trending-hero-count">TOP 04</span>
+      </div>
+      <div className="trending-template-grid">
+        {trending.map((prompt, index) => (
+          <Link className="trending-template-card" to={`/prompt/${prompt.slug}`} key={prompt.id}>
+            <div className={`trending-template-image template-image-${index}`}>
+              {prompt.image ? (
+                <img
+                  {...responsiveImage(prompt.image, '(max-width: 700px) 44vw, 22vw')}
+                  alt={prompt.imageAlt || prompt.title}
+                  loading="lazy"
+                />
+              ) : (
+                <Sparkles size={28} />
+              )}
+              <span className="trending-template-rank">0{index + 1}</span>
+              <span className="trending-template-tag">
+                {prompt.featured ? 'VIRAL' : prompt.category}
+              </span>
+            </div>
+            <div className="trending-template-copy">
+              <span>
+                {prompt.tool} <b>·</b> {prompt.style}
+              </span>
+              <h2>{prompt.title}</h2>
+              <p>{prompt.description}</p>
+              <span className="trending-template-open">
+                View template <ArrowUpRight size={14} />
+              </span>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </section>
+  )
 }
 
 /** Ensures no duplicate posts appear on the home page or library grid. */
@@ -812,7 +1244,7 @@ export function isPoliticalBlog(p: Prompt | null | undefined): boolean {
   const hashtags = (p.hashtags || []).map((h) => (h || '').toLowerCase().replace(/^#+/, '').trim())
   const text = `${title} ${cat} ${p.description || ''} ${p.promptText || ''}`.toLowerCase()
 
-  const politicalKeywords = /politic|leader|leadership|janata|janseva|chunav|election|minister|mla|mp|tigerstyle|masshero|manofmasses|neta|bjp|congress|aam\s*aadmi|bjd|cpim|cpi|shiv\s*sena|samajwadi/i
+  const politicalKeywords = /politic|policic|leader|leadership|janata|janseva|chunav|election|minister|mla|mp|tigerstyle|masshero|manofmasses|neta|bjp|congress|aam\s*aadmi|bjd|cpim|cpi|shiv\s*sena|samajwadi/i
 
   return (
     hashtags.some((h) => politicalKeywords.test(h) || h.includes('politic')) ||
@@ -861,8 +1293,9 @@ function HomePage({ prompts, blogStatus, adminLoggedIn = false }: { prompts: Pro
   useEffect(() => {
     const params = new URLSearchParams(location.search)
     const filter = params.get('filter')
-    setQuery(params.get('q') ?? '')
-    if (filter === 'Trending' || filter === 'Latest' || filter === 'Saved') setActive(filter)
+    const qParam = params.get('q')
+    setQuery(qParam ?? '')
+    if (filter) setActive(filter)
   }, [location.search])
   useEffect(() => {
     const openPending = () => {
@@ -939,8 +1372,8 @@ function HomePage({ prompts, blogStatus, adminLoggedIn = false }: { prompts: Pro
     if (id) window.setTimeout(() => jumpTo(id), 80)
   }, [location.hash])
   const title = active === 'All' ? 'All prompts' : active === 'Saved' ? 'Your saved prompts' : active === 'Trending' ? 'Trending prompts' : active === 'Latest' ? 'Latest prompts' : `${active} prompts`
-  return <div className={`app-layout ${sidebarVisible ? '' : 'no-sidebar'}`}><SeoHead pageKey="home" /><Header onMenu={() => setSidebarOpen(true)} onJump={jumpTo} onFilter={(filter) => { setActive(filter); setActiveUtility(null); jumpTo('explore') }} adminLoggedIn={adminLoggedIn} /><div className="page-body">{sidebarVisible && <Sidebar open={sidebarOpen} active={active} onHome={() => { setActive('All'); setQuery(''); setActiveUtility(null); setSidebarOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }} activeUtility={activeUtility} onOpenUtility={(id) => { setActiveUtility(id); setSidebarOpen(false); window.setTimeout(() => document.getElementById('home-utility-area')?.scrollIntoView({ behavior: 'smooth' }), 0) }} onSelect={(category) => { setActive(category); setActiveUtility(null); setSidebarOpen(false); document.getElementById('explore')?.scrollIntoView({ behavior: 'smooth' }) }} onClose={() => setSidebarOpen(false)} />}
-    <main className={`main-content ${utilityOpen ? 'recorder-main-wide' : ''}`}><div className={`content-inner ${utilityOpen ? 'recorder-content-wide' : ''}`}>{!utilityOpen && <HomeLanding onJump={jumpTo} onOpenTool={openTool} onNavigate={navigate} />}<div id="home-utility-area">{utilityTool?.overlay ? null : utilityTool && <ToolSurface tool={utilityTool} />}</div>{utilityTool?.overlay && <ToolSurface tool={utilityTool} onClose={() => setActiveUtility(null)} />}        <FeatureHero prompts={deduplicatedPrompts} />
+  return <div className={`app-layout ${sidebarVisible ? '' : 'no-sidebar'}`}><SeoHead pageKey="home" /><Header onMenu={() => setSidebarOpen(true)} onJump={jumpTo} onFilter={(filter) => { setActive(filter); setActiveUtility(null); jumpTo('explore') }} onSearch={(q) => { setQuery(q); setActiveUtility(null) }} adminLoggedIn={adminLoggedIn} prompts={deduplicatedPrompts} /><div className="page-body">{sidebarVisible && <Sidebar open={sidebarOpen} active={active} onHome={() => { setActive('All'); setQuery(''); setActiveUtility(null); setSidebarOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }} activeUtility={activeUtility} onOpenUtility={(id) => { setActiveUtility(id); setSidebarOpen(false); window.setTimeout(() => document.getElementById('home-utility-area')?.scrollIntoView({ behavior: 'smooth' }), 0) }} onSelect={(category) => { setActive(category); setActiveUtility(null); setSidebarOpen(false); document.getElementById('explore')?.scrollIntoView({ behavior: 'smooth' }) }} onClose={() => setSidebarOpen(false)} />}
+    <main className={`main-content ${utilityOpen ? 'recorder-main-wide' : ''}`}><div className={`content-inner ${utilityOpen ? 'recorder-content-wide' : ''}`}>{!utilityOpen && <HomeLanding onJump={jumpTo} onOpenTool={openTool} onNavigate={navigate} allPrompts={deduplicatedPrompts} politicalPrompts={politicsPrompts} onSelectCategory={(cat) => { setActive(cat); setActiveUtility(null); jumpTo('explore') }} />}<div id="home-utility-area">{utilityTool?.overlay ? null : utilityTool && <ToolSurface tool={utilityTool} />}</div>{utilityTool?.overlay && <ToolSurface tool={utilityTool} onClose={() => setActiveUtility(null)} />}        <FeatureHero prompts={deduplicatedPrompts} />
 
         {politicsPrompts.length > 0 && (
           <section className="curated-home-section politics-section" id="politics-posters">
@@ -960,6 +1393,10 @@ function HomePage({ prompts, blogStatus, adminLoggedIn = false }: { prompts: Pro
                 <span className="curated-section-count">
                   {politicsPrompts.length} {politicsPrompts.length === 1 ? 'POSTER' : 'POSTERS'}
                 </span>
+                <Link to="/Globalsearch" className="landing-trending-viewall">
+                  <span>View All</span>
+                  <ArrowRight size={14} />
+                </Link>
               </div>
             </div>
             <div className="prompt-grid">
@@ -1043,6 +1480,363 @@ function HomePage({ prompts, blogStatus, adminLoggedIn = false }: { prompts: Pro
       </section>
       <SiteFooter />
     </div></main></div></div>
+}
+
+function GlobalSearchPage({ prompts, adminLoggedIn = false }: { prompts: Prompt[]; adminLoggedIn?: boolean }) {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [search, setSearch] = useState(() => new URLSearchParams(window.location.search).get('q') ?? '')
+  const [activeFilter, setActiveFilter] = useState(() => new URLSearchParams(window.location.search).get('filter') ?? '')
+  const [autocompleteOpen, setAutocompleteOpen] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(-1)
+  const searchWrapRef = useRef<HTMLFormElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const qParam = params.get('q')
+    const filterParam = params.get('filter')
+    if (qParam !== null) setSearch(qParam)
+    if (filterParam !== null) setActiveFilter(filterParam)
+  }, [location.search])
+
+  useEffect(() => {
+    if (!autocompleteOpen) return
+    const onPointerDown = (event: MouseEvent) => {
+      if (searchWrapRef.current && !searchWrapRef.current.contains(event.target as Node)) {
+        setAutocompleteOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    return () => document.removeEventListener('mousedown', onPointerDown)
+  }, [autocompleteOpen])
+
+  const allPrompts = useMemo(
+    () => deduplicatePrompts(prompts).filter((p) => Boolean(p.image) && !isPosterPrompt(p)),
+    [prompts]
+  )
+
+  const { categories: dynamicCategories, hashtags: dynamicHashtags } = useMemo(
+    () => collectPromptFilters(allPrompts),
+    [allPrompts]
+  )
+
+  const trimmed = search.trim()
+  const cleanQuery = trimmed.toLowerCase().replace(/^#+/, '')
+  const cleanFilter = activeFilter.trim().toLowerCase().replace(/^#+/, '')
+
+  const matchingTags = useMemo(() => {
+    const combined: { key: string; label: string; isHash: boolean; count: number }[] = []
+    const seen = new Set<string>()
+    for (const cat of dynamicCategories) {
+      if (!seen.has(cat.key)) {
+        seen.add(cat.key)
+        combined.push({ key: cat.key, label: cat.label, isHash: false, count: cat.count })
+      }
+    }
+    for (const tag of dynamicHashtags) {
+      if (!seen.has(tag.key)) {
+        seen.add(tag.key)
+        combined.push({ key: tag.key, label: tag.label, isHash: true, count: tag.count })
+      }
+    }
+    for (const preset of promptCategories) {
+      const k = preset.toLowerCase()
+      if (!seen.has(k) && k !== 'trending' && k !== 'latest') {
+        seen.add(k)
+        combined.push({ key: k, label: preset, isHash: false, count: 0 })
+      }
+    }
+    if (!cleanQuery) return combined.slice(0, 10)
+    return combined
+      .filter((item) => item.key.includes(cleanQuery) || item.label.toLowerCase().includes(cleanQuery))
+      .sort((a, b) => {
+        const aStarts = a.key.startsWith(cleanQuery) ? 1 : 0
+        const bStarts = b.key.startsWith(cleanQuery) ? 1 : 0
+        return bStarts - aStarts || b.count - a.count
+      })
+      .slice(0, 8)
+  }, [dynamicCategories, dynamicHashtags, cleanQuery])
+
+  const filteredPrompts = useMemo(() => {
+    let items = allPrompts
+    if (cleanFilter && cleanFilter !== 'all') {
+      items = items.filter((item) => {
+        if (cleanFilter === 'political' || cleanFilter === 'politics') return isPoliticalBlog(item)
+        const itemTags = promptTags(item).map((t) => t.replace(/^#+/, ''))
+        const cat = (item.category || '').toLowerCase().replace(/^#+/, '')
+        return itemTags.includes(cleanFilter) || cat === cleanFilter
+      })
+    }
+    if (!cleanQuery) return items
+
+    const scored: { prompt: Prompt; score: number }[] = []
+    for (const p of items) {
+      const titleLower = (p.title || '').toLowerCase()
+      const catLower = (p.category || '').toLowerCase()
+      const tagsLower = promptTags(p)
+      const toolLower = (p.tool || '').toLowerCase()
+      const styleLower = (p.style || '').toLowerCase()
+      const descLower = (p.description || '').toLowerCase()
+      const promptTextLower = (p.promptText || '').toLowerCase()
+
+      let score = 0
+      if (titleLower === cleanQuery) score += 100
+      else if (titleLower.startsWith(cleanQuery)) score += 75
+      else if (titleLower.includes(cleanQuery)) score += 50
+
+      if (catLower === cleanQuery || catLower.includes(cleanQuery)) score += 45
+      if (tagsLower.some((t) => t === cleanQuery || t.startsWith(cleanQuery))) score += 40
+      else if (tagsLower.some((t) => t.includes(cleanQuery))) score += 28
+
+      if (toolLower.includes(cleanQuery) || styleLower.includes(cleanQuery)) score += 20
+      if (descLower.includes(cleanQuery) || promptTextLower.includes(cleanQuery)) score += 12
+
+      if (score > 0) scored.push({ prompt: p, score: score + (p.featured ? 3 : 0) })
+    }
+    scored.sort((a, b) => b.score - a.score || b.prompt.createdAt.localeCompare(a.prompt.createdAt))
+    return scored.map((entry) => entry.prompt)
+  }, [allPrompts, cleanFilter, cleanQuery])
+
+  const autocompleteItems = useMemo(() => filteredPrompts.slice(0, 7), [filteredPrompts])
+
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault()
+    if (activeIndex >= 0 && activeIndex < autocompleteItems.length) {
+      const chosen = autocompleteItems[activeIndex]
+      setAutocompleteOpen(false)
+      setActiveIndex(-1)
+      navigate(`/prompt/${chosen.slug}`)
+      return
+    }
+    setAutocompleteOpen(false)
+    setActiveIndex(-1)
+  }
+
+  return (
+    <div className="detail-shell globalsearch-shell">
+      <SeoHead title={`Global Search | ${appConfig.appName}`} />
+      <Header
+        onMenu={() => navigate('/')}
+        onFilter={(filter) => {
+          setActiveFilter(filter)
+          setSearch('')
+        }}
+        onSearch={(q) => setSearch(q)}
+        adminLoggedIn={adminLoggedIn}
+        prompts={allPrompts}
+      />
+
+      <main className="globalsearch-main">
+        {/* Top Wide Pill Search Bar with Autocomplete (matching reference design) */}
+        <form
+          ref={searchWrapRef}
+          className={`globalsearch-pill-bar ${autocompleteOpen ? 'is-open' : ''}`}
+          onSubmit={handleSubmit}
+          role="search"
+        >
+          <span className="globalsearch-pill-icon" aria-hidden="true">
+            <Search size={19} />
+          </span>
+          <input
+            ref={inputRef}
+            value={search}
+            onFocus={() => setAutocompleteOpen(true)}
+            onChange={(event) => {
+              setSearch(event.target.value)
+              setAutocompleteOpen(true)
+              setActiveIndex(-1)
+            }}
+            onKeyDown={(event) => {
+              const count = autocompleteItems.length
+              if (event.key === 'ArrowDown' && count > 0) {
+                event.preventDefault()
+                setAutocompleteOpen(true)
+                setActiveIndex((prev) => (prev + 1) % count)
+              } else if (event.key === 'ArrowUp' && count > 0) {
+                event.preventDefault()
+                setAutocompleteOpen(true)
+                setActiveIndex((prev) => (prev <= 0 ? count - 1 : prev - 1))
+              } else if (event.key === 'Escape') {
+                setAutocompleteOpen(false)
+                setActiveIndex(-1)
+              }
+            }}
+            placeholder="Search all prompts, #hashtags, categories, ideas..."
+            aria-label="Search all prompts"
+            aria-autocomplete="list"
+            aria-expanded={autocompleteOpen}
+            autoComplete="off"
+          />
+          {activeFilter && (
+            <button
+              type="button"
+              className="globalsearch-active-filter-pill"
+              onClick={() => setActiveFilter('')}
+              title="Clear category filter"
+            >
+              <span>{activeFilter}</span>
+              <X size={13} />
+            </button>
+          )}
+          {search && (
+            <button
+              type="button"
+              className="top-search-clear"
+              aria-label="Clear search"
+              onClick={() => {
+                setSearch('')
+                setActiveIndex(-1)
+                inputRef.current?.focus()
+              }}
+            >
+              <X size={15} />
+            </button>
+          )}
+
+          {autocompleteOpen && (
+            <div className="top-search-autocomplete globalsearch-autocomplete" role="listbox" aria-label="Prompt suggestions">
+              {matchingTags.length > 0 && (
+                <div className="autocomplete-section">
+                  <div className="autocomplete-section-title">
+                    <Sparkles size={12} />
+                    <span>{cleanQuery ? 'Matching Categories & Hashtags' : 'Popular Categories & Hashtags'}</span>
+                  </div>
+                  <div className="autocomplete-tags-row">
+                    {matchingTags.map((tag) => (
+                      <button
+                        type="button"
+                        key={tag.key}
+                        className={`autocomplete-tag-chip ${tag.isHash ? 'is-hash' : ''} ${
+                          cleanFilter === tag.key ? 'is-selected' : ''
+                        }`}
+                        onClick={() => {
+                          setActiveFilter(tag.label)
+                          setAutocompleteOpen(false)
+                        }}
+                      >
+                        <span>{tag.label.startsWith('#') ? tag.label : tag.isHash ? `#${tag.label}` : tag.label}</span>
+                        {tag.count > 0 && <small>{tag.count}</small>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="autocomplete-section">
+                <div className="autocomplete-section-title">
+                  <Flame size={12} />
+                  <span>
+                    {cleanQuery
+                      ? `Matching Prompts (${filteredPrompts.length})`
+                      : `All Loaded Prompts (${filteredPrompts.length})`}
+                  </span>
+                </div>
+                {autocompleteItems.length > 0 ? (
+                  <div className="autocomplete-prompt-list">
+                    {autocompleteItems.map((item, idx) => {
+                      const itemTags = promptLabels(item).slice(0, 3)
+                      return (
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected={idx === activeIndex}
+                          key={item.id}
+                          className={`autocomplete-prompt-item ${idx === activeIndex ? 'is-active' : ''}`}
+                          onMouseEnter={() => setActiveIndex(idx)}
+                          onClick={() => {
+                            setAutocompleteOpen(false)
+                            navigate(`/prompt/${item.slug}`)
+                          }}
+                        >
+                          <div className="autocomplete-prompt-thumb">
+                            {item.image ? (
+                              <img src={imageAtWidth(item.image, 120)} alt="" loading="lazy" />
+                            ) : (
+                              <Sparkles size={16} />
+                            )}
+                          </div>
+                          <div className="autocomplete-prompt-meta">
+                            <strong className="autocomplete-prompt-title">
+                              {item.title || item.category || 'Creative Prompt'}
+                            </strong>
+                            <div className="autocomplete-prompt-sub">
+                              <span className="autocomplete-prompt-cat">{item.category}</span>
+                              {itemTags.map((t) => (
+                                <span key={t} className="autocomplete-prompt-hash">
+                                  #{t.replace(/^#+/, '')}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                          <ArrowUpRight size={15} className="autocomplete-prompt-arrow" />
+                        </button>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="autocomplete-empty">No matching prompts found for “{trimmed}”.</div>
+                )}
+              </div>
+            </div>
+          )}
+        </form>
+
+        {/* Visual Pin-Style Image Grid with Top-Left Back Button */}
+        <section className="globalsearch-gallery-wrap" aria-label="Global prompt image gallery">
+          <button
+            type="button"
+            className="globalsearch-back-btn"
+            onClick={() => navigate('/')}
+            aria-label="Back to home"
+            title="Back to home"
+          >
+            <ArrowLeft size={20} />
+          </button>
+
+          {filteredPrompts.length > 0 ? (
+            <div className="globalsearch-masonry">
+              {filteredPrompts.map((prompt) => (
+                <Link
+                  to={`/prompt/${prompt.slug}`}
+                  key={prompt.id}
+                  className="globalsearch-pin-card"
+                  title={prompt.title}
+                >
+                  <img
+                    {...responsiveImage(prompt.image || '', '(max-width: 700px) 48vw, 24vw')}
+                    alt={prompt.imageAlt || prompt.title}
+                    loading="lazy"
+                  />
+                  <div className="globalsearch-pin-overlay">
+                    <span className="globalsearch-pin-tag">{prompt.category}</span>
+                    <strong className="globalsearch-pin-title">{prompt.title}</strong>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="no-results">
+              <span>✳</span>
+              <h3>No prompts match your search</h3>
+              <p>Try another keyword, category, or hashtag.</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch('')
+                  setActiveFilter('')
+                }}
+              >
+                Show all images <ArrowRight size={15} />
+              </button>
+            </div>
+          )}
+        </section>
+      </main>
+
+      <SiteFooter />
+    </div>
+  )
 }
 
 function SiteFooter() {
@@ -2758,6 +3552,7 @@ function LoginPage({ onAdminLogin }: { onAdminLogin: () => void }) {
 function AdminShell({ onLogout, bloggerConnected, onConnectBlogger, onDisconnectBlogger, bloggerConnecting, bloggerError, children }: { onLogout: () => void; bloggerConnected: boolean; onConnectBlogger: () => Promise<void>; onDisconnectBlogger: () => void; bloggerConnecting: boolean; bloggerError: string; children: ReactNode }) {
   const location = useLocation()
   const isCreate = location.pathname.endsWith('/new')
+  const isTrendingToday = location.pathname.endsWith('/trending-today')
   const isMenus = location.pathname.endsWith('/menus')
   const isPdfUpload = location.pathname.endsWith('/upload-pdf')
   const isAiModels = location.pathname.endsWith('/ai-models')
@@ -2766,7 +3561,7 @@ function AdminShell({ onLogout, bloggerConnected, onConnectBlogger, onDisconnect
   const { admin: adminTools } = useTools()
   const pathname = location.pathname.replace(/\/$/, '')
   const onAdminToolPage = adminTools.some((tool) => tool.path === pathname)
-  return <div className="admin-shell"><header className="admin-topbar"><Link to="/" className="brand" aria-label="ImgMojo"><img className="brand-full-logo" src="/images/imgmojo-logo.png" alt="ImgMojo" /></Link><div className="admin-topbar-right">{bloggerConnected ? <div className="admin-blogger-badge" title="Blogger connected"><Check size={14} /><span>Blogger Connected</span><button type="button" className="admin-blogger-disconnect" onClick={onDisconnectBlogger} title="Disconnect Blogger"><LogOut size={13} /></button></div> : <button type="button" className="admin-connect-blogger-btn" onClick={() => void onConnectBlogger()} disabled={bloggerConnecting}><Sparkles size={14} />{bloggerConnecting ? 'Connecting…' : 'Connect Blogger'}</button>}<Link className="admin-view-site" to="/">View site <ArrowUpRight size={14} /></Link><button className="admin-header-logout" onClick={onLogout}><LogOut size={15} />Logout</button><button className="admin-avatar" aria-label={`${appConfig.adminDisplayName} profile`}>{appConfig.adminDisplayName.slice(0, 1).toUpperCase()}</button></div></header><div className="admin-body"><aside className="admin-nav"><span className="admin-nav-title">WORKSPACE</span><Link to="/admin" className={!isCreate && !isMenus && !isPdfUpload && !isAiModels && !isProducts && !isTools && !onAdminToolPage ? 'admin-nav-link active' : 'admin-nav-link'}><LayoutDashboard size={17} />Overview</Link><Link to="/admin/new" onClick={openNewBloggerPost} className={isCreate ? 'admin-nav-link active' : 'admin-nav-link'}><Plus size={18} />Create prompt</Link><Link to="/admin/ai-models" className={isAiModels ? 'admin-nav-link active' : 'admin-nav-link'}><Sparkles size={17} />AI models</Link><Link to="/admin/products" className={isProducts ? 'admin-nav-link active' : 'admin-nav-link'}><Store size={17} />Digital store</Link>{adminTools.map((tool) => <Link key={tool.id} to={tool.href ?? tool.path ?? '/admin'} className={tool.path === pathname ? 'admin-nav-link active' : 'admin-nav-link'}><ToolGlyph icon={tool.icon} />{tool.title}</Link>)}<Link to="/admin/upload-pdf" className={isPdfUpload ? 'admin-nav-link active' : 'admin-nav-link'}><Copy size={17} />Upload PDF product</Link><Link to="/admin/tools" className={isTools ? 'admin-nav-link active' : 'admin-nav-link'}><Layers size={17} />Tools</Link><Link to="/admin/menus" className={isMenus ? 'admin-nav-link active' : 'admin-nav-link'}><SlidersHorizontal size={17} />Manage menus</Link><a className="admin-nav-link" href="/#categories"><SlidersHorizontal size={17} />Categories</a><div className="admin-nav-bottom"><div className="admin-preview-note admin-blogger-card"><div className="admin-blogger-header"><ShieldCheck size={16} /><strong>Blogger Access</strong><span className={`blogger-status-dot ${bloggerConnected ? 'is-connected' : 'is-disconnected'}`} /></div><p>{bloggerConnected ? 'Blogger account is connected and ready to publish.' : 'Connect Blogger to publish new prompts directly.'}</p>{bloggerConnected ? <button type="button" className="admin-blogger-action-btn disconnect" onClick={onDisconnectBlogger}>Disconnect Blogger</button> : <button type="button" className="admin-blogger-action-btn connect" onClick={() => void onConnectBlogger()} disabled={bloggerConnecting}>{bloggerConnecting ? 'Connecting…' : 'Connect Blogger'}</button>}{bloggerError && <p className="blogger-card-error" role="alert">{bloggerError}</p>}</div><button className="admin-nav-link logout-link" onClick={onLogout}><LogOut size={17} />Sign out</button></div></aside><main className="admin-main"><div className="admin-main-inner">{children}</div></main></div></div>
+  return <div className="admin-shell"><header className="admin-topbar"><Link to="/" className="brand" aria-label="ImgMojo"><img className="brand-full-logo" src="/images/imgmojo-logo.png" alt="ImgMojo" /></Link><div className="admin-topbar-right">{bloggerConnected ? <div className="admin-blogger-badge" title="Blogger connected"><Check size={14} /><span>Blogger Connected</span><button type="button" className="admin-blogger-disconnect" onClick={onDisconnectBlogger} title="Disconnect Blogger"><LogOut size={13} /></button></div> : <button type="button" className="admin-connect-blogger-btn" onClick={() => void onConnectBlogger()} disabled={bloggerConnecting}><Sparkles size={14} />{bloggerConnecting ? 'Connecting…' : 'Connect Blogger'}</button>}<Link className="admin-view-site" to="/">View site <ArrowUpRight size={14} /></Link><button className="admin-header-logout" onClick={onLogout}><LogOut size={15} />Logout</button><button className="admin-avatar" aria-label={`${appConfig.adminDisplayName} profile`}>{appConfig.adminDisplayName.slice(0, 1).toUpperCase()}</button></div></header><div className="admin-body"><aside className="admin-nav"><span className="admin-nav-title">WORKSPACE</span><Link to="/admin" className={!isCreate && !isTrendingToday && !isMenus && !isPdfUpload && !isAiModels && !isProducts && !isTools && !onAdminToolPage ? 'admin-nav-link active' : 'admin-nav-link'}><LayoutDashboard size={17} />Overview</Link><Link to="/admin/new" onClick={openNewBloggerPost} className={isCreate ? 'admin-nav-link active' : 'admin-nav-link'}><Plus size={18} />Create prompt</Link><Link to="/admin/trending-today" className={isTrendingToday ? 'admin-nav-link active' : 'admin-nav-link'}><Flame size={17} />Trending Today</Link><Link to="/admin/ai-models" className={isAiModels ? 'admin-nav-link active' : 'admin-nav-link'}><Sparkles size={17} />AI models</Link><Link to="/admin/products" className={isProducts ? 'admin-nav-link active' : 'admin-nav-link'}><Store size={17} />Digital store</Link>{adminTools.map((tool) => <Link key={tool.id} to={tool.href ?? tool.path ?? '/admin'} className={tool.path === pathname ? 'admin-nav-link active' : 'admin-nav-link'}><ToolGlyph icon={tool.icon} />{tool.title}</Link>)}<Link to="/admin/upload-pdf" className={isPdfUpload ? 'admin-nav-link active' : 'admin-nav-link'}><Copy size={17} />Upload PDF product</Link><Link to="/admin/tools" className={isTools ? 'admin-nav-link active' : 'admin-nav-link'}><Layers size={17} />Tools</Link><Link to="/admin/menus" className={isMenus ? 'admin-nav-link active' : 'admin-nav-link'}><SlidersHorizontal size={17} />Manage menus</Link><a className="admin-nav-link" href="/#categories"><SlidersHorizontal size={17} />Categories</a><div className="admin-nav-bottom"><div className="admin-preview-note admin-blogger-card"><div className="admin-blogger-header"><ShieldCheck size={16} /><strong>Blogger Access</strong><span className={`blogger-status-dot ${bloggerConnected ? 'is-connected' : 'is-disconnected'}`} /></div><p>{bloggerConnected ? 'Blogger account is connected and ready to publish.' : 'Connect Blogger to publish new prompts directly.'}</p>{bloggerConnected ? <button type="button" className="admin-blogger-action-btn disconnect" onClick={onDisconnectBlogger}>Disconnect Blogger</button> : <button type="button" className="admin-blogger-action-btn connect" onClick={() => void onConnectBlogger()} disabled={bloggerConnecting}>{bloggerConnecting ? 'Connecting…' : 'Connect Blogger'}</button>}{bloggerError && <p className="blogger-card-error" role="alert">{bloggerError}</p>}</div><button className="admin-nav-link logout-link" onClick={onLogout}><LogOut size={17} />Sign out</button></div></aside><main className="admin-main"><div className="admin-main-inner">{children}</div></main></div></div>
 }
 
 interface ProductDraft { id: string; title: string; type: 'software' | 'pdf'; description: string; price: string; currency: string; watermarkText: string; premium: boolean; sortOrder: number }
@@ -2875,9 +3670,395 @@ function ProductManager() {
 function AdminOverview({ prompts, blogStatus, bloggerConnected, onConnectBlogger, bloggerConnecting }: { prompts: Prompt[]; blogStatus: 'idle' | 'loading' | 'connected' | 'error'; bloggerConnected: boolean; onConnectBlogger: () => Promise<void>; bloggerConnecting: boolean }) {
   const location = useLocation()
   const publishNotice = location.state as { publishedUrl?: string } | null
+  const trendingSettings = useTrendingTodaySettings()
   const created = prompts.filter((item) => item.id.startsWith('local-') || item.id.startsWith('social-'))
-  const recent = [...prompts].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 6)
-  return <><div className="admin-page-heading"><div><span className="admin-kicker">{appConfig.appName.toUpperCase()} / CREATOR STUDIO</span><h1>Welcome, {appConfig.adminDisplayName} <span>✳</span></h1><p>Here’s what’s happening in your prompt library.</p></div><Link to="/admin/new" onClick={openNewBloggerPost} className="admin-primary"><Plus size={16} /> Create prompt</Link></div>{publishNotice?.publishedUrl && <div className="publish-success-banner"><Check size={17} /><span>Published to Blogger successfully.</span><a href={publishNotice.publishedUrl} target="_blank" rel="noreferrer">View post <ArrowUpRight size={13} /></a></div>}<div className="admin-local-banner"><ShieldCheck size={17} /><span><strong>{bloggerConnected ? 'Blogger connected' : 'Blogger access'}</strong> — {bloggerConnected ? 'New prompts publish directly to Blogger; the public library reads published posts.' : 'Connect your Blogger account to publish posts and upload files to Google Drive.'}</span>{!bloggerConnected && <button type="button" className="admin-banner-connect-btn" onClick={() => void onConnectBlogger()} disabled={bloggerConnecting}><Sparkles size={13} /> {bloggerConnecting ? 'Connecting…' : 'Connect Blogger'}</button>}</div><section className="admin-stat-grid"><article className="admin-stat-card"><span>LIBRARY PROMPTS</span><strong>{prompts.length}</strong><small><i>↗</i> {bloggerConnected ? 'Includes Blogger posts' : 'Including sample content'}</small><div className="stat-icon violet"><Sparkles size={18} /></div></article><article className="admin-stat-card"><span>YOUR PROMPTS</span><strong>{created.length}</strong><small><i>↗</i> Created in this browser</small><div className="stat-icon green"><Plus size={19} /></div></article><article className="admin-stat-card"><span>CATEGORIES</span><strong>{promptCategories.length}</strong><small>Ready to organize prompts</small><div className="stat-icon yellow"><SlidersHorizontal size={18} /></div></article><article className="admin-stat-card"><span>BLOGGER CONNECTION</span><strong className={bloggerConnected ? 'status-connected' : 'status-waiting'}>{bloggerConnected ? 'Connected' : blogStatus === 'loading' ? 'Checking…' : 'Not connected'}</strong><small>{bloggerConnected ? 'Published posts are live' : 'Connect above to publish'}</small><div className="stat-icon blue"><ShieldCheck size={18} /></div></article></section><section className="admin-table-card"><div className="admin-table-head"><div><span className="admin-kicker">YOUR CONTENT</span><h2>Recently added</h2></div><Link to="/admin/new" onClick={openNewBloggerPost} className="admin-text-link">Add a prompt <ArrowRight size={14} /></Link></div><div className="admin-table-scroll"><table className="prompts-table"><thead><tr><th>PROMPT</th><th>CATEGORY</th><th>TOOL</th><th>DATE</th><th /></tr></thead><tbody>{recent.map((prompt) => <tr key={prompt.id}><td><div className="table-prompt">{prompt.image && <img src={prompt.image} alt="" />}<span><strong>{prompt.title}</strong><small>/{prompt.slug}</small></span></div></td><td><span className="table-category">{prompt.category}</span></td><td>{prompt.tool}</td><td>{new Date(`${prompt.createdAt}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</td><td><Link to={`/prompt/${prompt.slug}`} className="table-open" aria-label={`Open ${prompt.title}`}><ArrowUpRight size={15} /></Link></td></tr>)}</tbody></table></div></section><div className="admin-bottom-line"><span>{appConfig.appName} Admin <b>·</b> UI preview</span><Link to="/">Return to public site <ArrowUpRight size={13} /></Link></div></>
+  const recent = [...prompts].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 8)
+  const toggleTrendingToday = (prompt: Prompt) => {
+    const isPinned = trendingSettings.postIds.includes(prompt.id) || trendingSettings.postIds.includes(prompt.slug)
+    const nextIds = isPinned
+      ? trendingSettings.postIds.filter((id) => id !== prompt.id && id !== prompt.slug)
+      : [prompt.id, ...trendingSettings.postIds].slice(0, 6)
+    const nextCustom = isPinned
+      ? trendingSettings.customItems.filter((c) => c.id !== prompt.id && c.slug !== prompt.slug)
+      : [
+          {
+            id: prompt.id,
+            title: prompt.title,
+            image: prompt.image || '/templates/lotus-parliament.png',
+            slug: prompt.slug,
+          },
+          ...trendingSettings.customItems.filter((c) => c.id !== prompt.id && c.slug !== prompt.slug),
+        ].slice(0, 12)
+    void saveTrendingTodaySettings({
+      ...trendingSettings,
+      postIds: nextIds,
+      customItems: nextCustom,
+    })
+  }
+  return <><div className="admin-page-heading"><div><span className="admin-kicker">{appConfig.appName.toUpperCase()} / CREATOR STUDIO</span><h1>Welcome, {appConfig.adminDisplayName} <span>✳</span></h1><p>Here’s what’s happening in your prompt library.</p></div><div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}><Link to="/admin/trending-today" className="admin-secondary"><Flame size={15} /> Trending Today ({trendingSettings.postIds.length}/6)</Link><Link to="/admin/new" onClick={openNewBloggerPost} className="admin-primary"><Plus size={16} /> Create prompt</Link></div></div>{publishNotice?.publishedUrl && <div className="publish-success-banner"><Check size={17} /><span>Published to Blogger successfully.</span><a href={publishNotice.publishedUrl} target="_blank" rel="noreferrer">View post <ArrowUpRight size={13} /></a></div>}<div className="admin-local-banner"><ShieldCheck size={17} /><span><strong>{bloggerConnected ? 'Blogger connected' : 'Blogger access'}</strong> — {bloggerConnected ? 'New prompts publish directly to Blogger; the public library reads published posts.' : 'Connect your Blogger account to publish posts and upload files to Google Drive.'}</span>{!bloggerConnected && <button type="button" className="admin-banner-connect-btn" onClick={() => void onConnectBlogger()} disabled={bloggerConnecting}><Sparkles size={13} /> {bloggerConnecting ? 'Connecting…' : 'Connect Blogger'}</button>}</div><section className="admin-stat-grid"><article className="admin-stat-card"><span>LIBRARY PROMPTS</span><strong>{prompts.length}</strong><small><i>↗</i> {bloggerConnected ? 'Includes Blogger posts' : 'Including sample content'}</small><div className="stat-icon violet"><Sparkles size={18} /></div></article><article className="admin-stat-card"><span>YOUR PROMPTS</span><strong>{created.length}</strong><small><i>↗</i> Created in this browser</small><div className="stat-icon green"><Plus size={19} /></div></article><article className="admin-stat-card"><span>CATEGORIES</span><strong>{promptCategories.length}</strong><small>Ready to organize prompts</small><div className="stat-icon yellow"><SlidersHorizontal size={18} /></div></article><article className="admin-stat-card"><span>BLOGGER CONNECTION</span><strong className={bloggerConnected ? 'status-connected' : 'status-waiting'}>{bloggerConnected ? 'Connected' : blogStatus === 'loading' ? 'Checking…' : 'Not connected'}</strong><small>{bloggerConnected ? 'Published posts are live' : 'Connect above to publish'}</small><div className="stat-icon blue"><ShieldCheck size={18} /></div></article></section><section className="admin-table-card"><div className="admin-table-head"><div><span className="admin-kicker">YOUR CONTENT</span><h2>Recently added</h2></div><div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}><Link to="/admin/trending-today" className="admin-text-link"><Flame size={14} /> Manage Trending Today</Link><Link to="/admin/new" onClick={openNewBloggerPost} className="admin-text-link">Add a prompt <ArrowRight size={14} /></Link></div></div><div className="admin-table-scroll"><table className="prompts-table"><thead><tr><th>PROMPT</th><th>CATEGORY</th><th>TRENDING TODAY</th><th>DATE</th><th /></tr></thead><tbody>{recent.map((prompt) => {
+    const isPinned = trendingSettings.postIds.includes(prompt.id) || trendingSettings.postIds.includes(prompt.slug)
+    return <tr key={prompt.id}><td><div className="table-prompt">{prompt.image && <img src={prompt.image} alt="" />}<span><strong>{prompt.title}</strong><small>/{prompt.slug}</small></span></div></td><td><span className="table-category">{prompt.category}</span></td><td><button type="button" className={`admin-trending-pin-btn ${isPinned ? 'is-pinned' : ''}`} onClick={() => toggleTrendingToday(prompt)}><Flame size={13} /> {isPinned ? 'In Trending Today' : 'Set Trending Today'}</button></td><td>{new Date(`${prompt.createdAt.slice(0, 10)}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</td><td><Link to={`/prompt/${prompt.slug}`} className="table-open" aria-label={`Open ${prompt.title}`}><ArrowUpRight size={15} /></Link></td></tr>
+  })}</tbody></table></div></section><div className="admin-bottom-line"><span>{appConfig.appName} Admin <b>·</b> UI preview</span><Link to="/">Return to public site <ArrowUpRight size={13} /></Link></div></>
+}
+
+function TrendingTodayManager({ prompts }: { prompts: Prompt[] }) {
+  const settings = useTrendingTodaySettings()
+  const [filterMode, setFilterMode] = useState<'political' | 'all'>('political')
+  const [search, setSearch] = useState('')
+  const [customTitle, setCustomTitle] = useState('')
+  const [customImage, setCustomImage] = useState('')
+  const [customSlug, setCustomSlug] = useState('')
+  const [notice, setNotice] = useState('')
+  const [error, setError] = useState('')
+
+  const deduplicated = useMemo(
+    () => deduplicatePrompts(prompts).filter((p) => Boolean(p.image) && !isPosterPrompt(p)),
+    [prompts]
+  )
+  const politicalOnly = useMemo(() => deduplicated.filter(isPoliticsPrompt), [deduplicated])
+
+  const pinnedItems = useMemo(() => {
+    const result: Array<{ id: string; title: string; image: string; slug: string; isAdminPinned: boolean }> = []
+    const seen = new Set<string>()
+    for (const pinnedId of settings.postIds) {
+      const found = deduplicated.find((p) => p.id === pinnedId || p.slug === pinnedId)
+      if (found && found.image && !seen.has(found.id)) {
+        seen.add(found.id)
+        result.push({ id: found.id, title: found.title, image: found.image, slug: found.slug, isAdminPinned: true })
+      } else {
+        const snap = settings.customItems.find((c) => c.id === pinnedId || c.slug === pinnedId)
+        if (snap && snap.image && !seen.has(snap.id)) {
+          seen.add(snap.id)
+          result.push({ ...snap, isAdminPinned: true })
+        }
+      }
+    }
+    return result
+  }, [settings, deduplicated])
+
+  const previewStrip = useMemo(() => {
+    const list = [...pinnedItems]
+    const seen = new Set(list.map((i) => i.id))
+    for (const p of politicalOnly) {
+      if (list.length >= 6) break
+      if (p.image && !seen.has(p.id)) {
+        seen.add(p.id)
+        list.push({ id: p.id, title: p.title, image: p.image, slug: p.slug, isAdminPinned: false })
+      }
+    }
+    return list.slice(0, 6)
+  }, [pinnedItems, politicalOnly])
+
+  const candidates = useMemo(() => {
+    const base = filterMode === 'political' ? politicalOnly : deduplicated
+    const q = search.trim().toLowerCase()
+    if (!q) return base
+    return base.filter((p) =>
+      `${p.title} ${p.category} ${promptTags(p).join(' ')}`.toLowerCase().includes(q)
+    )
+  }, [filterMode, politicalOnly, deduplicated, search])
+
+  const togglePost = (prompt: Prompt) => {
+    setError('')
+    const isPinned = settings.postIds.includes(prompt.id) || settings.postIds.includes(prompt.slug)
+    const nextIds = isPinned
+      ? settings.postIds.filter((id) => id !== prompt.id && id !== prompt.slug)
+      : [prompt.id, ...settings.postIds.filter((id) => id !== prompt.id)].slice(0, 6)
+    const nextCustom = isPinned
+      ? settings.customItems.filter((c) => c.id !== prompt.id && c.slug !== prompt.slug)
+      : [
+          {
+            id: prompt.id,
+            title: prompt.title,
+            image: prompt.image || '/templates/lotus-parliament.png',
+            slug: prompt.slug,
+          },
+          ...settings.customItems.filter((c) => c.id !== prompt.id && c.slug !== prompt.slug),
+        ].slice(0, 12)
+    void saveTrendingTodaySettings({
+      ...settings,
+      postIds: nextIds,
+      customItems: nextCustom,
+    }).then(() => {
+      setNotice(
+        isPinned
+          ? `Removed “${prompt.title}” from Trending Today.`
+          : `Pinned “${prompt.title}” to Trending Today.`
+      )
+    })
+  }
+
+  const movePinned = (index: number, direction: -1 | 1) => {
+    const target = index + direction
+    if (target < 0 || target >= settings.postIds.length) return
+    const nextIds = [...settings.postIds]
+    const [moved] = nextIds.splice(index, 1)
+    nextIds.splice(target, 0, moved)
+    void saveTrendingTodaySettings({ ...settings, postIds: nextIds }).then(() =>
+      setNotice('Updated Trending Today slot order.')
+    )
+  }
+
+  const removePinnedId = (id: string) => {
+    const nextIds = settings.postIds.filter((item) => item !== id)
+    const nextCustom = settings.customItems.filter((item) => item.id !== id)
+    void saveTrendingTodaySettings({ ...settings, postIds: nextIds, customItems: nextCustom }).then(() =>
+      setNotice('Removed post from Trending Today.')
+    )
+  }
+
+  const addCustomTrending = (event: FormEvent) => {
+    event.preventDefault()
+    setError('')
+    const cleanTitle = customTitle.trim()
+    const cleanImg = customImage.trim()
+    if (!cleanTitle || !cleanImg) {
+      setError('Enter both a post title and image URL.')
+      return
+    }
+    const slug =
+      customSlug
+        .trim()
+        .replace(/^\/prompt\//, '')
+        .replace(/^\/+/, '') ||
+      cleanTitle
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')
+    const id = `custom-tt-${Date.now().toString(36)}`
+    const nextIds = [id, ...settings.postIds].slice(0, 6)
+    const nextCustom = [
+      { id, title: cleanTitle, image: cleanImg, slug },
+      ...settings.customItems,
+    ].slice(0, 12)
+    setCustomTitle('')
+    setCustomImage('')
+    setCustomSlug('')
+    void saveTrendingTodaySettings({
+      ...settings,
+      postIds: nextIds,
+      customItems: nextCustom,
+    }).then(() => setNotice(`Added “${cleanTitle}” to Trending Today.`))
+  }
+
+  const resetToPoliticalAuto = () => {
+    void saveTrendingTodaySettings({
+      version: 1,
+      postIds: [],
+      customItems: [],
+      hashtag: 'Political',
+    }).then(() => setNotice('Reset to automatic Political hashtag posts.'))
+  }
+
+  return (
+    <>
+      <div className="admin-page-heading">
+        <div>
+          <span className="admin-kicker">{appConfig.appName.toUpperCase()} / TRENDING TODAY</span>
+          <h1>Trending Today Posts</h1>
+          <p>Choose up to 6 posts to feature in the homepage Trending Today strip. Unfilled slots automatically show Political hashtag posts.</p>
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {settings.postIds.length > 0 && (
+            <button type="button" className="admin-secondary" onClick={resetToPoliticalAuto}>
+              <RotateCcw size={14} /> Reset to Auto (#Political)
+            </button>
+          )}
+          <Link to="/" className="admin-secondary">
+            <ArrowUpRight size={15} /> View site
+          </Link>
+        </div>
+      </div>
+
+      {notice && <p className="menu-manager-message" role="status" style={{ marginBottom: '12px' }}>{notice}</p>}
+      {error && <p className="editor-error" role="alert" style={{ marginBottom: '12px' }}>{error}</p>}
+
+      {/* LIVE 6-SLOT PREVIEW */}
+      <section className="editor-panel" style={{ marginBottom: '18px' }}>
+        <div className="editor-panel-heading">
+          <div>
+            <span className="admin-kicker">LIVE HOMEPAGE PREVIEW (6 SLOTS)</span>
+            <h2>🔥 Trending Today Strip ({pinnedItems.length} pinned by Admin)</h2>
+          </div>
+        </div>
+        <div className="admin-trending-preview-grid">
+          {previewStrip.map((item, idx) => {
+            const pinnedIdx = settings.postIds.indexOf(item.id)
+            return (
+              <div key={item.id} className={`admin-trending-slot-card ${item.isAdminPinned ? 'is-pinned' : ''}`}>
+                <div className="admin-trending-slot-thumb">
+                  <img src={item.image} alt={item.title} loading="lazy" />
+                  <span className="admin-trending-slot-badge">
+                    #{idx + 1} · {item.isAdminPinned ? 'PINNED' : 'AUTO #POLITICAL'}
+                  </span>
+                </div>
+                <div className="admin-trending-slot-meta">
+                  <strong title={item.title}>{item.title}</strong>
+                  {item.isAdminPinned && (
+                    <div className="admin-trending-slot-actions">
+                      <button
+                        type="button"
+                        disabled={pinnedIdx <= 0}
+                        onClick={() => movePinned(pinnedIdx, -1)}
+                        title="Move left"
+                      >
+                        ←
+                      </button>
+                      <button
+                        type="button"
+                        disabled={pinnedIdx < 0 || pinnedIdx >= settings.postIds.length - 1}
+                        onClick={() => movePinned(pinnedIdx, 1)}
+                        title="Move right"
+                      >
+                        →
+                      </button>
+                      <button
+                        type="button"
+                        className="remove-slot-btn"
+                        onClick={() => removePinnedId(item.id)}
+                        title="Unpin"
+                      >
+                        <X size={13} /> Remove
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </section>
+
+      {/* ADD CUSTOM POST / IMAGE TO TRENDING TODAY */}
+      <section className="editor-panel" style={{ marginBottom: '18px' }}>
+        <div className="editor-panel-heading">
+          <div>
+            <span className="admin-kicker">CUSTOM SLOT</span>
+            <h2>Add Custom Post or Image to Trending Today</h2>
+          </div>
+        </div>
+        <form className="menu-create-form" onSubmit={addCustomTrending}>
+          <label className="editor-field">
+            Post Title
+            <input
+              value={customTitle}
+              onChange={(e) => setCustomTitle(e.target.value)}
+              placeholder="e.g. Political Campaign Greeting Poster"
+              required
+            />
+          </label>
+          <label className="editor-field">
+            Image URL
+            <input
+              value={customImage}
+              onChange={(e) => setCustomImage(e.target.value)}
+              placeholder="https://... or /templates/lotus-parliament.png"
+              required
+            />
+          </label>
+          <label className="editor-field">
+            Post Slug <span className="field-optional">OPTIONAL</span>
+            <input
+              value={customSlug}
+              onChange={(e) => setCustomSlug(e.target.value)}
+              placeholder="election-campaign-leadership-poster"
+            />
+          </label>
+          <button type="submit" className="admin-primary">
+            <Plus size={15} /> Pin to Trending Today
+          </button>
+        </form>
+      </section>
+
+      {/* SELECT FROM PUBLISHED BLOGGER & LIBRARY POSTS */}
+      <section className="admin-table-card">
+        <div className="admin-table-head" style={{ flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <span className="admin-kicker">CHOOSE FROM LIBRARY</span>
+            <h2>Select Posts for Trending Today</h2>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className={filterMode === 'political' ? 'admin-primary' : 'admin-secondary'}
+              onClick={() => setFilterMode('political')}
+            >
+              #Political Posts ({politicalOnly.length})
+            </button>
+            <button
+              type="button"
+              className={filterMode === 'all' ? 'admin-primary' : 'admin-secondary'}
+              onClick={() => setFilterMode('all')}
+            >
+              All Posts ({deduplicated.length})
+            </button>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Filter posts by title or #tag..."
+              style={{
+                height: '36px',
+                padding: '0 12px',
+                borderRadius: '8px',
+                border: '1px solid #d1d5db',
+                fontSize: '12px',
+              }}
+            />
+          </div>
+        </div>
+        <div className="admin-table-scroll">
+          <table className="prompts-table">
+            <thead>
+              <tr>
+                <th>POST</th>
+                <th>CATEGORY / TAGS</th>
+                <th>DATE</th>
+                <th>ACTION</th>
+              </tr>
+            </thead>
+            <tbody>
+              {candidates.map((prompt) => {
+                const isPinned =
+                  settings.postIds.includes(prompt.id) || settings.postIds.includes(prompt.slug)
+                return (
+                  <tr key={prompt.id}>
+                    <td>
+                      <div className="table-prompt">
+                        {prompt.image && <img src={prompt.image} alt="" />}
+                        <span>
+                          <strong>{prompt.title}</strong>
+                          <small>/{prompt.slug}</small>
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <span className="table-category">{prompt.category}</span>
+                    </td>
+                    <td>
+                      {new Date(`${prompt.createdAt.slice(0, 10)}T00:00:00`).toLocaleDateString(
+                        undefined,
+                        { month: 'short', day: 'numeric' }
+                      )}
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className={`admin-trending-pin-btn ${isPinned ? 'is-pinned' : ''}`}
+                        onClick={() => togglePost(prompt)}
+                      >
+                        <Flame size={13} />
+                        {isPinned ? 'Pinned in Trending Today' : 'Set in Trending Today'}
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </>
+  )
 }
 
 function parseHashtags(input: string): string[] {
@@ -3209,6 +4390,7 @@ function AdminGate({ allowed, authReady, bloggerConnected, onConnectBlogger, onD
   const pathname = useLocation().pathname
   const { admin: adminTools } = useTools()
   const createPage = pathname.endsWith('/new')
+  const trendingTodayPage = pathname.endsWith('/trending-today')
   const pdfUploadPage = pathname.endsWith('/upload-pdf')
   const menusPage = pathname.endsWith('/menus')
   const toolsPage = pathname.endsWith('/tools')
@@ -3218,7 +4400,7 @@ function AdminGate({ allowed, authReady, bloggerConnected, onConnectBlogger, onD
   if (!authReady) return <main className="auth-page"><p className="auth-subtitle">Checking sign-in…</p></main>
   if (!allowed) return <Navigate to="/login" replace />
   const customCategories = menuSections.flatMap((section) => section.items.map((item) => item.name))
-  return <AdminShell bloggerConnected={bloggerConnected} onConnectBlogger={onConnectBlogger} onDisconnectBlogger={onDisconnectBlogger} bloggerConnecting={bloggerConnecting} bloggerError={bloggerError} onLogout={onLogout}>{pdfUploadPage ? <PdfProductUploader /> : productsPage ? <ProductManager /> : adminTool ? <ToolSurface tool={adminTool} /> : aiModelsPage ? <AiModelSettingsPage /> : toolsPage ? <ToolsManager /> : menusPage ? <MenuManager menuSections={menuSections} onChange={onChangeMenus} /> : createPage ? <PromptEditor onPublish={onPublish} customCategories={customCategories} /> : <AdminOverview prompts={prompts} blogStatus={blogStatus} bloggerConnected={bloggerConnected} onConnectBlogger={onConnectBlogger} bloggerConnecting={bloggerConnecting} />}</AdminShell>
+  return <AdminShell bloggerConnected={bloggerConnected} onConnectBlogger={onConnectBlogger} onDisconnectBlogger={onDisconnectBlogger} bloggerConnecting={bloggerConnecting} bloggerError={bloggerError} onLogout={onLogout}>{pdfUploadPage ? <PdfProductUploader /> : productsPage ? <ProductManager /> : adminTool ? <ToolSurface tool={adminTool} /> : aiModelsPage ? <AiModelSettingsPage /> : toolsPage ? <ToolsManager /> : menusPage ? <MenuManager menuSections={menuSections} onChange={onChangeMenus} /> : trendingTodayPage ? <TrendingTodayManager prompts={prompts} /> : createPage ? <PromptEditor onPublish={onPublish} customCategories={customCategories} /> : <AdminOverview prompts={prompts} blogStatus={blogStatus} bloggerConnected={bloggerConnected} onConnectBlogger={onConnectBlogger} bloggerConnecting={bloggerConnecting} />}</AdminShell>
 }
 
 function loadSideMenus(): SideMenuSection[] {
@@ -3322,6 +4504,7 @@ export default function App() {
     void loadCustomerSession()
   }, [])
   const adminAllowed = adminAuthenticated
-  return <><Routes><Route path="/" element={<HomePage prompts={prompts} blogStatus={blogStatus} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /><Route path="/store" element={<StorePage />} />{pages.map((tool) => <Route key={tool.id} path={tool.path} element={<ToolPage tool={tool} prompts={prompts} />} />)}<Route path="/checkout/:productId" element={<CheckoutPage />} /><Route path="/prompt/:slug" element={<PromptPage prompts={prompts} />} /><Route path="/account" element={<AccountPage />} /><Route path="/login" element={<LoginPage onAdminLogin={() => { setAdminAuthenticated(true); setAdminAuthReady(true) }} />} /><Route path="/admin/upload-pdf" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} onConnectBlogger={handleConnectBlogger} onDisconnectBlogger={handleDisconnectBlogger} bloggerConnecting={bloggerConnecting} bloggerError={bloggerError} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="/admin/*" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} onConnectBlogger={handleConnectBlogger} onDisconnectBlogger={handleDisconnectBlogger} bloggerConnecting={bloggerConnecting} bloggerError={bloggerError} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="/about" element={<InfoRoute kind="about" />} /><Route path="/privacy" element={<InfoRoute kind="privacy" />} /><Route path="/terms" element={<InfoRoute kind="terms" />} /><Route path="/contact" element={<InfoRoute kind="contact" />} /><Route path="/report-bug" element={<InfoRoute kind="report-bug" />} /><Route path="/feature-request" element={<InfoRoute kind="feature-request" />} /><Route path="*" element={<HomePage prompts={prompts} blogStatus={blogStatus} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /></Routes><SocialFollowPopup /></>
+  const screenRecorderPage = pages.find((tool) => tool.id === 'screen-recorder')
+  return <PromptsContext.Provider value={prompts}><Routes><Route path="/" element={<HomePage prompts={prompts} blogStatus={blogStatus} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /><Route path="/Globalsearch" element={<GlobalSearchPage prompts={prompts} adminLoggedIn={adminAuthenticated} />} /><Route path="/globalsearch" element={<GlobalSearchPage prompts={prompts} adminLoggedIn={adminAuthenticated} />} /><Route path="/store" element={<StorePage />} />{pages.map((tool) => <Route key={tool.id} path={tool.path} element={<ToolPage tool={tool} prompts={prompts} />} />)}{screenRecorderPage && <Route path="/screen-recorder" element={<ToolPage tool={screenRecorderPage} prompts={prompts} />} />}<Route path="/checkout/:productId" element={<CheckoutPage />} /><Route path="/prompt/:slug" element={<PromptPage prompts={prompts} />} /><Route path="/account" element={<AccountPage />} /><Route path="/login" element={<LoginPage onAdminLogin={() => { setAdminAuthenticated(true); setAdminAuthReady(true) }} />} /><Route path="/admin/upload-pdf" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} onConnectBlogger={handleConnectBlogger} onDisconnectBlogger={handleDisconnectBlogger} bloggerConnecting={bloggerConnecting} bloggerError={bloggerError} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="/admin/*" element={<AdminGate authReady={adminAuthReady} allowed={adminAllowed} bloggerConnected={bloggerConnected} onConnectBlogger={handleConnectBlogger} onDisconnectBlogger={handleDisconnectBlogger} bloggerConnecting={bloggerConnecting} bloggerError={bloggerError} prompts={prompts} blogStatus={blogStatus} onPublish={publishToBlogger} onLogout={logout} menuSections={menuSections} onChangeMenus={setMenuSections} />} /><Route path="/about" element={<InfoRoute kind="about" />} /><Route path="/privacy" element={<InfoRoute kind="privacy" />} /><Route path="/terms" element={<InfoRoute kind="terms" />} /><Route path="/contact" element={<InfoRoute kind="contact" />} /><Route path="/report-bug" element={<InfoRoute kind="report-bug" />} /><Route path="/feature-request" element={<InfoRoute kind="feature-request" />} /><Route path="*" element={<HomePage prompts={prompts} blogStatus={blogStatus} menuSections={menuSections} adminLoggedIn={adminAuthenticated} />} /></Routes><SocialFollowPopup /></PromptsContext.Provider>
 }
 

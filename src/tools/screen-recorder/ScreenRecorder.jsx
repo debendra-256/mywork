@@ -238,7 +238,8 @@ function RecorderFullscreen({ onClose }) {
   </div>
 }
 
-/** Home-page entry point: the recorder opens in full screen over the library. */
+/** Tool-page entry point at /Recorder (or full-screen overlay when onClose is passed). */
 export default function ScreenRecorderTool({ onClose }) {
-  return <RecorderFullscreen onClose={onClose ?? (() => undefined)} />
+  if (onClose) return <RecorderFullscreen onClose={onClose} />
+  return <ScreenRecorder />
 }

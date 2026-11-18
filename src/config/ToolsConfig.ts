@@ -37,7 +37,7 @@ export interface ToolDefinition {
  * from the app without touching any other file.
  */
 export const toolsConfig: readonly ToolDefinition[] = [
-  { id: 'screen-recorder', title: 'Screen Recorder', placement: 'utility', icon: 'monitor-play', overlay: true, enabled: true, load: () => import('../tools/screen-recorder/ScreenRecorder') },
+  { id: 'screen-recorder', title: 'Screen Recorder', placement: 'library', path: '/Recorder', href: '/Recorder', icon: 'monitor-play', enabled: true, load: () => import('../tools/screen-recorder/ScreenRecorder') },
   { id: 'qr-code', title: 'QR Code Generator', placement: 'library', path: '/qr-code', href: '/qr-code', icon: 'qr-code', enabled: true, load: () => import('../tools/qr-code/QRCodeGenerator') },
   { id: 'collage', title: 'Photo and Video Editor', placement: 'library', path: '/collage', href: '/collage', icon: 'wand', editorFonts: true, enabled: true, load: () => import('../tools/collage/CollageStudio') },
   { id: 'compress-image', title: 'Compress Image', placement: 'library', path: '/compress-image', href: '/compress-image', icon: 'file-archive', enabled: true, load: () => import('../tools/compress-image/CompressImage') },
