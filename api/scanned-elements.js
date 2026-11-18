@@ -3,7 +3,7 @@ import { mkdir, writeFile, unlink } from 'node:fs/promises'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { safeWriteJson, safeReadJson } from './config-writer.js'
+import { safeWriteJson, safeReadJson } from '../server/config-writer.js'
 import { isValidAdminSession } from './admin-auth.js'
 import { hasBloggerAuthorization } from './tools-config.js'
 

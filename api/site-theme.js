@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { isValidAdminSession } from './admin-auth.js'
 import { hasBloggerAuthorization } from './tools-config.js'
-import { safeWriteJson, safeReadJson } from './config-writer.js'
+import { safeWriteJson, safeReadJson } from '../server/config-writer.js'
 
 const themeIds = ['premium-purple', 'dark-neon', 'ocean-cyan', 'sunset-gradient']
 const defaultTheme = themeIds[0]

@@ -2,7 +2,7 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { isValidAdminSession } from './admin-auth.js'
-import { buildChatRequest, normalizeBaseUrl, providerFailure, readChatCompletion } from './provider-request.js'
+import { buildChatRequest, normalizeBaseUrl, providerFailure, readChatCompletion } from '../server/provider-request.js'
 
 const builtInModels = [
   { id: 'openai-gpt-4o', name: 'GPT-4o', provider: 'openai', model: 'gpt-4o' },

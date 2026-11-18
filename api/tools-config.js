@@ -2,7 +2,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { isValidAdminSession } from './admin-auth.js';
-import { safeWriteJson, safeReadJson } from './config-writer.js';
+import { safeWriteJson, safeReadJson } from '../server/config-writer.js';
 
 export async function hasBloggerAuthorization(request) {
   const token = String(request.headers.authorization ?? '').match(/^Bearer\s+(.+)$/i)?.[1];

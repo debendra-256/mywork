@@ -1,7 +1,7 @@
 const maxImageBytes = 3 * 1024 * 1024
 const allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp'])
 import { getActiveAiModel } from './ai-model-settings.js'
-import { buildChatRequest, providerFailure, readChatCompletion } from './provider-request.js'
+import { buildChatRequest, providerFailure, readChatCompletion } from '../server/provider-request.js'
 const requestsByIp = new Map()
 const requestLimit = 20
 const requestWindowMs = 60 * 60 * 1000
