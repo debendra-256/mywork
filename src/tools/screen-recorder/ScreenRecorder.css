@@ -22,11 +22,12 @@
 
   width: 100%;
   color: var(--sr-ink);
-  padding: 12px 20px 80px;
+  padding: 8px clamp(12px, 2.5vw, 36px) 80px;
 }
 
 .sr-container {
-  max-width: 1200px;
+  width: 100%;
+  max-width: 100%;
   margin: 0 auto;
 }
 
@@ -36,7 +37,7 @@
 .sr-hero-header {
   text-align: center;
   max-width: 1150px;
-  margin: 0 auto 12px;
+  margin: 0 auto 10px;
 }
 
 .sr-hero-title {
@@ -87,21 +88,102 @@
 }
 
 /* ==========================================================================
-   3. SCREEN RECORDING APPLICATION WRAPPER
+   3. SCREEN RECORDING APPLICATION WRAPPER (Full Screen Responsive Studio)
    ========================================================================== */
 .sr-app-wrapper {
   background: var(--sr-paper);
   border: 1.5px solid var(--sr-brand-line);
   border-radius: 20px;
-  padding: 24px;
+  padding: 14px 18px 20px;
   box-shadow: 0 12px 36px var(--sr-brand-glow);
   margin-bottom: 48px;
+  width: 100%;
+}
+
+.sr-app-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--sr-line);
+}
+
+.sr-app-toolbar-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sr-ink);
+}
+
+.sr-app-toolbar-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--sr-brand);
+  box-shadow: 0 0 8px var(--sr-brand);
+  animation: srPulse 2s infinite;
+}
+
+@keyframes srPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+.sr-fullscreen-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--sr-brand-line);
+  background: var(--sr-brand-soft);
+  color: var(--sr-brand-dark);
+  font-size: 12.5px;
+  font-weight: 700;
+  transition: all 0.18s ease;
+  cursor: pointer;
+}
+
+.sr-fullscreen-action-btn:hover {
+  background: var(--sr-brand);
+  color: #ffffff;
+  border-color: var(--sr-brand);
+  box-shadow: 0 4px 14px var(--sr-brand-glow);
+  transform: translateY(-1px);
+}
+
+.sr-app-wrapper .recorder-generator {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.sr-app-wrapper .recorder-layout {
+  display: grid !important;
+  grid-template-columns: minmax(280px, 330px) minmax(0, 1fr) !important;
+  gap: 20px !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-height: clamp(520px, calc(100vh - 195px), 880px);
+  align-items: stretch !important;
+}
+
+.sr-app-wrapper .recorder-preview {
+  min-height: clamp(500px, calc(100vh - 225px), 850px) !important;
+  height: 100% !important;
 }
 
 /* ==========================================================================
    COMMON CONTENT SECTION STYLES
    ========================================================================== */
 .sr-section {
+  max-width: 1320px;
+  margin-left: auto;
+  margin-right: auto;
   background: var(--sr-paper);
   border: 1px solid var(--sr-line);
   border-radius: 20px;

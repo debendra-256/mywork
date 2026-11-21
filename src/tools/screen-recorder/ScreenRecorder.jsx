@@ -558,7 +558,18 @@ const RECORDER_FAQS = [
  * Full 10-point checklist implementation solving AdSense "Low value content" review.
  */
 export default function ScreenRecorderTool({ onClose }) {
-  if (onClose) return <RecorderFullscreen onClose={onClose} />
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
+  if (onClose || isFullscreen) {
+    return (
+      <RecorderFullscreen
+        onClose={() => {
+          setIsFullscreen(false)
+          if (onClose) onClose()
+        }}
+      />
+    )
+  }
 
   return (
     <div className="screen-recorder-page">
@@ -579,6 +590,21 @@ export default function ScreenRecorderTool({ onClose }) {
             3. SCREEN RECORDING APPLICATION (Widget with full functionality)
             ================================================================ */}
         <div className="sr-app-wrapper">
+          <div className="sr-app-toolbar">
+            <div className="sr-app-toolbar-title">
+              <span className="sr-app-toolbar-dot" />
+              <span>Studio Recording Workspace</span>
+            </div>
+            <button
+              type="button"
+              className="sr-fullscreen-action-btn"
+              onClick={() => setIsFullscreen(true)}
+              title="Expand to Full Screen Mode"
+            >
+              <Maximize2 size={14} />
+              <span>Full Screen</span>
+            </button>
+          </div>
           <ScreenRecorder />
         </div>
 
