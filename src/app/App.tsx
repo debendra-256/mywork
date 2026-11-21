@@ -9,6 +9,7 @@ import { saveSiteTheme, useSiteTheme } from '../theme/siteTheme'
 import { useSidebarVisible } from '../tools/sidebar/sidebarSettings'
 import { themeList, type ThemeId } from '../theme/themes'
 import { HomeLanding } from '../landing/Landing'
+import { LandingEditorial } from '../landing/LandingEditorial'
 import { ToolSurface } from '../tools/toolRuntime'
 import { promptCatalog, promptCategories } from '../data/prompt-catalog'
 import { createPromptRepository } from '../data/prompt-repository'
@@ -1833,6 +1834,8 @@ function GlobalSearchPage({ prompts, adminLoggedIn = false }: { prompts: Prompt[
             </div>
           )}
         </section>
+
+        <LandingEditorial />
       </main>
 
       <SiteFooter />
