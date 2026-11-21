@@ -238,7 +238,7 @@ export function CustomizedPosterGuide() {
           </div>
           <div className="dpg-step-body">
             <p>
-              Choose the political party flag, logo or emblem you want to include in your poster.
+              Choose the political party flag, logo or emblem you want to include in your poster by Drag drop.
             </p>
             <p>
               ImgMojo provides customization options to help match the poster's design with your preferred party identity.
@@ -259,39 +259,15 @@ export function CustomizedPosterGuide() {
                   <span className="dot yellow" />
                   <span className="dot green" />
                 </div>
-                <span className="dpg-shot-title">Example: Party Flag, Emblem &amp; Placement Toolbar</span>
+                <span className="dpg-shot-title">Example: Party Logos &amp; Emblems Selection (Drag &amp; Drop Support)</span>
               </div>
               <div className="dpg-shot-content">
-                <div className="dpg-flags-mockup">
-                  <span className="dpg-mini-label">Select Party Flag / Colors:</span>
-                  <div className="dpg-flag-buttons">
-                    <span className="dpg-flag-btn is-active">
-                      <span className="flag-circle saffron-green" /> Saffron &amp; Green (BJP) ✓
-                    </span>
-                    <span className="dpg-flag-btn">
-                      <span className="flag-circle tricolor" /> Tri-Color (INC)
-                    </span>
-                    <span className="dpg-flag-btn">
-                      <span className="flag-circle blue-white" /> Blue &amp; White (AAP)
-                    </span>
-                    <span className="dpg-flag-btn">
-                      <span className="flag-circle green-white" /> Conch (BJD)
-                    </span>
-                  </div>
-                  <div className="dpg-emblem-toolbar-mock">
-                    <div className="dpg-emblem-badge-preview">
-                      <span className="emblem-dot" />
-                      <span>Placed Emblem: <strong>Party Logo Badge</strong> (64px)</span>
-                    </div>
-                    <div className="dpg-emblem-positions">
-                      <span>Position:</span>
-                      <span className="pos-btn active">TL</span>
-                      <span className="pos-btn">TR</span>
-                      <span className="pos-btn">BL</span>
-                      <span className="pos-btn">BR</span>
-                    </div>
-                  </div>
-                </div>
+                <img
+                  src="/images/guide/party-logos-emblems.png"
+                  alt="Party Logos and Emblems Selection - Drag & Drop Support"
+                  className="dpg-shot-img"
+                  loading="lazy"
+                />
               </div>
             </div>
           </div>
@@ -318,27 +294,23 @@ export function CustomizedPosterGuide() {
               associated with your selected poster template.
             </p>
 
-            {/* Step 4 Screenshot Mockup */}
-            <div className="dpg-shot-frame" aria-label="Step 4 example screenshot">
+            {/* Step 4 Screenshot Reference */}
+            <div className="dpg-shot-frame" aria-label="Step 4 reference screenshot">
               <div className="dpg-shot-titlebar">
                 <div className="dpg-shot-dots">
                   <span className="dot red" />
                   <span className="dot yellow" />
                   <span className="dot green" />
                 </div>
-                <span className="dpg-shot-title">Example: Triggering Customize Prompt &amp; Copy</span>
+                <span className="dpg-shot-title">Reference: Customize &amp; Copy Prompt Modal Interface</span>
               </div>
               <div className="dpg-shot-content">
-                <div className="dpg-action-preview-card">
-                  <button type="button" className="dpg-primary-action-mock">
-                    <Sparkles size={16} />
-                    <span>Customize &amp; Copy Prompt</span>
-                    <ArrowRight size={15} />
-                  </button>
-                  <span className="dpg-action-subhint">
-                    ✨ Custom variables &amp; party emblem specifications are merged automatically
-                  </span>
-                </div>
+                <img
+                  src="/images/guide/customize-copy-prompt-modal.png"
+                  alt="Customize & Copy Prompt Review Dialog Reference"
+                  className="dpg-shot-img"
+                  loading="lazy"
+                />
               </div>
             </div>
           </div>

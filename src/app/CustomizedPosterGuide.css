@@ -441,6 +441,22 @@
   background: #ffffff;
 }
 
+.dpg-shot-img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid var(--line, #e2e8f0);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  object-fit: contain;
+}
+
+[data-scheme="dark"] .dpg-shot-img {
+  border-color: #334155;
+  background: #0f172a;
+}
+
 /* Step 1 Mockup */
 .dpg-mock-card {
   background: #faf8fe;
