@@ -3452,9 +3452,6 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
                 </button>
               </div>
             )}
-
-            {/* Step-by-Step Procedure to Create Customized Post */}
-            <CustomizedPosterGuide />
           </div>
           <div className="detail-info">
             <div className="detail-meta-pill-row">
@@ -3852,6 +3849,9 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
             )}
           </div>
         </div>
+
+        {/* Step-by-Step Procedure to Create Customized Post (Stacked Down by Down) */}
+        <CustomizedPosterGuide />
       </main>
 
       {showCustomModal && (

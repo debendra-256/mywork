@@ -3,18 +3,18 @@
    Fully Responsive · Theme Adaptive · High Editorial Quality
    ========================================================================== */
 
-/* Remove sticky lock from cover wrapper when the guide is present */
-@media (min-width: 901px) {
-  .detail-cover-wrapper:has(.dpg-guide-container) {
-    position: relative !important;
-    top: auto !important;
-    align-self: stretch !important;
-  }
-}
-
 .dpg-guide-container {
-  margin-top: 24px;
+  margin-top: 56px;
+  margin-bottom: 60px;
   width: 100%;
+  max-width: 1100px;
+  margin-left: auto;
+  margin-right: auto;
+  background: var(--paper, #ffffff);
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 20px;
+  padding: 36px clamp(18px, 3.5vw, 44px);
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.04);
   color: var(--ink, #1c2025);
   font-family: inherit;
 }
