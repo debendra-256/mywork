@@ -145,17 +145,35 @@ export function CustomizedPosterGuide() {
               Choose the poster size according to where you plan to share your design.
             </p>
             <p>
-              For example:
+              ImgMojo provides ready-to-use aspect ratios and dimensions optimized for all major platforms:
             </p>
-            <ul className="dpg-feature-list">
+            <ul className="dpg-feature-list dpg-sizes-list">
               <li>
-                <strong>Portrait format</strong> – Birthday posters and social media designs.
+                <strong>Campaign / Event Poster (2:3 · 1000 × 1500):</strong> Ideal for political rally banners, campaign posters, flex printings and event announcements.
               </li>
               <li>
-                <strong>Square format</strong> – Instagram and Facebook posts.
+                <strong>Instagram Portrait (4:5 · 1080 × 1350):</strong> High-impact vertical format for Instagram and Facebook feeds.
               </li>
               <li>
-                <strong>Landscape format</strong> – Banners and wider displays.
+                <strong>Instagram Story / Reel (9:16 · 1080 × 1920):</strong> Fullscreen mobile vertical layout for WhatsApp Status, Instagram Stories, and Reels.
+              </li>
+              <li>
+                <strong>Instagram Post (Square 1:1 · 1080 × 1080):</strong> Standard square format for social media feeds and profile shares.
+              </li>
+              <li>
+                <strong>Facebook Post (1.91:1 · 1200 × 628) &amp; Cover (16:9 · 1200 × 630):</strong> Standard landscape dimensions for Facebook posts and page headers.
+              </li>
+              <li>
+                <strong>YouTube Thumbnail (16:9 · 1280 × 720):</strong> Widescreen format for YouTube video thumbnails and presentations.
+              </li>
+              <li>
+                <strong>Twitter / X Post (16:9 · 1200 × 675):</strong> Optimized landscape ratio for Twitter / X timeline posts.
+              </li>
+              <li>
+                <strong>LinkedIn Banner (4:1 · 1584 × 396):</strong> Ultra-wide panoramic header for professional LinkedIn profiles and company pages.
+              </li>
+              <li>
+                <strong>Wide Banner / Hoarding (21:9 · 2560 × 1080):</strong> Cinematic ultra-wide ratio for outdoor hoardings, street banners, and stage backdrops.
               </li>
             </ul>
             <p className="dpg-note-text">
@@ -170,27 +188,36 @@ export function CustomizedPosterGuide() {
                   <span className="dot yellow" />
                   <span className="dot green" />
                 </div>
-                <span className="dpg-shot-title">Example: Selecting Poster Dimensions</span>
+                <span className="dpg-shot-title">Example: Selecting Poster Size from Dropdown</span>
               </div>
               <div className="dpg-shot-content">
-                <div className="dpg-size-cards-row">
-                  <div className="dpg-size-card is-selected">
-                    <div className="dpg-size-ratio portrait" />
-                    <strong>Portrait (4:5 / 9:16)</strong>
-                    <small>Birthday posters &amp; Status</small>
-                    <span className="dpg-size-tag active">Selected</span>
+                <div className="dpg-dropdown-mockup">
+                  <div className="dpg-dropdown-label-row">
+                    <span className="dpg-dropdown-label">
+                      <Layers size={13} style={{ verticalAlign: 'middle', marginRight: 5 }} />
+                      Poster Size / Format
+                    </span>
+                    <span className="dpg-dropdown-tag">For Every Post</span>
                   </div>
-                  <div className="dpg-size-card">
-                    <div className="dpg-size-ratio square" />
-                    <strong>Square (1:1)</strong>
-                    <small>Instagram &amp; Facebook</small>
-                    <span className="dpg-size-tag">Choose</span>
+                  <div className="dpg-dropdown-select-box">
+                    <span>Campaign / Event Poster (2:3 · 1000 × 1500)</span>
+                    <span className="dpg-dropdown-arrow">▼</span>
                   </div>
-                  <div className="dpg-size-card">
-                    <div className="dpg-size-ratio landscape" />
-                    <strong>Landscape (16:9)</strong>
-                    <small>Banners &amp; Wide Displays</small>
-                    <span className="dpg-size-tag">Choose</span>
+                  <div className="dpg-dropdown-menu-list">
+                    <div className="dpg-menu-item default">-- Select Poster Size (Default) --</div>
+                    <div className="dpg-menu-item">Instagram Post (Square 1:1 · 1080 × 1080)</div>
+                    <div className="dpg-menu-item">Instagram Portrait (4:5 · 1080 × 1350)</div>
+                    <div className="dpg-menu-item">Instagram Story / Reel (9:16 · 1080 × 1920)</div>
+                    <div className="dpg-menu-item">Facebook Cover (16:9 · 1200 × 630)</div>
+                    <div className="dpg-menu-item">Facebook Post (1.91:1 · 1200 × 628)</div>
+                    <div className="dpg-menu-item">YouTube Thumbnail (16:9 · 1280 × 720)</div>
+                    <div className="dpg-menu-item">Twitter / X Post (16:9 · 1200 × 675)</div>
+                    <div className="dpg-menu-item">LinkedIn Banner (4:1 · 1584 × 396)</div>
+                    <div className="dpg-menu-item is-highlighted">
+                      <span>Campaign / Event Poster (2:3 · 1000 × 1500)</span>
+                      <span className="dpg-menu-check">✓</span>
+                    </div>
+                    <div className="dpg-menu-item">Wide Banner / Hoarding (21:9 · 2560 × 1080)</div>
                   </div>
                 </div>
               </div>
