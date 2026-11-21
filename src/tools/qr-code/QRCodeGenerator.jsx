@@ -1,5 +1,36 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Check, ChevronDown, Copy, Download, HelpCircle, Image, QrCode, Sparkles, Upload, X } from 'lucide-react'
+import {
+  AlertTriangle,
+  ArrowRight,
+  Award,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  Copy,
+  Download,
+  ExternalLink,
+  FolderArchive,
+  Globe,
+  HelpCircle,
+  Image,
+  Layers,
+  Lock,
+  MapPin,
+  Maximize2,
+  Palette,
+  Printer,
+  QrCode,
+  ShieldCheck,
+  Smartphone,
+  Sparkles,
+  Upload,
+  UserCheck,
+  Video,
+  Wifi,
+  X,
+  Zap,
+} from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { QRCodeCanvas, QRCodeSVG } from 'qrcode.react'
 import './QRCodeGenerator.css'
 
@@ -74,34 +105,54 @@ const TUTORIAL_STEPS = [
 
 const FAQ_ITEMS = [
   {
-    question: 'Is this online QR Code Generator completely free to use?',
+    question: 'Is this online QR Code Generator completely free for commercial use?',
     answer:
-      'Yes! ImgMojo QR Code Generator is 100% free for both personal and commercial use. There are no watermarks, scan limits, or sign-up requirements.',
+      'Yes, absolutely. ImgMojo QR Code Generator is 100% free for both personal and commercial use with zero hidden fees. There are no scan limits, no recurring subscription costs, and no watermarks placed on your generated QR codes. You are free to print them on business packaging, billboards, restaurant menus, book covers, or marketing brochures worldwide.',
   },
   {
-    question: 'Do the QR codes created here ever expire?',
+    question: 'Do the static QR codes created here ever expire?',
     answer:
-      'No. All QR codes generated with this tool are static QR codes that encode your URL, Wi-Fi, Contact, or Location data directly into the pattern. They never expire and work forever as long as your destination link remains active.',
+      'No. All QR codes generated on ImgMojo are permanent, static QR codes. The destination data (URL, Wi-Fi configuration, vCard contact information, or GPS coordinates) is encoded directly into the black-and-white data matrix itself rather than redirecting through an intermediary server. As long as your destination link or Wi-Fi network remains active, your QR code will work indefinitely without expiration.',
   },
   {
-    question: 'Can I customize my QR code with a company logo and brand colors?',
+    question: 'What is the difference between static and dynamic QR codes?',
     answer:
-      'Absolutely. In Step 3 (Customize), you can pick any foreground and background hex colors, choose from 21+ decorative frames, and upload your custom PNG, JPG, or SVG logo. High error correction (Level H) keeps your code scannable.',
+      'Static QR codes directly embed your payload data into the physical barcode pattern, meaning they function permanently without relying on any external server or subscription, but their destination URL cannot be edited once printed. Dynamic QR codes route through an external short redirect link hosted on a third-party server, allowing the destination URL to be updated later, but they often incur monthly recurring fees and break if the hosting company shuts down or cancels your plan.',
   },
   {
-    question: 'Which format should I download: PNG, SVG, or JPG?',
+    question: 'Can I customize my QR code with our company logo and brand colors?',
     answer:
-      'Use PNG for websites, social media, emails, and digital documents. Choose SVG for professional printing (flyers, billboards, packaging, business cards) because vector graphics scale to any size without losing sharpness. Use JPG when a compact file with a solid background is needed.',
+      'Yes! You can choose custom foreground and background hex colors, select from 21+ designer "Scan Me" frames, and upload your custom PNG, JPG, or SVG brand logo. ImgMojo automatically excavates the center area and applies a clean white protective boundary around your logo, ensuring that optical timing tracks and alignment modules remain intact.',
   },
   {
-    question: 'Why should I keep "Add Margin" enabled on my QR code?',
+    question: 'Why won\'t my smartphone camera scan my printed QR code?',
     answer:
-      'The margin (also known as the "quiet zone") creates a clean border around the QR modules so smartphone cameras and barcode scanners can immediately distinguish the QR code from surrounding text or graphics.',
+      'The most frequent causes of scan failures are: (1) Insufficient color contrast—such as light gray or yellow modules printed on white paper; (2) Inverted colors—many default barcode scanners cannot detect light modules on a dark background; (3) Missing quiet zone margin—crowding artwork or text directly against the barcode edge prevents sensors from finding the corner position squares; (4) Excessive URL length without sufficient error correction; and (5) Printing at too small a physical dimension for the intended scanning distance.',
   },
   {
-    question: 'How do I make sure my custom-colored QR code scans reliably?',
+    question: 'Which download format should I choose: PNG, SVG, or JPG?',
     answer:
-      'Always maintain strong contrast between the Foreground Color and Background Color—typically a darker foreground color on a lighter background—and test your QR code with your phone camera before printing in bulk.',
+      'Choose SVG (Scalable Vector Graphics) for commercial printing, flyers, vinyl vehicle wraps, billboards, and apparel. SVG is a mathematical vector format that scales infinitely without pixelation or blurriness. Choose PNG for digital displays, email newsletters, websites, and mobile apps where crisp raster transparency is preferred. Choose JPG when you need a lightweight solid-background file for word processing documents.',
+  },
+  {
+    question: 'How does the Wi-Fi QR code work, and is my password kept private?',
+    answer:
+      'Wi-Fi QR codes utilize the universal WIFI standard (WIFI:S:NetworkName;T:WPA;P:Password;;). When guests point their camera at the code, iOS and Android automatically detect the credentials and display a native "Join Network" prompt—eliminating manual password typing. Because ImgMojo operates 100% client-side in your local web browser, your Wi-Fi name and password are never uploaded, transmitted, or stored on any server.',
+  },
+  {
+    question: 'What is QR code error correction and which level should I select?',
+    answer:
+      'QR codes utilize Reed-Solomon error correction algorithms to reconstruct missing or damaged data cells. Four levels exist: Level L (recovers up to 7% damage), Level M (recovers up to 15%), Level Q (recovers up to 25%), and Level H (recovers up to 30%). ImgMojo automatically enables Level H whenever you upload a custom logo or choose decorative framing, ensuring up to 30% of the center can be covered while maintaining 100% scan integrity.',
+  },
+  {
+    question: 'Can I edit the destination link after my QR code has already been printed?',
+    answer:
+      'Because static QR codes encode data directly into their physical pixel geometry, the printed pattern cannot be altered once printed on paper or merchandise. However, if your printed QR code points to your own domain URL (e.g. yourwebsite.com/menu), you can easily set up a 301 server redirect or update your website page content at any time without needing to reprint the physical barcode.',
+  },
+  {
+    question: 'Are my personal details and generated QR codes private and secure on ImgMojo?',
+    answer:
+      'Yes, 100% private. ImgMojo generates all QR codes completely on your client machine using in-browser canvas and SVG rendering. None of your entered URLs, Wi-Fi credentials, vCard contact information, or uploaded brand logos are sent to external servers or logged in databases. Your data never leaves your device.',
   },
 ]
 
@@ -1503,6 +1554,649 @@ export default function QRCodeGenerator() {
           </ol>
         </section>
 
+        {/* ================================================================
+            1. QR CODE GENERATOR FEATURES & TECHNICAL SPECIFICATIONS
+            ================================================================ */}
+        <section className="qr-section qr-features-section" aria-labelledby="qr-features-heading">
+          <div className="qr-section-header">
+            <span className="qr-section-eyebrow">
+              <Award size={14} />
+              <span>ENTERPRISE-GRADE CAPABILITIES</span>
+            </span>
+            <h2 id="qr-features-heading" className="qr-section-title">
+              QR Code Generator Features &amp; Technical Capabilities
+            </h2>
+            <p className="qr-section-subtitle">
+              ImgMojo combines real-time browser generation with high-res vector rendering, complete color freedom, and Reed-Solomon error correction.
+            </p>
+          </div>
+
+          {/* Sub-grid 1: Supported QR Code Types */}
+          <div className="qr-feature-category">
+            <h3 className="qr-feature-subheading">
+              <Globe size={18} className="qr-feature-subheading-icon" />
+              <span>Supported QR Code Types &amp; Data Payloads</span>
+            </h3>
+            <div className="qr-features-grid">
+              <div className="qr-feature-card">
+                <div className="qr-feature-card-head">
+                  <span className="qr-feature-icon-badge">
+                    <Globe size={18} />
+                  </span>
+                  <span className="qr-feature-type-tag">URL / Hyperlink</span>
+                </div>
+                <h4 className="qr-feature-card-title">Websites &amp; Social Links</h4>
+                <p className="qr-feature-card-desc">
+                  Direct users straight to landing pages, YouTube channels, Instagram handles, Shopify stores, digital portfolios, or Google Forms. Compatible with standard HTTPS and query parameters.
+                </p>
+                <div className="qr-feature-badge-row">
+                  <span>Standard HTTPS</span>
+                  <span>UTM Tracking Ready</span>
+                  <span>Instant Browser Launch</span>
+                </div>
+              </div>
+
+              <div className="qr-feature-card">
+                <div className="qr-feature-card-head">
+                  <span className="qr-feature-icon-badge">
+                    <Wifi size={18} />
+                  </span>
+                  <span className="qr-feature-type-tag">WIFI Protocol</span>
+                </div>
+                <h4 className="qr-feature-card-title">Instant Wi-Fi Connection</h4>
+                <p className="qr-feature-card-desc">
+                  Encodes your network SSID, security encryption (WPA/WPA2, WEP, or Open), and password. Guests scan to connect to your Wi-Fi network with zero manual typing on both iOS and Android.
+                </p>
+                <div className="qr-feature-badge-row">
+                  <span>WPA/WPA2 Support</span>
+                  <span>100% Client-Side Private</span>
+                  <span>One-Tap Connect</span>
+                </div>
+              </div>
+
+              <div className="qr-feature-card">
+                <div className="qr-feature-card-head">
+                  <span className="qr-feature-icon-badge">
+                    <UserCheck size={18} />
+                  </span>
+                  <span className="qr-feature-type-tag">vCard / MeCard</span>
+                </div>
+                <h4 className="qr-feature-card-title">Digital Business Cards (vCard)</h4>
+                <p className="qr-feature-card-desc">
+                  Package full name, phone numbers, email address, corporate designation, company name, and website. Scanners can save contact info directly into their address book with a single tap.
+                </p>
+                <div className="qr-feature-badge-row">
+                  <span>Contact Auto-Save</span>
+                  <span>Multi-Field Storage</span>
+                  <span>Universal VCF Standard</span>
+                </div>
+              </div>
+
+              <div className="qr-feature-card">
+                <div className="qr-feature-card-head">
+                  <span className="qr-feature-icon-badge">
+                    <MapPin size={18} />
+                  </span>
+                  <span className="qr-feature-type-tag">Geo Coordinates</span>
+                </div>
+                <h4 className="qr-feature-card-title">Google Maps &amp; Geolocation</h4>
+                <p className="qr-feature-card-desc">
+                  Encode exact GPS latitude and longitude coordinates or Google Maps venue links. Ideal for physical store locators, wedding halls, event summits, and real estate properties.
+                </p>
+                <div className="qr-feature-badge-row">
+                  <span>GPS Coordinates</span>
+                  <span>Apple &amp; Google Maps</span>
+                  <span>Turn-by-Turn Ready</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Sub-grid 2: Advanced Design & Customization */}
+          <div className="qr-feature-category">
+            <h3 className="qr-feature-subheading">
+              <Palette size={18} className="qr-feature-subheading-icon" />
+              <span>Visual Customization &amp; Export Features</span>
+            </h3>
+            <div className="qr-features-grid">
+              <div className="qr-feature-card">
+                <div className="qr-feature-card-head">
+                  <span className="qr-feature-icon-badge">
+                    <Palette size={18} />
+                  </span>
+                  <span className="qr-feature-type-tag">Branding</span>
+                </div>
+                <h4 className="qr-feature-card-title">Custom Brand Colors</h4>
+                <p className="qr-feature-card-desc">
+                  Pick any custom foreground and background hex color to match your brand palette. Includes high-contrast color presets optimized for first-pass scanning.
+                </p>
+              </div>
+
+              <div className="qr-feature-card">
+                <div className="qr-feature-card-head">
+                  <span className="qr-feature-icon-badge">
+                    <Image size={18} />
+                  </span>
+                  <span className="qr-feature-type-tag">Logo Center</span>
+                </div>
+                <h4 className="qr-feature-card-title">Company Logo Shield</h4>
+                <p className="qr-feature-card-desc">
+                  Upload your PNG or SVG logo in the center. ImgMojo automatically excavates the center cells with a clean white safety shield to maintain scannability.
+                </p>
+              </div>
+
+              <div className="qr-feature-card">
+                <div className="qr-feature-card-head">
+                  <span className="qr-feature-icon-badge">
+                    <Layers size={18} />
+                  </span>
+                  <span className="qr-feature-type-tag">Frames</span>
+                </div>
+                <h4 className="qr-feature-card-title">21+ Designer Call-to-Action Frames</h4>
+                <p className="qr-feature-card-desc">
+                  Add eye-catching "SCAN ME", "VISIT WEBSITE", or "CONNECT WI-FI" frames with matching colored ribbon accents that drive up to 40% higher scan engagement.
+                </p>
+              </div>
+
+              <div className="qr-feature-card">
+                <div className="qr-feature-card-head">
+                  <span className="qr-feature-icon-badge">
+                    <ShieldCheck size={18} />
+                  </span>
+                  <span className="qr-feature-type-tag">Error Correction</span>
+                </div>
+                <h4 className="qr-feature-card-title">Reed-Solomon Level H (30%)</h4>
+                <p className="qr-feature-card-desc">
+                  Enterprise-grade mathematical redundancy ensures your QR code remains 100% scannable even if up to 30% of the surface is covered, smudged, or scratched.
+                </p>
+              </div>
+
+              <div className="qr-feature-card">
+                <div className="qr-feature-card-head">
+                  <span className="qr-feature-icon-badge">
+                    <Printer size={18} />
+                  </span>
+                  <span className="qr-feature-type-tag">Vector SVG</span>
+                </div>
+                <h4 className="qr-feature-card-title">Scalable Vector &amp; High-Res PNG</h4>
+                <p className="qr-feature-card-desc">
+                  Download crisp PNG raster files up to 2048px or download mathematically infinite SVG vector files ready for commercial billboard and flex printing.
+                </p>
+              </div>
+
+              <div className="qr-feature-card">
+                <div className="qr-feature-card-head">
+                  <span className="qr-feature-icon-badge">
+                    <Lock size={18} />
+                  </span>
+                  <span className="qr-feature-type-tag">Security</span>
+                </div>
+                <h4 className="qr-feature-card-title">100% Client-Side Privacy</h4>
+                <p className="qr-feature-card-desc">
+                  Your URLs, credentials, and uploaded logos are processed in your local browser sandbox. Zero data is uploaded to cloud servers or stored in remote databases.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ================================================================
+            2. HOW TO GENERATE A QR CODE: IN-DEPTH STEP-BY-STEP
+            ================================================================ */}
+        <section className="qr-section qr-steps-deep-section" aria-labelledby="qr-walkthrough-heading">
+          <div className="qr-section-header">
+            <span className="qr-section-eyebrow">
+              <Sparkles size={14} />
+              <span>STEP-BY-STEP WALKTHROUGH</span>
+            </span>
+            <h2 id="qr-walkthrough-heading" className="qr-section-title">
+              How to Generate a Custom QR Code Online
+            </h2>
+            <p className="qr-section-subtitle">
+              Follow this comprehensive walkthrough with real visual interface previews to create, customize, and export your QR code.
+            </p>
+          </div>
+
+          <div className="qr-steps-deep-list">
+            {/* Step 1 */}
+            <article className="qr-step-deep-card">
+              <div className="qr-step-deep-header">
+                <span className="qr-step-num-badge">01</span>
+                <div>
+                  <h3 className="qr-step-deep-title">Select Your Desired QR Code Type</h3>
+                  <p className="qr-step-deep-lead">
+                    Choose what action you want to trigger when someone scans your code: open a website, connect to Wi-Fi, save a contact card, or open Google Maps.
+                  </p>
+                </div>
+              </div>
+              <p className="qr-step-deep-text">
+                Click any of the four category pills at the top of the generator. Selecting <strong>Website (URL)</strong> is perfect for articles, portfolios, and store products; <strong>Wi-Fi</strong> creates an instant zero-password login card for guests; <strong>Contact (vCard)</strong> stores personal contact details; and <strong>Location</strong> navigates users to your physical venue.
+              </p>
+              {/* Visual Mockup 1 */}
+              <div className="qr-mock-window" aria-label="Step 1 interface preview">
+                <div className="qr-mock-titlebar">
+                  <div className="qr-mock-dots">
+                    <span className="dot red" />
+                    <span className="dot yellow" />
+                    <span className="dot green" />
+                  </div>
+                  <span className="qr-mock-title">ImgMojo · Step 1: Select QR Code Type</span>
+                </div>
+                <div className="qr-mock-body">
+                  <div className="qr-mock-types-bar">
+                    <span className="qr-mock-tab is-active">
+                      <Globe size={13} /> Website (URL) <Check size={11} className="qr-mock-check" />
+                    </span>
+                    <span className="qr-mock-tab">
+                      <Wifi size={13} /> Wi-Fi
+                    </span>
+                    <span className="qr-mock-tab">
+                      <UserCheck size={13} /> Contact (vCard)
+                    </span>
+                    <span className="qr-mock-tab">
+                      <MapPin size={13} /> Location
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            {/* Step 2 */}
+            <article className="qr-step-deep-card">
+              <div className="qr-step-deep-header">
+                <span className="qr-step-num-badge">02</span>
+                <div>
+                  <h3 className="qr-step-deep-title">Enter Destination Content &amp; Payload</h3>
+                  <p className="qr-step-deep-lead">
+                    Paste your target website link, network credentials, or vCard details into the dynamic input field.
+                  </p>
+                </div>
+              </div>
+              <p className="qr-step-deep-text">
+                As you type or paste your content, ImgMojo's client-side generator encodes the data and refreshes the QR code matrix in real time on the right-hand preview panel. For URLs, make sure to include the full protocol (e.g. <code>https://yourdomain.com</code>) to ensure all smartphone camera operating systems launch your link automatically.
+              </p>
+              {/* Visual Mockup 2 */}
+              <div className="qr-mock-window" aria-label="Step 2 interface preview">
+                <div className="qr-mock-titlebar">
+                  <div className="qr-mock-dots">
+                    <span className="dot red" />
+                    <span className="dot yellow" />
+                    <span className="dot green" />
+                  </div>
+                  <span className="qr-mock-title">ImgMojo · Step 2: Content Input with Real-Time Matrix</span>
+                </div>
+                <div className="qr-mock-body">
+                  <div className="qr-mock-input-row">
+                    <div className="qr-mock-field">
+                      <span className="qr-mock-label">Website URL</span>
+                      <div className="qr-mock-input-box">
+                        <Globe size={13} className="qr-mock-input-icon" />
+                        <span>https://www.imgmojo.com/qr-code</span>
+                      </div>
+                    </div>
+                    <span className="qr-mock-live-badge">✓ Real-Time Rendering Active</span>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            {/* Step 3 */}
+            <article className="qr-step-deep-card">
+              <div className="qr-step-deep-header">
+                <span className="qr-step-num-badge">03</span>
+                <div>
+                  <h3 className="qr-step-deep-title">Personalize Colors &amp; Choose a Frame</h3>
+                  <p className="qr-step-deep-lead">
+                    Transform a generic black-and-white grid into an eye-catching branded marketing asset.
+                  </p>
+                </div>
+              </div>
+              <p className="qr-step-deep-text">
+                Use the color pickers to select your brand's <strong>Foreground Color</strong> and <strong>Background Color</strong>. Choose from 21+ stylish caller frames such as <em>Classic</em>, <em>Blue Ribbon</em>, <em>Orange</em>, or <em>Tag</em> to clearly display a "SCAN ME" call to action that guides your audience. Ensure strong contrast (e.g., deep green or dark navy on white) to guarantee quick scanning.
+              </p>
+              {/* Visual Mockup 3 */}
+              <div className="qr-mock-window" aria-label="Step 3 interface preview">
+                <div className="qr-mock-titlebar">
+                  <div className="qr-mock-dots">
+                    <span className="dot red" />
+                    <span className="dot yellow" />
+                    <span className="dot green" />
+                  </div>
+                  <span className="qr-mock-title">ImgMojo · Step 3: Colors &amp; Decorative Frame Selection</span>
+                </div>
+                <div className="qr-mock-body">
+                  <div className="qr-mock-custom-grid">
+                    <div className="qr-mock-chip-item">
+                      <span className="qr-mock-label">Foreground</span>
+                      <div className="qr-mock-color-pill">
+                        <span className="color-swatch-circle" style={{ background: '#0a9f62' }} />
+                        <span>#0A9F62</span>
+                      </div>
+                    </div>
+                    <div className="qr-mock-chip-item">
+                      <span className="qr-mock-label">Background</span>
+                      <div className="qr-mock-color-pill">
+                        <span className="color-swatch-circle" style={{ background: '#ffffff', border: '1px solid #ccc' }} />
+                        <span>#FFFFFF</span>
+                      </div>
+                    </div>
+                    <div className="qr-mock-chip-item">
+                      <span className="qr-mock-label">QR Style Frame</span>
+                      <div className="qr-mock-select-pill">
+                        <span>Scan Me Ribbon (Blue band)</span>
+                        <span>▼</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            {/* Step 4 */}
+            <article className="qr-step-deep-card">
+              <div className="qr-step-deep-header">
+                <span className="qr-step-num-badge">04</span>
+                <div>
+                  <h3 className="qr-step-deep-title">Upload Brand Logo &amp; Maintain Error Recovery</h3>
+                  <p className="qr-step-deep-lead">
+                    Embed your company icon in the center without obscuring essential data cells.
+                  </p>
+                </div>
+              </div>
+              <p className="qr-step-deep-text">
+                Click <strong>Upload Logo</strong> to place your PNG, JPG, or SVG emblem into the center. ImgMojo automatically activates Level H (30%) Reed-Solomon error correction and excavates a protective safety margin around the logo so camera algorithms read the finder patterns without interference.
+              </p>
+              {/* Visual Mockup 4 */}
+              <div className="qr-mock-window" aria-label="Step 4 interface preview">
+                <div className="qr-mock-titlebar">
+                  <div className="qr-mock-dots">
+                    <span className="dot red" />
+                    <span className="dot yellow" />
+                    <span className="dot green" />
+                  </div>
+                  <span className="qr-mock-title">ImgMojo · Step 4: Center Brand Logo Shield &amp; Error Recovery</span>
+                </div>
+                <div className="qr-mock-body">
+                  <div className="qr-mock-logo-preview-row">
+                    <div className="qr-mock-logo-box">
+                      <Image size={18} />
+                      <span>Company_Logo.png</span>
+                    </div>
+                    <div className="qr-mock-badge-status">
+                      <ShieldCheck size={14} />
+                      <span>Level H Error Correction Active (30% Redundancy)</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            {/* Step 5 */}
+            <article className="qr-step-deep-card">
+              <div className="qr-step-deep-header">
+                <span className="qr-step-num-badge">05</span>
+                <div>
+                  <h3 className="qr-step-deep-title">Test Scan &amp; Download in PNG or SVG</h3>
+                  <p className="qr-step-deep-lead">
+                    Perform a pre-flight smartphone test, then download print-ready files or copy directly to clipboard.
+                  </p>
+                </div>
+              </div>
+              <p className="qr-step-deep-text">
+                Point your phone's camera at the live preview right on your monitor to verify that the destination opens instantly. Next, click <strong>Download PNG</strong> for digital marketing, email signatures, and web pages, or click <strong>Download SVG</strong> for commercial printing, billboards, merchandise, and vehicle wraps.
+              </p>
+              {/* Visual Mockup 5 */}
+              <div className="qr-mock-window" aria-label="Step 5 interface preview">
+                <div className="qr-mock-titlebar">
+                  <div className="qr-mock-dots">
+                    <span className="dot red" />
+                    <span className="dot yellow" />
+                    <span className="dot green" />
+                  </div>
+                  <span className="qr-mock-title">ImgMojo · Step 5: Verification &amp; One-Click Export</span>
+                </div>
+                <div className="qr-mock-body">
+                  <div className="qr-mock-actions-bar">
+                    <button type="button" className="qr-mock-btn primary">
+                      <Download size={13} /> Download PNG
+                    </button>
+                    <button type="button" className="qr-mock-btn secondary">
+                      <Download size={13} /> Download SVG (Vector)
+                    </button>
+                    <button type="button" className="qr-mock-btn ghost">
+                      <Copy size={13} /> Copy QR Code
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        {/* ================================================================
+            3. QR CODE USE CASES FOR INDIVIDUALS & BUSINESSES
+            ================================================================ */}
+        <section className="qr-section qr-use-cases-section" aria-labelledby="qr-use-cases-heading">
+          <div className="qr-section-header">
+            <span className="qr-section-eyebrow">
+              <Layers size={14} />
+              <span>REAL-WORLD APPLICATIONS</span>
+            </span>
+            <h2 id="qr-use-cases-heading" className="qr-section-title">
+              Practical QR Code Use Cases for Individuals &amp; Businesses
+            </h2>
+            <p className="qr-section-subtitle">
+              Discover proven ways leading brands, creators, and business professionals leverage custom QR codes:
+            </p>
+          </div>
+
+          <div className="qr-use-cases-grid">
+            <div className="qr-use-case-card">
+              <div className="qr-use-case-icon">
+                <Globe size={22} />
+              </div>
+              <h3 className="qr-use-case-title">Restaurants &amp; Hospitality</h3>
+              <p className="qr-use-case-text">
+                Replace bulky paper menus with hygienic contactless digital menus, enable tabletop mobile ordering, facilitate split billing, and prompt satisfied diners to leave 5-star Google reviews.
+              </p>
+              <ul className="qr-use-case-list">
+                <li>Instant PDF menu browsing</li>
+                <li>Table ordering &amp; contactless payment</li>
+                <li>Customer feedback collection</li>
+              </ul>
+            </div>
+
+            <div className="qr-use-case-card">
+              <div className="qr-use-case-icon">
+                <UserCheck size={22} />
+              </div>
+              <h3 className="qr-use-case-title">Business Cards &amp; Networking</h3>
+              <p className="qr-use-case-text">
+                Print a vCard QR code on paper business cards, conference badges, resume headers, and portfolio handouts so prospective clients can save your contact details with a single tap.
+              </p>
+              <ul className="qr-use-case-list">
+                <li>Paperless contact exchange</li>
+                <li>LinkedIn profile &amp; portfolio links</li>
+                <li>Conference name tags &amp; lanyards</li>
+              </ul>
+            </div>
+
+            <div className="qr-use-case-card">
+              <div className="qr-use-case-icon">
+                <FolderArchive size={22} />
+              </div>
+              <h3 className="qr-use-case-title">Product Packaging &amp; Retail</h3>
+              <p className="qr-use-case-text">
+                Connect physical merchandise to digital resources: link consumers to interactive user manuals, ingredient disclosures, warranty registration forms, and anti-counterfeiting authenticity pages.
+              </p>
+              <ul className="qr-use-case-list">
+                <li>Quick warranty registration</li>
+                <li>Digital user manuals &amp; setup videos</li>
+                <li>Batch tracing &amp; authenticity verification</li>
+              </ul>
+            </div>
+
+            <div className="qr-use-case-card">
+              <div className="qr-use-case-icon">
+                <Zap size={22} />
+              </div>
+              <h3 className="qr-use-case-title">Event Ticketing &amp; Summits</h3>
+              <p className="qr-use-case-text">
+                Streamline venue gate admissions with mobile e-tickets, share real-time conference speaker schedules, distribute digital presentation slide decks, and enable exhibitor booth badge scanning.
+              </p>
+              <ul className="qr-use-case-list">
+                <li>Rapid contactless gate check-in</li>
+                <li>Interactive session agendas</li>
+                <li>Digital keynote slides distribution</li>
+              </ul>
+            </div>
+
+            <div className="qr-use-case-card">
+              <div className="qr-use-case-icon">
+                <MapPin size={22} />
+              </div>
+              <h3 className="qr-use-case-title">Real Estate &amp; Physical Storefronts</h3>
+              <p className="qr-use-case-text">
+                Feature QR codes on "For Sale" yard signs, window decals, and property brochures linking prospective buyers directly to 3D virtual home walkthroughs, floor plans, and agent booking calendars.
+              </p>
+              <ul className="qr-use-case-list">
+                <li>3D virtual property walkthroughs</li>
+                <li>Interactive floor plans &amp; pricing</li>
+                <li>Instant agent viewing bookings</li>
+              </ul>
+            </div>
+
+            <div className="qr-use-case-card">
+              <div className="qr-use-case-icon">
+                <Award size={22} />
+              </div>
+              <h3 className="qr-use-case-title">Education &amp; Academic Campuses</h3>
+              <p className="qr-use-case-text">
+                Educators add QR codes to classroom syllabus sheets, homework worksheets, laboratory safety manuals, and library book covers, connecting students directly to video lectures and reference materials.
+              </p>
+              <ul className="qr-use-case-list">
+                <li>Direct links to supplementary lectures</li>
+                <li>Digital assignment submissions</li>
+                <li>Library book reserve bookmarks</li>
+              </ul>
+            </div>
+
+            <div className="qr-use-case-card">
+              <div className="qr-use-case-icon">
+                <Printer size={22} />
+              </div>
+              <h3 className="qr-use-case-title">Billboards, Mailers &amp; Print Ads</h3>
+              <p className="qr-use-case-text">
+                Bridge print advertising with digital conversion funnels. Print high-resolution vector QR codes on direct mail postcards, outdoor billboards, transit bus stops, and magazine advertisements.
+              </p>
+              <ul className="qr-use-case-list">
+                <li>Trackable campaign analytics &amp; UTMs</li>
+                <li>Instant promotional discount redemption</li>
+                <li>Measurable print media return on ad spend</li>
+              </ul>
+            </div>
+
+            <div className="qr-use-case-card">
+              <div className="qr-use-case-icon">
+                <Wifi size={22} />
+              </div>
+              <h3 className="qr-use-case-title">Secure Guest Wi-Fi Access</h3>
+              <p className="qr-use-case-text">
+                Coffee shops, coworking spaces, boutique hotels, and corporate meeting rooms display tabletop QR plaques allowing visitors to join encrypted Wi-Fi without mistyping complex passwords.
+              </p>
+              <ul className="qr-use-case-list">
+                <li>Zero-typing guest onboarding</li>
+                <li>Eliminates password exposure</li>
+                <li>Works natively on iOS &amp; Android</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        {/* ================================================================
+            4. QR CODE TIPS AND BEST PRACTICES
+            ================================================================ */}
+        <section className="qr-section qr-best-practices-section" aria-labelledby="qr-best-practices-heading">
+          <div className="qr-section-header">
+            <span className="qr-section-eyebrow">
+              <ShieldCheck size={14} />
+              <span>RELIABILITY &amp; PRINT COMPLIANCE</span>
+            </span>
+            <h2 id="qr-best-practices-heading" className="qr-section-title">
+              QR Code Tips &amp; Best Practices: Sizing, Scanning &amp; Security
+            </h2>
+            <p className="qr-section-subtitle">
+              Follow these industry standards to ensure maximum scannability and eliminate costly reprint errors:
+            </p>
+          </div>
+
+          <div className="qr-practices-grid">
+            <div className="qr-practice-card">
+              <div className="qr-practice-card-head">
+                <CheckCircle2 size={18} className="qr-practice-icon success" />
+                <h4>Maintain Strong Color Contrast</h4>
+              </div>
+              <p>
+                Always print a dark foreground (black, dark navy, deep forest green) on a crisp, light background (pure white or off-white). <strong>Never invert the colors</strong> (light code on dark canvas)—many older Android and budget barcode sensors rely on dark data cells to locate tracking anchors.
+              </p>
+            </div>
+
+            <div className="qr-practice-card">
+              <div className="qr-practice-card-head">
+                <CheckCircle2 size={18} className="qr-practice-icon success" />
+                <h4>Calculate Sizing via the 1:10 Distance Rule</h4>
+              </div>
+              <p>
+                As a standard physical sizing formula, your QR code's width should be at least 1/10th of the intended scanning distance:
+              </p>
+              <div className="qr-math-callout">
+                <code>Physical Width = Scanning Distance ÷ 10</code>
+                <span>Example: At 1 meter scan distance, print at least 10 × 10 cm (4 × 4 in). Close-up cards should never be smaller than 2 × 2 cm (0.8 × 0.8 in).</span>
+              </div>
+            </div>
+
+            <div className="qr-practice-card">
+              <div className="qr-practice-card-head">
+                <CheckCircle2 size={18} className="qr-practice-icon success" />
+                <h4>Select Error Correction Level H for Logos</h4>
+              </div>
+              <p>
+                QR codes use Reed-Solomon math to reconstruct obscured cells. If you embed a company logo in the center or print on outdoor banners prone to dust and scratches, always choose <strong>Level H (30%)</strong> to preserve full scannability.
+              </p>
+            </div>
+
+            <div className="qr-practice-card">
+              <div className="qr-practice-card-head">
+                <CheckCircle2 size={18} className="qr-practice-icon success" />
+                <h4>Respect the 4-Module "Quiet Zone" Margin</h4>
+              </div>
+              <p>
+                Every valid QR code requires an unprinted safety border (the "quiet zone") equal to at least 4 module blocks. Crowding decorative borders, packaging seams, or typography against the edge will prevent camera optical sensors from distinguishing the finder squares.
+              </p>
+            </div>
+
+            <div className="qr-practice-card">
+              <div className="qr-practice-card-head">
+                <CheckCircle2 size={18} className="qr-practice-icon success" />
+                <h4>Pre-Print Multi-Device Camera Testing</h4>
+              </div>
+              <p>
+                Never authorize a commercial print production run without performing a live camera test. Print a sample on standard office paper and test scan using both an Apple iPhone (iOS Camera app) and an Android phone (Google Lens / Samsung Camera) under varied lighting conditions.
+              </p>
+            </div>
+
+            <div className="qr-practice-card">
+              <div className="qr-practice-card-head">
+                <AlertTriangle size={18} className="qr-practice-icon warning" />
+                <h4>Security &amp; QR Phishing ("QRishing") Awareness</h4>
+              </div>
+              <p>
+                Always encode secure HTTPS links with valid SSL certificates. When deploying physical QR signage in publicly accessible locations (e.g. parking meters or kiosks), periodically inspect signs to ensure malicious actors have not pasted counterfeit sticker overlays over your genuine codes.
+              </p>
+            </div>
+          </div>
+        </section>
+
         {/* FAQ Section */}
         <section className="qr-faq-section" aria-labelledby="qr-faq-heading">
           <div className="qr-faq-layout">
@@ -1576,6 +2270,130 @@ export default function QRCodeGenerator() {
                 )
               })}
             </div>
+          </div>
+        </section>
+
+        {/* ================================================================
+            6. RELATED IMGMOJO TOOLS
+            ================================================================ */}
+        <section className="qr-section qr-tools-nav-section" aria-labelledby="qr-related-tools-heading">
+          <div className="qr-section-header">
+            <span className="qr-section-eyebrow">
+              <Sparkles size={14} />
+              <span>EXPAND YOUR CREATIVE WORKFLOW</span>
+            </span>
+            <h2 id="qr-related-tools-heading" className="qr-section-title">
+              Explore Complementary ImgMojo Media Tools
+            </h2>
+            <p className="qr-section-subtitle">
+              Fast, privacy-focused browser utilities designed for creators, marketers, and developers with zero software installs:
+            </p>
+          </div>
+
+          <div className="qr-tools-nav-grid">
+            <Link to="/Recorder" className="qr-tool-nav-card">
+              <div className="qr-tool-nav-icon">
+                <Video size={22} />
+              </div>
+              <div className="qr-tool-nav-info">
+                <h3>Screen Recorder</h3>
+                <p>Record your full screen, browser tabs, or webcam with audio directly in your browser. 100% private with no watermark.</p>
+                <span className="qr-tool-nav-link">
+                  Record Screen <ArrowRight size={13} />
+                </span>
+              </div>
+            </Link>
+
+            <Link to="/compress-image" className="qr-tool-nav-card">
+              <div className="qr-tool-nav-icon">
+                <FolderArchive size={22} />
+              </div>
+              <div className="qr-tool-nav-info">
+                <h3>Image Compressor</h3>
+                <p>Reduce JPG, PNG, and WebP file sizes by up to 85% while preserving crisp visual detail.</p>
+                <span className="qr-tool-nav-link">
+                  Compress Images <ArrowRight size={13} />
+                </span>
+              </div>
+            </Link>
+
+            <Link to="/image-resizer" className="qr-tool-nav-card">
+              <div className="qr-tool-nav-icon">
+                <Maximize2 size={22} />
+              </div>
+              <div className="qr-tool-nav-info">
+                <h3>Image Resizer</h3>
+                <p>Scale photos interactively using 8 drag handles or exact social media pixel presets.</p>
+                <span className="qr-tool-nav-link">
+                  Resize Photos <ArrowRight size={13} />
+                </span>
+              </div>
+            </Link>
+
+            <Link to="/image-converter" className="qr-tool-nav-card">
+              <div className="qr-tool-nav-icon">
+                <Layers size={22} />
+              </div>
+              <div className="qr-tool-nav-info">
+                <h3>Image Converter</h3>
+                <p>Convert batches of images between JPG, PNG, WebP, AVIF, and GIF with client-side processing.</p>
+                <span className="qr-tool-nav-link">
+                  Convert Images <ArrowRight size={13} />
+                </span>
+              </div>
+            </Link>
+
+            <Link to="/passport-photo" className="qr-tool-nav-card">
+              <div className="qr-tool-nav-icon">
+                <UserCheck size={22} />
+              </div>
+              <div className="qr-tool-nav-info">
+                <h3>Passport Photo Maker</h3>
+                <p>Create official biometric passport and visa headshots with standard country dimensions and automatic background checks.</p>
+                <span className="qr-tool-nav-link">
+                  Create Passport Photo <ArrowRight size={13} />
+                </span>
+              </div>
+            </Link>
+
+            <Link to="/watermark-remover" className="qr-tool-nav-card">
+              <div className="qr-tool-nav-icon">
+                <ShieldCheck size={22} />
+              </div>
+              <div className="qr-tool-nav-info">
+                <h3>Watermark Remover</h3>
+                <p>Erase timestamps, text overlays, and unwanted logos from photos seamlessly with in-browser AI inpainting.</p>
+                <span className="qr-tool-nav-link">
+                  Remove Watermarks <ArrowRight size={13} />
+                </span>
+              </div>
+            </Link>
+
+            <Link to="/collage" className="qr-tool-nav-card">
+              <div className="qr-tool-nav-icon">
+                <Sparkles size={22} />
+              </div>
+              <div className="qr-tool-nav-info">
+                <h3>Photo &amp; Video Collage Studio</h3>
+                <p>Combine multiple photos and video clips into custom split-screen layouts with creative borders and typography.</p>
+                <span className="qr-tool-nav-link">
+                  Open Collage Studio <ArrowRight size={13} />
+                </span>
+              </div>
+            </Link>
+
+            <Link to="/shorts" className="qr-tool-nav-card">
+              <div className="qr-tool-nav-icon">
+                <Zap size={22} />
+              </div>
+              <div className="qr-tool-nav-info">
+                <h3>Video to Shorts &amp; Reels</h3>
+                <p>Convert horizontal YouTube videos into vertical 9:16 clips ready for Instagram Reels, TikTok, and YouTube Shorts.</p>
+                <span className="qr-tool-nav-link">
+                  Create Shorts <ArrowRight size={13} />
+                </span>
+              </div>
+            </Link>
           </div>
         </section>
       </div>
