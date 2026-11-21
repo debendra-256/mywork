@@ -31,6 +31,7 @@ import ContactUs from './Pages/ContactUs'
 import PrivacyPolicy from './Pages/PrivacyPolicy'
 import { SocialFollowPopup } from './SocialFollowPopup'
 import { SeoHead } from '../seo/SeoHead'
+import { CustomizedPosterGuide } from './CustomizedPosterGuide'
 
 const PromptsContext = createContext<Prompt[]>(promptCatalog)
 
@@ -3451,6 +3452,9 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
                 </button>
               </div>
             )}
+
+            {/* Step-by-Step Procedure to Create Customized Post */}
+            <CustomizedPosterGuide />
           </div>
           <div className="detail-info">
             <div className="detail-meta-pill-row">
