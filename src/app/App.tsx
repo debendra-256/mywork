@@ -2525,7 +2525,10 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
   const [shareMessage, setShareMessage] = useState('')
   const [downloading, setDownloading] = useState(false)
   const [downloadSuccess, setDownloadSuccess] = useState(false)
-  const { record } = useEngagement()
+  const { record, counts } = useEngagement()
+  const [savedIds, setSavedIds] = useState<string[]>([])
+  const toggleSave = (id: string) =>
+    setSavedIds((ids) => (ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id]))
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -2535,6 +2538,17 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
   const prompt = prompts.find(
     (item) => item.slug === slug || item.id === slug || normalizeSlug(item.slug) === normalizeSlug(slug || '')
   )
+
+  const otherBlogs = useMemo(() => {
+    if (!prompts || prompts.length === 0) return []
+    const currentNorm = normalizeSlug(prompt?.slug || slug || '')
+    const others = prompts.filter(
+      (item) => normalizeSlug(item.slug) !== currentNorm && item.id !== prompt?.id
+    )
+    const sameCat = others.filter((item) => item.category === prompt?.category)
+    const diffCat = others.filter((item) => item.category !== prompt?.category)
+    return [...sameCat, ...diffCat].slice(0, 6)
+  }, [prompts, prompt, slug])
 
   const isPolitical = useMemo(() => isPoliticalBlog(prompt), [prompt])
   const [selectedPosterSize, setSelectedPosterSize] = useState('')
@@ -3089,22 +3103,6 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
         setCopiedCustom(false)
         setCopied(false)
       }, 2200)
-    } catch (err) {
-      console.error('Failed to copy prompt:', err)
-    }
-  }
-
-  const handleDirectCopy = async () => {
-    if (!effectivePrompt) return
-    try {
-      await navigator.clipboard.writeText(effectivePrompt)
-      setCopiedCustom(true)
-      setCopied(true)
-      if (prompt) record(prompt.id, 'copy')
-      window.setTimeout(() => {
-        setCopiedCustom(false)
-        setCopied(false)
-      }, 2000)
     } catch (err) {
       console.error('Failed to copy prompt:', err)
     }
@@ -3711,37 +3709,6 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
                     </div>
                   </div>
                 )}
-
-                {/* 4. Live Generated Prompt Preview Box (Updates automatically with placed/uploaded symbols & variables) */}
-                <div className="live-generated-prompt-box">
-                  <div className="live-generated-prompt-header">
-                    <div className="live-generated-prompt-title">
-                      <Sparkles size={13} />
-                      <span>GENERATED IMAGE PROMPT</span>
-                      {(placedEmblems.length > 0 || customUploadedLogos.length > 0 || Boolean(selectedParty) || Boolean(customPartyName.trim())) && (
-                        <span className="live-generated-prompt-badge">
-                          {placedEmblems.length > 0
-                            ? `✓ Symbol Included: ${placedEmblems.map((e) => e.name).join(', ')}`
-                            : customUploadedLogos.length > 0
-                              ? `✓ Uploaded Symbol: ${customUploadedLogos.map((u) => u.partyName).join(', ')}`
-                              : customPartyName.trim()
-                                ? `✓ Custom Symbol: ${customPartyName.trim()}`
-                                : '✓ Symbol Active'}
-                        </span>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      className="live-generated-copy-btn"
-                      onClick={handleDirectCopy}
-                      title="Copy exact generated prompt"
-                    >
-                      {copiedCustom ? <Check size={12} /> : <Copy size={12} />}
-                      <span>{copiedCustom ? 'Copied!' : 'Copy Prompt'}</span>
-                    </button>
-                  </div>
-                  <pre className="live-generated-prompt-content">{effectivePrompt}</pre>
-                </div>
               </div>
 
               <div className="prompt-customizer-action-row">
@@ -3852,6 +3819,36 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
 
         {/* Step-by-Step Procedure to Create Customized Post (Stacked Down by Down) */}
         <CustomizedPosterGuide />
+
+        {/* Other Blogs & Templates Section */}
+        {otherBlogs.length > 0 && (
+          <section className="detail-other-blogs" aria-label="Other blog posts and prompts">
+            <div className="detail-other-blogs-head">
+              <div>
+                <span className="section-kicker">MORE FROM IMGMOJO</span>
+                <h2>Explore More Blog Posts &amp; AI Prompts</h2>
+                <p>Trending political birthday posters, creative event designs, and viral photo prompts.</p>
+              </div>
+              <Link to="/" className="detail-view-all-btn">
+                View all blogs <ArrowRight size={14} />
+              </Link>
+            </div>
+            <div className="prompt-grid">
+              {otherBlogs.map((item, index) => (
+                <PromptCard
+                  key={item.id}
+                  prompt={item}
+                  index={index}
+                  saved={savedIds.includes(item.id)}
+                  engagement={engagementFor(counts, item.id)}
+                  onToggleSave={() => toggleSave(item.id)}
+                  onCopy={() => record(item.id, 'copy')}
+                  onHashtag={(tag) => navigate(`/?filter=${encodeURIComponent(tag)}`)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
       </main>
 
       {showCustomModal && (
