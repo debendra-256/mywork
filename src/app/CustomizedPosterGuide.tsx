@@ -294,23 +294,27 @@ export function CustomizedPosterGuide() {
               associated with your selected poster template.
             </p>
 
-            {/* Step 4 Screenshot Reference */}
-            <div className="dpg-shot-frame" aria-label="Step 4 reference screenshot">
+            {/* Step 4 Button Preview */}
+            <div className="dpg-shot-frame" aria-label="Step 4 example">
               <div className="dpg-shot-titlebar">
                 <div className="dpg-shot-dots">
                   <span className="dot red" />
                   <span className="dot yellow" />
                   <span className="dot green" />
                 </div>
-                <span className="dpg-shot-title">Reference: Customize &amp; Copy Prompt Modal Interface</span>
+                <span className="dpg-shot-title">Example: "Customize Prompt &amp; Copy" Button</span>
               </div>
               <div className="dpg-shot-content">
-                <img
-                  src="/images/guide/customize-copy-prompt-modal.png"
-                  alt="Customize & Copy Prompt Review Dialog Reference"
-                  className="dpg-shot-img"
-                  loading="lazy"
-                />
+                <div className="dpg-action-preview-card">
+                  <button type="button" className="dpg-primary-action-mock">
+                    <Sparkles size={16} />
+                    <span>Customize &amp; Copy Prompt</span>
+                    <ArrowRight size={15} />
+                  </button>
+                  <span className="dpg-action-subhint">
+                    ✨ Custom variables &amp; party emblem specifications are merged automatically
+                  </span>
+                </div>
               </div>
             </div>
           </div>
