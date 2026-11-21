@@ -2230,15 +2230,165 @@ export interface PartyLogo {
   name: string
   partyName: string
   src: string
+  visualSpec: string
+  colorTheme?: string
 }
 
 export const POLITICAL_PARTY_LOGOS: PartyLogo[] = [
-  { id: 'lotus', name: 'LOTUS', partyName: 'Lotus (BJP)', src: '/templates/logos/logo-lotus.png' },
-  { id: 'hand', name: 'HAND', partyName: 'Hand (INC)', src: '/templates/logos/logo-hand.png' },
-  { id: 'broom', name: 'BROOM', partyName: 'Broom (AAP)', src: '/templates/logos/logo-broom.png' },
-  { id: 'clock', name: 'CLOCK', partyName: 'Clock (NCP)', src: '/templates/logos/logo-clock.png' },
-  { id: 'hammer', name: 'HAMMER & SICKLE', partyName: 'Hammer & Sickle (CPI-M)', src: '/templates/logos/logo-hammer.png' },
+  {
+    id: 'lotus',
+    name: 'LOTUS',
+    partyName: 'Lotus (BJP)',
+    src: '/templates/logos/logo-lotus.png',
+    colorTheme: 'Saffron Orange & Green',
+    visualSpec:
+      'a circular white emblem badge with a split green and saffron-orange outer ring containing a bold black line-art blooming Lotus flower (BJP Kamal election symbol) centered inside',
+  },
+  {
+    id: 'hand',
+    name: 'HAND',
+    partyName: 'Hand (INC)',
+    src: '/templates/logos/logo-hand.png',
+    colorTheme: 'Tricolour Saffron, White & Green',
+    visualSpec:
+      'a circular white emblem badge with a saffron-orange and green tricolour outer ring containing a bold black line-art raised open right palm (INC Hand election symbol) centered inside',
+  },
+  {
+    id: 'conch',
+    name: 'CONCH',
+    partyName: 'Conch (BJD)',
+    src: '/templates/logos/logo-conch.png',
+    colorTheme: 'Emerald Green & White',
+    visualSpec:
+      'a circular white emblem badge with a bold dark-green outer ring containing a crisp black line-art horizontal sacred Conch shell (BJD Shankha election symbol) with spiral ridges on the left and curved contour lines in the center',
+  },
+  {
+    id: 'bow',
+    name: 'BOW & ARROW',
+    partyName: 'Bow & Arrow (Shiv Sena)',
+    src: '/templates/logos/logo-bow.png',
+    colorTheme: 'Saffron Orange & Black',
+    visualSpec:
+      'a circular white emblem badge with a vibrant saffron-orange outer ring containing a bold black silhouette horizontal bow strung with a vertical upward-pointing arrow at the center (Bow & Arrow election symbol)',
+  },
+  {
+    id: 'broom',
+    name: 'BROOM',
+    partyName: 'Broom (AAP)',
+    src: '/templates/logos/logo-broom.png',
+    colorTheme: 'Royal Blue & White',
+    visualSpec:
+      'a circular white emblem badge with a blue outer ring containing a bold black horizontal sweeping broom (AAP Jhadu election symbol) centered inside',
+  },
+  {
+    id: 'clock',
+    name: 'CLOCK',
+    partyName: 'Clock (NCP)',
+    src: '/templates/logos/logo-clock.png',
+    colorTheme: 'Tricolour Saffron, White & Green',
+    visualSpec:
+      'a circular white emblem badge with a saffron-orange and green outer ring containing a bold black line-art party election emblem centered inside',
+  },
+  {
+    id: 'hammer',
+    name: 'HAMMER & SICKLE',
+    partyName: 'Hammer & Sickle (CPI-M)',
+    src: '/templates/logos/logo-hammer.png',
+    colorTheme: 'Crimson Red & White',
+    visualSpec:
+      'a circular white emblem badge with a red outer ring containing a bold red crossed hammer and sickle with a five-pointed star centered inside',
+  },
 ]
+
+function cleanUploadedSymbolName(rawFileName: string, fallbackIndex: number): string {
+  const withoutExt = rawFileName.replace(/\.[^/.]+$/, '').trim()
+  if (!withoutExt) return `Custom Party Symbol #${fallbackIndex}`
+  // Detect generic system / camera / clipboard / hashed filenames
+  const isGeneric =
+    /^(media|img|image|photo|pic|screenshot|whatsapp|untitled|download|file|asset|symbol|logo|icon)[-_0-9a-f\s()]*$/i.test(
+      withoutExt
+    ) || /^[0-9a-f_-]{8,}$/i.test(withoutExt)
+  if (isGeneric) {
+    return `Uploaded Party Symbol #${fallbackIndex}`
+  }
+  return withoutExt
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+function analyzeUploadedSymbolColors(dataUrl: string): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas')
+        const size = 64
+        canvas.width = size
+        canvas.height = size
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          resolve('high-contrast colored and black')
+          return
+        }
+        ctx.drawImage(img, 0, 0, size, size)
+        const data = ctx.getImageData(0, 0, size, size).data
+        const counts: Record<string, number> = {
+          'saffron-orange': 0,
+          'emerald-green': 0,
+          'crimson-red': 0,
+          'royal-blue': 0,
+          'golden-yellow': 0,
+          black: 0,
+        }
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i]
+          const g = data[i + 1]
+          const b = data[i + 2]
+          const a = data[i + 3]
+          if (a < 80) continue
+          if (r > 230 && g > 230 && b > 230) continue // skip white background
+          if (r < 55 && g < 55 && b < 55) {
+            counts.black++
+          } else if (r > 190 && g >= 65 && g <= 165 && b < 70) {
+            counts['saffron-orange']++
+          } else if (g > 110 && g > r * 1.25 && g > b * 1.2) {
+            counts['emerald-green']++
+          } else if (r > 165 && g < 75 && b < 75) {
+            counts['crimson-red']++
+          } else if (b > 130 && b > r * 1.25) {
+            counts['royal-blue']++
+          } else if (r > 190 && g > 165 && b < 80) {
+            counts['golden-yellow']++
+          }
+        }
+        const sorted = Object.entries(counts)
+          .filter(([, c]) => c > 12)
+          .sort((a, b) => b[1] - a[1])
+          .map(([name]) => name)
+        if (sorted.length >= 2) {
+          resolve(`${sorted[0]} and ${sorted[1]}`)
+        } else if (sorted.length === 1) {
+          resolve(sorted[0])
+        } else {
+          resolve('high-contrast bold')
+        }
+      } catch {
+        resolve('high-contrast bold')
+      }
+    }
+    img.onerror = () => resolve('high-contrast bold')
+    img.src = dataUrl
+  })
+}
+
+function getEmblemSizeDescription(sizePx: number): string {
+  if (sizePx <= 50) return `Small circular badge (${sizePx}px, ~11% of poster width)`
+  if (sizePx <= 72) return `Medium circular badge (${sizePx}px, ~15% of poster width)`
+  if (sizePx <= 96) return `Large circular badge (${sizePx}px, ~20% of poster width)`
+  return `Extra-Large prominent circular badge (${sizePx}px, ~25% of poster width)`
+}
 
 export interface PosterSizeOption {
   id: string
@@ -2412,6 +2562,27 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
     [placedEmblems, selectedEmblemId]
   )
 
+  const syncSymbolToTemplateVariables = (symbolLabel: string, visualDescription?: string) => {
+    for (const p of placeholders) {
+      const k = p.canonicalKey
+      const isSymbolOrLogoField =
+        k === 'LOGO' ||
+        k.includes('LOGO') ||
+        k.includes('EMBLEM') ||
+        k.includes('SYMBOL') ||
+        k.includes('PARTY_FLAG') ||
+        k === 'FLAG' ||
+        k === 'PARTY_SYMBOL' ||
+        k === 'PARTY_LOGO'
+      if (isSymbolOrLogoField) {
+        setCustomValues((prev) => ({
+          ...prev,
+          [k]: visualDescription ? `${symbolLabel} (${visualDescription})` : `${symbolLabel} party symbol`,
+        }))
+      }
+    }
+  }
+
   const addOrPlaceEmblem = (partyId: string, xPercent?: number, yPercent?: number, emblemSize = 58) => {
     const partyObj = [...POLITICAL_PARTY_LOGOS, ...customUploadedLogos].find((p) => p.id === partyId)
     if (!partyObj) return
@@ -2430,18 +2601,8 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
     setSelectedEmblemId(newEmblem.id)
     setSelectedParty(partyObj.id)
 
-    // Sync into any template variable for logo or photo if currently empty or default
-    for (const p of placeholders) {
-      const k = p.canonicalKey
-      if (k === 'LOGO' || k.includes('LOGO') || k.includes('PARTY_LOGO') || k.includes('EMBLEM')) {
-        setCustomValues((prev) => {
-          if (!prev[k] || prev[k] === p.defaultValue) {
-            return { ...prev, [k]: `${partyObj.partyName} logo` }
-          }
-          return prev
-        })
-      }
-    }
+    // Always update any logo/symbol/emblem template variable with the newly selected symbol
+    syncSymbolToTemplateVariables(partyObj.partyName, partyObj.visualSpec)
   }
 
   const handlePosterDragOver = (e: React.DragEvent) => {
@@ -2551,51 +2712,44 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
       return
     }
     const reader = new FileReader()
-    reader.onload = () => {
+    reader.onload = async () => {
       if (typeof reader.result === 'string') {
+        const dataUrl = reader.result
         const customId = `uploaded_${Date.now()}`
-        const displayName = file.name.replace(/\.[^/.]+$/, '').trim() || 'Custom Logo'
+        const nextIndex = customUploadedLogos.length + 1
+        const cleanedFileName = cleanUploadedSymbolName(file.name, nextIndex)
+        const displayName = customPartyName.trim() || cleanedFileName
+        const detectedColors = await analyzeUploadedSymbolColors(dataUrl)
+        const visualSpec = `a circular white party emblem badge featuring the uploaded "${displayName}" symbol with ${detectedColors} artwork, sharp high-contrast line art, and clean circular border matching the uploaded reference PNG`
+
         const newLogo: PartyLogo = {
           id: customId,
-          name: displayName.slice(0, 9).toUpperCase(),
+          name: displayName.slice(0, 11).toUpperCase(),
           partyName: displayName,
-          src: reader.result,
+          src: dataUrl,
+          colorTheme: detectedColors,
+          visualSpec,
         }
         setCustomUploadedLogos((prev) => [...prev, newLogo])
 
-        // Directly place emblem on poster immediately (avoiding React state batching race condition)
+        // Place uploaded symbol on poster immediately (top-right or top-left corner by default so it doesn't cover the leader's face)
+        const defaultX = placedEmblems.length % 2 === 0 ? 14 : 84
+        const defaultY = placedEmblems.length < 2 ? 14 : 76
         const newEmblem: PlacedEmblem = {
           id: `emb_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
           partyId: customId,
           name: displayName,
-          src: reader.result,
-          x: 50,
-          y: 50,
+          src: dataUrl,
+          x: defaultX,
+          y: defaultY,
           size: 68,
         }
         setPlacedEmblems((prev) => [...prev, newEmblem])
         setSelectedEmblemId(newEmblem.id)
         setSelectedParty(customId)
 
-        // Automatically sync into any LOGO / PHOTO / IMAGE placeholder in template variables
-        for (const p of placeholders) {
-          const k = p.canonicalKey
-          if (
-            k === 'LOGO' ||
-            k.includes('LOGO') ||
-            k === 'PHOTO' ||
-            k.includes('PHOTO') ||
-            k === 'IMAGE' ||
-            k.includes('IMAGE') ||
-            k.includes('EMBLEM') ||
-            k.includes('PICTURE')
-          ) {
-            setCustomValues((prev) => ({
-              ...prev,
-              [k]: `uploaded photo (${displayName})`,
-            }))
-          }
-        }
+        // Sync uploaded symbol into any LOGO / EMBLEM / SYMBOL placeholder
+        syncSymbolToTemplateVariables(displayName, visualSpec)
       }
     }
     reader.readAsDataURL(file)
@@ -2681,35 +2835,51 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
   const effectivePrompt = useMemo(() => {
     if (!prompt) return ''
 
-    // Auto-fill any LOGO / PHOTO / IMAGE template placeholders with uploaded photo or placed emblem if not manually typed
+    // Auto-fill any LOGO / SYMBOL / EMBLEM / PARTY_FLAG template placeholders with the active symbol(s)
     const valuesForCustomization: Record<string, string> = { ...customValues }
     const placedUploaded = placedEmblems.filter((e) => e.partyId.startsWith('uploaded_'))
-    const placedParty = placedEmblems.filter((e) => !e.partyId.startsWith('uploaded_'))
     const latestUploaded = placedUploaded[placedUploaded.length - 1] || customUploadedLogos[customUploadedLogos.length - 1]
+
+    const resolveEmblemMeta = (partyId: string, fallbackName: string) => {
+      const obj = allPartyLogos.find((l) => l.id === partyId)
+      const isUp = partyId.startsWith('uploaded_')
+      const customTyped = customPartyName.trim()
+      const displayName =
+        isUp && customTyped
+          ? customTyped
+          : obj?.partyName || fallbackName
+      const visualSpec =
+        obj?.visualSpec ||
+        `a circular white party emblem badge featuring the "${displayName}" symbol with high-contrast artwork and a clean circular border`
+      return { displayName, visualSpec, isUp, colorTheme: obj?.colorTheme }
+    }
 
     for (const p of placeholders) {
       const k = p.canonicalKey
-      const isPhotoOrLogoKey =
+      const isSymbolOrLogoKey =
         k === 'LOGO' ||
         k.includes('LOGO') ||
-        k === 'PHOTO' ||
-        k.includes('PHOTO') ||
-        k === 'IMAGE' ||
-        k.includes('IMAGE') ||
         k.includes('EMBLEM') ||
-        k.includes('PICTURE')
+        k.includes('SYMBOL') ||
+        k.includes('PARTY_FLAG') ||
+        k === 'FLAG'
 
-      if (isPhotoOrLogoKey && (!valuesForCustomization[k] || !valuesForCustomization[k].trim())) {
-        if (latestUploaded) {
-          const upName = ('partyName' in latestUploaded && latestUploaded.partyName) ? latestUploaded.partyName : latestUploaded.name
-          valuesForCustomization[k] = `uploaded photo (${upName})`
-        } else if (placedParty.length > 0) {
-          valuesForCustomization[k] = placedParty.map((e) => `${e.name} party emblem`).join(', ')
+      if (isSymbolOrLogoKey) {
+        if (placedEmblems.length > 0) {
+          valuesForCustomization[k] = placedEmblems
+            .map((e) => {
+              const meta = resolveEmblemMeta(e.partyId, e.name)
+              return `${meta.displayName} (${meta.visualSpec})`
+            })
+            .join(' and ')
+        } else if (latestUploaded) {
+          const meta = resolveEmblemMeta(latestUploaded.id, latestUploaded.name)
+          valuesForCustomization[k] = `${meta.displayName} (${meta.visualSpec})`
         } else if (customPartyName.trim()) {
-          valuesForCustomization[k] = `${customPartyName.trim()} party emblem`
+          valuesForCustomization[k] = `${customPartyName.trim()} party symbol badge`
         } else if (selectedParty && selectedParty !== 'custom') {
-          const partyObj = allPartyLogos.find((l) => l.id === selectedParty)
-          if (partyObj) valuesForCustomization[k] = `${partyObj.partyName} logo`
+          const meta = resolveEmblemMeta(selectedParty, selectedParty)
+          valuesForCustomization[k] = `${meta.displayName} (${meta.visualSpec})`
         }
       }
     }
@@ -2721,42 +2891,51 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
     if (selectedPosterSize) {
       const sizeOpt = POSTER_SIZES.find((s) => s.id === selectedPosterSize)
       if (sizeOpt && sizeOpt.instruction) {
-        instructions.push(`- Poster Size: ${sizeOpt.instruction}`)
+        instructions.push(`- Poster Size / Aspect Ratio: ${sizeOpt.instruction}`)
       }
     }
 
-    // 2. Uploaded Photo instruction (Ensures uploaded photo is always included in the prompt)
-    if (placedUploaded.length > 0) {
-      const photoDescs = placedUploaded.map((emb) => {
+    // 2. Exact Party Symbols & Uploaded Emblems Generation Instructions
+    if (placedEmblems.length > 0) {
+      const symbolLines = placedEmblems.map((emb, idx) => {
         const pos = getPositionDescription(emb.x, emb.y)
-        return `the uploaded photo / image "${emb.name}" (${pos})`
-      })
-      instructions.push(`- Uploaded Photo: Incorporate ${photoDescs.join(' and ')} prominently in the design, preserving face details and natural identity`)
-    } else if (customUploadedLogos.length > 0) {
-      const photoNames = customUploadedLogos.map((u) => `"${u.partyName || u.name}"`).join(', ')
-      instructions.push(`- Uploaded Photo: Incorporate the uploaded photo / image (${photoNames}) prominently into the poster design`)
-    }
-
-    // 3. Party Flags & Emblems instruction (Only for Political Blogs)
-    if (isPolitical) {
-      if (placedParty.length > 0) {
-        const descriptions = placedParty.map((emb) => {
-          const pos = getPositionDescription(emb.x, emb.y)
-          return `${emb.name} party emblem (${pos})`
-        })
-        instructions.push(`- Party Flag / Emblem: Include ${descriptions.join(' and ')} prominently in the poster design`)
-      } else if (customPartyName.trim()) {
-        instructions.push(`- Party Flag / Emblem: Include ${customPartyName.trim()} party flag and emblem prominently in the poster design`)
-      } else if (selectedParty && selectedParty !== 'custom') {
-        const partyObj = allPartyLogos.find((p) => p.id === selectedParty)
-        if (partyObj && !partyObj.id.startsWith('uploaded_')) {
-          instructions.push(`- Party Flag / Emblem: Include ${partyObj.partyName} party flag and emblem prominently in the poster design`)
+        const sizeDesc = getEmblemSizeDescription(emb.size)
+        const meta = resolveEmblemMeta(emb.partyId, emb.name)
+        const prefix = placedEmblems.length > 1 ? `Symbol #${idx + 1}` : 'Party Symbol / Emblem'
+        if (meta.isUp) {
+          return `- ${prefix} (Uploaded Custom Symbol "${meta.displayName}" — ${pos} [x: ${emb.x}%, y: ${emb.y}%], ${sizeDesc}): Render ${meta.visualSpec}. Place this uploaded symbol badge at the ${pos} of the poster (${sizeDesc}), reproducing the exact symbol silhouette, line art, and color palette from the uploaded reference PNG image with crisp high-contrast edges and zero distortion.`
         }
+        return `- ${prefix} (${meta.displayName} — ${pos} [x: ${emb.x}%, y: ${emb.y}%], ${sizeDesc}): Render ${meta.visualSpec}. Place this circular emblem badge cleanly at the ${pos} of the poster (${sizeDesc}) with sharp, high-contrast edges, accurate election symbol geometry, and clear visibility against the background.`
+      })
+      instructions.push(...symbolLines)
+
+      if (customPartyName.trim() && placedUploaded.length === 0) {
+        instructions.push(
+          `- Additional Custom Party Flag / Emblem: Also incorporate the "${customPartyName.trim()}" party flag and official election emblem prominently in the poster design with crisp circular badge framing.`
+        )
+      }
+    } else if (customUploadedLogos.length > 0) {
+      for (const upLogo of customUploadedLogos) {
+        const meta = resolveEmblemMeta(upLogo.id, upLogo.partyName)
+        instructions.push(
+          `- Uploaded Custom Party Symbol / Emblem ("${meta.displayName}"): Render ${meta.visualSpec} prominently in the top corner of the poster design, reproducing the exact symbol silhouette, line art, and colors from the uploaded reference PNG image.`
+        )
+      }
+    } else if (isPolitical) {
+      if (customPartyName.trim()) {
+        instructions.push(
+          `- Party Symbol / Emblem (${customPartyName.trim()}): Render a circular white emblem badge featuring the official "${customPartyName.trim()}" party election symbol and party flag colors prominently in the top corner of the poster design with sharp, high-contrast line art.`
+        )
+      } else if (selectedParty && selectedParty !== 'custom') {
+        const meta = resolveEmblemMeta(selectedParty, selectedParty)
+        instructions.push(
+          `- Party Symbol / Emblem (${meta.displayName}): Render ${meta.visualSpec} prominently in the top corner of the poster design with sharp, high-contrast edges and accurate symbol geometry.`
+        )
       }
     }
 
     if (instructions.length > 0) {
-      return `${base}\n\nInstruction:\n${instructions.join('\n')}`
+      return `${base}\n\nExact Image Generation Instructions:\n${instructions.join('\n')}`
     }
     return base
   }, [prompt, customValues, selectedPosterSize, isPolitical, selectedParty, customPartyName, placedEmblems, allPartyLogos, customUploadedLogos, placeholders])
@@ -2799,7 +2978,122 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
     setCustomUploadedLogos([])
   }
 
-  const handleCustomizeAndCopy = async () => {
+  const [showCustomModal, setShowCustomModal] = useState(false)
+  const [modalCopied, setModalCopied] = useState(false)
+
+  const changedItems = useMemo(() => {
+    const list: Array<{
+      id: string
+      type: 'size' | 'variable' | 'party' | 'emblem'
+      label: string
+      oldVal?: string
+      newVal: string
+    }> = []
+
+    // 1. Poster Size (if customized)
+    if (selectedPosterSize) {
+      const sizeOpt = POSTER_SIZES.find((s) => s.id === selectedPosterSize)
+      list.push({
+        id: 'poster-size',
+        type: 'size',
+        label: 'Poster Size / Format',
+        oldVal: 'Default Size',
+        newVal: sizeOpt ? sizeOpt.label : selectedPosterSize,
+      })
+    }
+
+    // 2. Template Variables
+    for (const p of placeholders) {
+      const current = customValues[p.canonicalKey]
+      if (current !== undefined && current !== p.defaultValue) {
+        list.push({
+          id: `var-${p.canonicalKey}`,
+          type: 'variable',
+          label: p.label,
+          oldVal: p.defaultValue || '(Empty)',
+          newVal: current.trim() || '(Empty)',
+        })
+      }
+    }
+
+    // 3. Political party / emblems (for political blogs)
+    if (placedEmblems.length > 0) {
+      placedEmblems.forEach((emb, idx) => {
+        const pos = getPositionDescription(emb.x, emb.y)
+        const sizeDesc = getEmblemSizeDescription(emb.size)
+        list.push({
+          id: `placed-${emb.id}`,
+          type: 'emblem',
+          label: placedEmblems.length > 1 ? `Placed Emblem #${idx + 1}` : 'Placed Emblem',
+          oldVal: 'None',
+          newVal: `${emb.name} (${pos}, ${sizeDesc})`,
+        })
+      })
+    } else if (customUploadedLogos.length > 0) {
+      customUploadedLogos.forEach((up, idx) => {
+        list.push({
+          id: `upload-${up.id}`,
+          type: 'party',
+          label: customUploadedLogos.length > 1 ? `Uploaded Symbol #${idx + 1}` : 'Uploaded Symbol',
+          oldVal: 'None',
+          newVal: up.partyName,
+        })
+      })
+    } else if (customPartyName.trim()) {
+      list.push({
+        id: 'custom-party',
+        type: 'party',
+        label: 'Custom Party / Symbol',
+        oldVal: 'None',
+        newVal: customPartyName.trim(),
+      })
+    } else if (selectedParty && selectedParty !== 'custom') {
+      const partyObj = allPartyLogos.find((l) => l.id === selectedParty)
+      list.push({
+        id: 'selected-party',
+        type: 'party',
+        label: 'Party Emblem',
+        oldVal: 'None',
+        newVal: partyObj ? partyObj.partyName : selectedParty,
+      })
+    }
+
+    return list
+  }, [selectedPosterSize, placeholders, customValues, placedEmblems, customUploadedLogos, customPartyName, selectedParty, allPartyLogos])
+
+  const unchangedVariables = useMemo(() => {
+    return placeholders.filter((p) => {
+      const current = customValues[p.canonicalKey]
+      return current === undefined || current === p.defaultValue
+    })
+  }, [placeholders, customValues])
+
+  const handleOpenCustomizeModal = () => {
+    setShowCustomModal(true)
+  }
+
+  const handleConfirmCopyFromModal = async () => {
+    if (!effectivePrompt) return
+    try {
+      await navigator.clipboard.writeText(effectivePrompt)
+      setModalCopied(true)
+      setCopiedCustom(true)
+      setCopied(true)
+      if (prompt) record(prompt.id, 'copy')
+      window.setTimeout(() => {
+        setShowCustomModal(false)
+        setModalCopied(false)
+      }, 650)
+      window.setTimeout(() => {
+        setCopiedCustom(false)
+        setCopied(false)
+      }, 2200)
+    } catch (err) {
+      console.error('Failed to copy prompt:', err)
+    }
+  }
+
+  const handleDirectCopy = async () => {
     if (!effectivePrompt) return
     try {
       await navigator.clipboard.writeText(effectivePrompt)
@@ -2814,6 +3108,28 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
       console.error('Failed to copy prompt:', err)
     }
   }
+
+  const handleCustomizeAndCopy = () => {
+    handleOpenCustomizeModal()
+  }
+
+  useEffect(() => {
+    if (!showCustomModal) return
+    const originalOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowCustomModal(false)
+      } else if (e.key === 'Enter' && !modalCopied) {
+        void handleConfirmCopyFromModal()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.body.style.overflow = originalOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [showCustomModal, modalCopied, effectivePrompt])
 
   if (!prompt) {
     return (
@@ -3319,11 +3635,19 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
                       </button>
                     </div>
 
-                    {/* If party is not available, ask to add party flag Name */}
+                    {/* If party is not available or custom PNG is uploaded, allow naming/describing the symbol */}
                     <div className="prompt-party-custom-field">
                       <label htmlFor="custom-party-input" className="prompt-customizer-label">
-                        <span className="field-name">Not in list? Add Party Flag Name</span>
-                        {customPartyName.trim() && <span className="field-active-tag">Custom Active</span>}
+                        <span className="field-name">
+                          {customUploadedLogos.length > 0
+                            ? 'Uploaded Symbol Name / Description (Used in Generated Prompt)'
+                            : 'Not in list? Add Party Flag / Symbol Name'}
+                        </span>
+                        {(customPartyName.trim() || customUploadedLogos.length > 0) && (
+                          <span className="field-active-tag">
+                            {customUploadedLogos.length > 0 ? 'Uploaded Symbol Active' : 'Custom Active'}
+                          </span>
+                        )}
                       </label>
                       <div className="prompt-customizer-input-wrapper">
                         <input
@@ -3332,10 +3656,36 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
                           type="text"
                           className="prompt-customizer-text-input"
                           value={customPartyName}
-                          placeholder="Type your party flag name (e.g. BJD Conch, Shiv Sena Bow & Arrow, TMC Flowers, SP Cycle...)"
+                          placeholder={
+                            customUploadedLogos.length > 0
+                              ? 'Describe your uploaded symbol for exact AI prompt generation (e.g. BJD Conch Shell, Shiv Sena Bow & Arrow, SP Cycle...)'
+                              : 'Type your party flag / symbol name (e.g. BJD Conch, Shiv Sena Bow & Arrow, TMC Flowers, SP Cycle...)'
+                          }
                           onChange={(e) => {
-                            setCustomPartyName(e.target.value)
-                            if (e.target.value.trim()) {
+                            const val = e.target.value
+                            setCustomPartyName(val)
+                            if (customUploadedLogos.length > 0) {
+                              const latestId = customUploadedLogos[customUploadedLogos.length - 1].id
+                              const trimmed = val.trim()
+                              if (trimmed) {
+                                setCustomUploadedLogos((prev) =>
+                                  prev.map((u) =>
+                                    u.id === latestId
+                                      ? {
+                                          ...u,
+                                          name: trimmed.slice(0, 11).toUpperCase(),
+                                          partyName: trimmed,
+                                          visualSpec: `a circular white party emblem badge featuring the uploaded "${trimmed}" symbol with ${u.colorTheme || 'high-contrast'} artwork, sharp line art, and clean circular border matching the uploaded reference PNG`,
+                                        }
+                                      : u
+                                  )
+                                )
+                                setPlacedEmblems((prev) =>
+                                  prev.map((emb) => (emb.partyId === latestId ? { ...emb, name: trimmed } : emb))
+                                )
+                                syncSymbolToTemplateVariables(trimmed)
+                              }
+                            } else if (val.trim()) {
                               setSelectedParty('custom')
                             } else if (selectedParty === 'custom') {
                               setSelectedParty('')
@@ -3360,6 +3710,37 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
                     </div>
                   </div>
                 )}
+
+                {/* 4. Live Generated Prompt Preview Box (Updates automatically with placed/uploaded symbols & variables) */}
+                <div className="live-generated-prompt-box">
+                  <div className="live-generated-prompt-header">
+                    <div className="live-generated-prompt-title">
+                      <Sparkles size={13} />
+                      <span>GENERATED IMAGE PROMPT</span>
+                      {(placedEmblems.length > 0 || customUploadedLogos.length > 0 || Boolean(selectedParty) || Boolean(customPartyName.trim())) && (
+                        <span className="live-generated-prompt-badge">
+                          {placedEmblems.length > 0
+                            ? `✓ Symbol Included: ${placedEmblems.map((e) => e.name).join(', ')}`
+                            : customUploadedLogos.length > 0
+                              ? `✓ Uploaded Symbol: ${customUploadedLogos.map((u) => u.partyName).join(', ')}`
+                              : customPartyName.trim()
+                                ? `✓ Custom Symbol: ${customPartyName.trim()}`
+                                : '✓ Symbol Active'}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      className="live-generated-copy-btn"
+                      onClick={handleDirectCopy}
+                      title="Copy exact generated prompt"
+                    >
+                      {copiedCustom ? <Check size={12} /> : <Copy size={12} />}
+                      <span>{copiedCustom ? 'Copied!' : 'Copy Prompt'}</span>
+                    </button>
+                  </div>
+                  <pre className="live-generated-prompt-content">{effectivePrompt}</pre>
+                </div>
               </div>
 
               <div className="prompt-customizer-action-row">
@@ -3468,6 +3849,166 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
           </div>
         </div>
       </main>
+
+      {showCustomModal && (
+        <div
+          className="prompt-modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowCustomModal(false)
+            }
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="prompt-modal-title"
+        >
+          <div className="prompt-modal-card">
+            {/* Modal Header */}
+            <div className="prompt-modal-header">
+              <div className="prompt-modal-title-group">
+                <div className="prompt-modal-icon-badge">
+                  <Sparkles size={18} />
+                </div>
+                <div>
+                  <h3 id="prompt-modal-title" className="prompt-modal-title">
+                    Customize &amp; Copy Prompt
+                  </h3>
+                  <p className="prompt-modal-subtitle">
+                    Review your changed values before copying to clipboard
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="prompt-modal-close-btn"
+                onClick={() => setShowCustomModal(false)}
+                aria-label="Close popup"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Modal Scrollable Body */}
+            <div className="prompt-modal-body">
+              {/* Status Bar */}
+              <div className="prompt-modal-status-bar">
+                {changedItems.length > 0 ? (
+                  <span className="prompt-modal-badge is-changed">
+                    <Check size={12} /> {changedItems.length} customized change{changedItems.length > 1 ? 's' : ''} applied
+                  </span>
+                ) : (
+                  <span className="prompt-modal-badge is-default">
+                    <SlidersHorizontal size={12} /> Using default prompt settings
+                  </span>
+                )}
+                {isPolitical && (
+                  <span className="prompt-political-badge">Political Blog</span>
+                )}
+              </div>
+
+              {/* Changed Values Section */}
+              {changedItems.length > 0 ? (
+                <div className="prompt-modal-section">
+                  <div className="prompt-modal-section-title">
+                    <Sparkles size={13} />
+                    <span>Changed Values</span>
+                  </div>
+                  <div className="prompt-modal-changes-list">
+                    {changedItems.map((item) => (
+                      <div key={item.id} className="prompt-modal-change-item">
+                        <div className="prompt-modal-change-meta">
+                          <span className="prompt-modal-change-label">{item.label}</span>
+                          {item.oldVal && (
+                            <span className="prompt-modal-change-old">
+                              Default: {item.oldVal}
+                            </span>
+                          )}
+                        </div>
+                        <div className="prompt-modal-change-arrow">
+                          <ArrowRight size={13} />
+                        </div>
+                        <div className="prompt-modal-change-new">
+                          <span>{item.newVal}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="prompt-modal-empty-notice">
+                  <div className="prompt-modal-empty-icon">
+                    <SlidersHorizontal size={18} />
+                  </div>
+                  <div>
+                    <strong>No custom values changed</strong>
+                    <p>The prompt will be copied with its original default settings.</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Unchanged / Default Variables (if any) */}
+              {changedItems.length > 0 && unchangedVariables.length > 0 && (
+                <div className="prompt-modal-unchanged-section">
+                  <div className="prompt-modal-unchanged-title">
+                    <span>Unchanged Defaults:</span>
+                  </div>
+                  <div className="prompt-modal-unchanged-tags">
+                    {unchangedVariables.map((p) => (
+                      <span key={p.canonicalKey} className="prompt-modal-unchanged-tag">
+                        <strong>{p.label}:</strong> {p.defaultValue || '—'}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Final Prompt Preview */}
+              <div className="prompt-modal-preview-box">
+                <div className="prompt-modal-preview-head">
+                  <div className="prompt-modal-preview-label">
+                    <Copy size={12} />
+                    <span>Prompt to be copied</span>
+                  </div>
+                  <span className="prompt-modal-preview-chars">
+                    {effectivePrompt.length} characters
+                  </span>
+                </div>
+                <pre className="prompt-modal-prompt-content">{effectivePrompt}</pre>
+              </div>
+            </div>
+
+            {/* Modal Action Footer */}
+            <div className="prompt-modal-footer">
+              <button
+                type="button"
+                className="prompt-modal-btn-cancel"
+                onClick={() => setShowCustomModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="prompt-modal-btn-ok"
+                onClick={handleConfirmCopyFromModal}
+                disabled={modalCopied}
+              >
+                {modalCopied ? (
+                  <>
+                    <Check size={16} />
+                    <span>Copied Prompt!</span>
+                  </>
+                ) : (
+                  <>
+                    <Check size={16} />
+                    <span>OK</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <SiteFooter />
     </div>
   )

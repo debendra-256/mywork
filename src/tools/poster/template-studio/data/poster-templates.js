@@ -23,6 +23,8 @@ const logo = (id, name, size) => ({
 export const POSTER_LOGOS = [
   logo('lotus', 'Lotus', 134),
   logo('hand', 'Hand', 147),
+  logo('conch', 'Conch (BJD)', 147),
+  logo('bow', 'Bow & Arrow', 147),
   logo('broom', 'Broom', 149),
   logo('clock', 'Clock', 145),
   logo('hammer', 'Hammer & Sickle', 155),

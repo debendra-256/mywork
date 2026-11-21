@@ -183,28 +183,126 @@ export const SEO_CONFIG: Record<string, SeoMetadata> = {
 
   // COMPRESS IMAGE
   'compress-image': {
-    title: 'Free Image Compressor Online – Compress JPG, PNG & WebP | ImgMojo',
+    title: 'Free Online Image Compressor – Compress JPG, PNG & WebP | ImgMojo',
     description:
-      'Compress images up to 90% without losing quality. Fast client-side batch compression for PNG, JPEG, and WebP with 100% privacy on your device.',
+      "Reduce image file sizes quickly with ImgMojo's free online image compressor. Compress JPG, PNG and WebP images without losing too much quality.",
     keywords:
-      'image compressor, compress image online, reduce image size, shrink photo, compress jpg, png compressor, webp optimizer, lossless image compress, ImgMojo compress',
+      'free online image compressor, compress image online, reduce image size, shrink photo, compress jpg, png compressor, webp optimizer, ImgMojo compress',
     canonical: `${BASE_URL}/compress-image`,
     author: DEFAULT_AUTHOR,
     robots: DEFAULT_ROBOTS,
     ogType: 'website',
-    ogTitle: 'Free Image Compressor Online | ImgMojo',
-    ogDescription: 'Compress images up to 90% without quality loss. Fast, free and private with ImgMojo.',
+    ogTitle: 'Free Online Image Compressor | ImgMojo',
+    ogDescription:
+      "Reduce image file sizes quickly with ImgMojo's free online image compressor. Compress JPG, PNG and WebP images without losing too much quality.",
     ogImage: DEFAULT_OG_IMAGE,
     ogImageAlt: 'ImgMojo Free Online Image Compressor',
     twitterCard: 'summary_large_image',
-    twitterTitle: 'Free Image Compressor Online | ImgMojo',
-    twitterDescription: 'Shrink image file sizes without quality loss online.',
+    twitterTitle: 'Free Online Image Compressor | ImgMojo',
+    twitterDescription:
+      'Compress JPG, PNG and WebP images without losing too much quality with ImgMojo.',
     twitterImage: DEFAULT_OG_IMAGE,
     schema: {
       '@context': 'https://schema.org',
       '@type': 'WebApplication',
-      name: 'Smart Image Compressor',
+      name: 'Free Online Image Compressor',
       url: `${BASE_URL}/compress-image`,
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'All',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    },
+  },
+
+  // IMAGE RESIZER
+  'image-resizer': {
+    title: 'Free Online Image Resizer – Resize JPG, PNG & WebP | ImgMojo',
+    description:
+      'Resize JPG, PNG and WebP images quickly online with ImgMojo. Change dimensions or scale by percentage without losing quality. 100% free and client-side safe.',
+    keywords:
+      'image resizer, resize image online, resize photo, resize jpg, resize png, resize webp, change image dimensions, scale image percentage, social media image resizer, ImgMojo resizer',
+    canonical: `${BASE_URL}/image-resizer`,
+    author: DEFAULT_AUTHOR,
+    robots: DEFAULT_ROBOTS,
+    ogType: 'website',
+    ogTitle: 'Free Online Image Resizer | ImgMojo',
+    ogDescription:
+      'Resize JPG, PNG and WebP images to exact dimensions or percentages without losing quality.',
+    ogImage: DEFAULT_OG_IMAGE,
+    ogImageAlt: 'ImgMojo Free Online Image Resizer',
+    twitterCard: 'summary_large_image',
+    twitterTitle: 'Free Online Image Resizer | ImgMojo',
+    twitterDescription:
+      'Resize JPG, PNG and WebP images online quickly and safely with ImgMojo.',
+    twitterImage: DEFAULT_OG_IMAGE,
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'WebApplication',
+      name: 'Free Online Image Resizer',
+      url: `${BASE_URL}/image-resizer`,
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'All',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    },
+  },
+
+  // IMAGE CONVERTER
+  'image-converter': {
+    title: 'Free Online Image Converter – Convert JPG, PNG & WebP | ImgMojo',
+    description:
+      'Convert JPG, PNG, WebP, AVIF, and GIF images online for free with ImgMojo. 100% browser-based conversion with high visual fidelity and zero server uploads.',
+    keywords:
+      'image converter, convert image online, png to jpg, jpg to png, convert to webp, png to webp, webp to jpg, avif converter, convert image format, ImgMojo converter',
+    canonical: `${BASE_URL}/image-converter`,
+    author: DEFAULT_AUTHOR,
+    robots: DEFAULT_ROBOTS,
+    ogType: 'website',
+    ogTitle: 'Free Online Image Converter | ImgMojo',
+    ogDescription:
+      'Convert images between JPG, PNG, WebP, AVIF, and GIF formats instantly in your browser.',
+    ogImage: DEFAULT_OG_IMAGE,
+    ogImageAlt: 'ImgMojo Free Online Image Converter',
+    twitterCard: 'summary_large_image',
+    twitterTitle: 'Free Online Image Converter | ImgMojo',
+    twitterDescription:
+      'Convert JPG, PNG, WebP, AVIF, and GIF images online with ImgMojo.',
+    twitterImage: DEFAULT_OG_IMAGE,
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'WebApplication',
+      name: 'Free Online Image Converter',
+      url: `${BASE_URL}/image-converter`,
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'All',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    },
+  },
+
+  // IMAGE CROPPER
+  'image-cropper': {
+    title: 'Free Online Image Cropper – Crop & Frame Photos | ImgMojo',
+    description:
+      'Crop photos online to exact social media aspect ratios (1:1, 4:5, 16:9, 9:16) with ImgMojo. 100% free, private browser-based cropping with zero quality loss.',
+    keywords:
+      'image cropper, crop photo online, crop image, square crop, 16:9 crop, instagram crop, profile picture cropper, photo framing, free online image cropper, ImgMojo cropper',
+    canonical: `${BASE_URL}/image-cropper`,
+    author: DEFAULT_AUTHOR,
+    robots: DEFAULT_ROBOTS,
+    ogType: 'website',
+    ogTitle: 'Free Online Image Cropper | ImgMojo',
+    ogDescription:
+      'Crop photos to exact aspect ratios (1:1, 4:5, 16:9, 9:16) with interactive canvas controls.',
+    ogImage: DEFAULT_OG_IMAGE,
+    ogImageAlt: 'ImgMojo Free Online Image Cropper',
+    twitterCard: 'summary_large_image',
+    twitterTitle: 'Free Online Image Cropper | ImgMojo',
+    twitterDescription:
+      'Crop and frame photos to exact aspect ratios online with ImgMojo.',
+    twitterImage: DEFAULT_OG_IMAGE,
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'WebApplication',
+      name: 'Free Online Image Cropper',
+      url: `${BASE_URL}/image-cropper`,
       applicationCategory: 'UtilitiesApplication',
       operatingSystem: 'All',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },

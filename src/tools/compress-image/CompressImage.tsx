@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo, type ChangeEvent, type DragEvent } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Upload,
   Image as ImageIcon,
@@ -17,6 +18,11 @@ import {
   Layers,
   ChevronRight,
   ChevronDown,
+  ArrowRight,
+  Mail,
+  Sparkles,
+  Lock,
+  Clock3,
 } from 'lucide-react'
 import type { CompressionSettings, ImageItem, OutputFormat } from './types'
 import { compressSingleImage, formatBytes, getFileExtension } from './compressEngine'
@@ -138,12 +144,12 @@ export default function CompressImage() {
   useEffect(() => {
     if (typeof document === 'undefined') return undefined
     const previousTitle = document.title
-    const seoTitle = 'Compress Images Online Free – Reduce JPG, PNG, WEBP File Size | ImgMojo'
+    const seoTitle = 'Free Online Image Compressor – Compress JPG, PNG & WebP | ImgMojo'
     const seoDescription =
-      'Reduce image file size without losing quality. Compress JPG, PNG, WEBP, SVG, GIF, and AVIF images online quickly and for free with 100% browser privacy on ImgMojo.'
+      "Reduce image file sizes quickly with ImgMojo's free online image compressor. Compress JPG, PNG and WebP images without losing too much quality."
     const seoKeywords =
-      'compress images online, free image compressor, reduce image size without losing quality, compress JPG, compress PNG, compress WEBP, bulk image optimizer, resize and compress photo, ImgMojo'
-    const canonicalUrl = "https://imgmojo.com/image-compressor";
+      'free online image compressor, compress JPG, compress PNG, compress WebP, reduce image file size, optimize image, ImgMojo'
+    const canonicalUrl = "https://imgmojo.com/compress-image";
 
     document.title = seoTitle
 
@@ -506,10 +512,13 @@ export default function CompressImage() {
             <span>Free Online Tool</span>
           </div>
           <h1>
-            Compress Images <span>Online</span>
+            Free Online <span>Image Compressor</span>
           </h1>
-          <p>
-            Reduce image file size without losing quality. Compress JPG, PNG, WEBP and more, quickly and for free.
+          <p className="compress-subheading">
+            Compress JPG, PNG and WebP Images Without Losing Too Much Quality
+          </p>
+          <p className="compress-intro">
+            Reduce image file sizes quickly with ImgMojo&apos;s free online image compressor. Upload an image, adjust the compression settings, preview the result and download the optimized image. Make images easier to share, upload and use on websites while retaining as much visual quality as possible.
           </p>
         </header>
 
@@ -1101,6 +1110,334 @@ export default function CompressImage() {
           </ol>
         </section>
 
+        {/* What Is Image Compression? Section */}
+        <section className="ci-info-section" aria-labelledby="ci-what-is-heading">
+          <div className="ci-info-head">
+            <span className="ci-info-kicker">EDUCATIONAL GUIDE</span>
+            <h2 id="ci-what-is-heading">What Is Image Compression?</h2>
+          </div>
+          <div className="ci-info-prose">
+            <p>
+              Image compression is the process of reducing the file size of a digital image while maintaining an acceptable level of visual quality. Smaller image files require less storage space and can be uploaded, shared and transferred more easily.
+            </p>
+            <p>
+              Image compression is particularly useful for website owners, bloggers, photographers, students and people who frequently share images online.
+            </p>
+          </div>
+
+          <div className="ci-compression-types">
+            <h3 className="ci-types-title">There are two common types of image compression:</h3>
+            <div className="ci-types-grid">
+              <div className="ci-type-card">
+                <div className="ci-type-badge lossy">Lossy</div>
+                <h4>Lossy image compression</h4>
+                <p>
+                  Lossy compression reduces file size by removing some image information. It can significantly reduce the file size, but excessive compression may cause visible quality loss.
+                </p>
+              </div>
+              <div className="ci-type-card">
+                <div className="ci-type-badge lossless">Lossless</div>
+                <h4>Lossless image compression</h4>
+                <p>
+                  Lossless compression reduces file size without permanently removing the original image information. The amount of reduction depends on the image format and its contents.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Supported Image Formats Section */}
+        <section className="ci-formats-section" aria-labelledby="ci-formats-heading">
+          <div className="ci-formats-head">
+            <span className="ci-formats-kicker">COMPATIBILITY</span>
+            <h2 id="ci-formats-heading">Supported Image Formats</h2>
+            <p>ImgMojo natively supports and compresses the most widely used web and photo formats:</p>
+          </div>
+
+          <div className="ci-formats-grid">
+            {/* JPG / JPEG */}
+            <div className="ci-format-card">
+              <div className="ci-format-icon-wrap">
+                <img
+                  src="https://images.openai.com/static-rsc-4/a7O0e-2mVVqE9FhIdRSe2ie7sr9FLAhouaQqAYlf-t3-3UprrWPtPvdzOjloat2krLoJemquuDgLQduILJhmcPy2rdNCtDE4cd20C5_qmVsjL1obZ16xbYg06n12v8ouupc-PnzqxiqtUBXObjgvgSUOuDINyxo0dD0arCRC4MwiynPAQ5mPYj1For65Q_bd?purpose=inline"
+                  alt="The JPG file icon isolated on white background"
+                  className="ci-format-img"
+                  loading="lazy"
+                />
+              </div>
+              <div className="ci-format-meta">
+                <span className="ci-format-badge">.jpg / .jpeg</span>
+                <h3>JPG / JPEG</h3>
+                <p>Commonly used for photographs, digital images and website graphics.</p>
+              </div>
+            </div>
+
+            {/* PNG */}
+            <div className="ci-format-card">
+              <div className="ci-format-icon-wrap">
+                <img
+                  src="https://images.openai.com/static-rsc-4/9WCk2bqvCHZFKCj7ur1qAcVSF1zwNwdtgg2G0nzSujcNRiofZg37CIkWzYilHRaO3DQLy6iv0qaMrblQ1uLTZFFS-LpRFA-TqjtHMczcIS-FSKx7SLqCDa9LZTct3kASsk1yQGp6TolzY6PW1KOfAMnXhs343VYgYFo83DbPDugPeK7KRBAlL5f5VBoUoEY1?purpose=inline"
+                  alt="Color Icon - Image picture file format"
+                  className="ci-format-img"
+                  loading="lazy"
+                />
+              </div>
+              <div className="ci-format-meta">
+                <span className="ci-format-badge">.png</span>
+                <h3>PNG</h3>
+                <p>Useful for graphics, logos and images that require transparency.</p>
+              </div>
+            </div>
+
+            {/* WebP */}
+            <div className="ci-format-card">
+              <div className="ci-format-icon-wrap">
+                <img
+                  src="https://images.openai.com/static-rsc-4/VFaspxX-JR677tnZRlkDdOGGHmPghimBwmPk3Xsw_NZ1LWnKoAXLCEIYevklP5PbejGW7TNyT3h0fO4oQ6Xa4wnxuqdhWX5Dqa3zXqxPN-IsttpfwigQg80q-QimpXUIsBWA-ImXlOdN8jBd8LP7hHkOJqD3U9Q_m9AJecqER10wz5iAhdagxuL2jNtlEsp7?purpose=inline"
+                  alt="WEBP File Icon. Vector File Format. Web File Extension Modern Flat Design"
+                  className="ci-format-img"
+                  loading="lazy"
+                />
+              </div>
+              <div className="ci-format-meta">
+                <span className="ci-format-badge">.webp</span>
+                <h3>WebP</h3>
+                <p>A modern image format designed to provide efficient image compression.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Format Conversion / Retention Card */}
+          <div className="ci-conversion-card">
+            <div className="ci-conversion-icon" aria-hidden="true">
+              <RefreshCw size={24} />
+            </div>
+            <div className="ci-conversion-body">
+              <h3>Keep Original Format or Convert Into Another Format</h3>
+              <p>
+                ImgMojo gives you complete flexibility over your output files:
+              </p>
+              <ul className="ci-conversion-list">
+                <li>
+                  <strong>Retain the Original Format (Default):</strong> Your images stay in their native file format (JPG remains JPG, PNG remains PNG, and WebP remains WebP) while their file size is significantly reduced.
+                </li>
+                <li>
+                  <strong>Convert Into WebP, JPG, or PNG:</strong> Easily switch formats in bulk during compression. Convert large PNGs or JPGs to modern WebP for smaller web file sizes with full transparency support, or convert WebP back to JPG/PNG for universal software compatibility.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        {/* Why Should You Compress Images? Section */}
+        <section className="ci-benefits-section" aria-labelledby="ci-why-heading">
+          <div className="ci-benefits-head">
+            <span className="ci-benefits-kicker">REAL-WORLD ADVANTAGES</span>
+            <h2 id="ci-why-heading">Why Should You Compress Images?</h2>
+            <p>
+              Compressing images delivers significant practical benefits across website performance, storage management, and daily digital communication.
+            </p>
+          </div>
+
+          <div className="ci-benefits-grid">
+            {/* 1. Faster website loading */}
+            <div className="ci-benefit-card">
+              <div className="ci-benefit-icon-badge" aria-hidden="true">
+                <Zap size={20} />
+              </div>
+              <div className="ci-benefit-content">
+                <h3>Faster Website Loading</h3>
+                <p>
+                  Smaller image files can help reduce the amount of data visitors need to download, resulting in faster page rendering, reduced bounce rates, and a smoother browsing experience across mobile and desktop devices.
+                </p>
+              </div>
+            </div>
+
+            {/* 2. Save storage space */}
+            <div className="ci-benefit-card">
+              <div className="ci-benefit-icon-badge" aria-hidden="true">
+                <HardDriveDownload size={20} />
+              </div>
+              <div className="ci-benefit-content">
+                <h3>Save Storage Space</h3>
+                <p>
+                  Compressed images can occupy significantly less storage space on your computer, smartphone, cloud drives (Google Drive, iCloud, Dropbox), and web hosting servers, maximizing your available disk capacity.
+                </p>
+              </div>
+            </div>
+
+            {/* 3. Easier sharing */}
+            <div className="ci-benefit-card">
+              <div className="ci-benefit-icon-badge" aria-hidden="true">
+                <Upload size={20} />
+              </div>
+              <div className="ci-benefit-content">
+                <h3>Easier Sharing</h3>
+                <p>
+                  Smaller files are easier to upload and share. Whether sending files through WhatsApp, Telegram, Slack, or social media platforms, compressed photos transfer in a fraction of the time without frustrating upload stalls.
+                </p>
+              </div>
+            </div>
+
+            {/* 4. Email attachments */}
+            <div className="ci-benefit-card">
+              <div className="ci-benefit-icon-badge" aria-hidden="true">
+                <Mail size={20} />
+              </div>
+              <div className="ci-benefit-content">
+                <h3>Email Attachments</h3>
+                <p>
+                  Most email providers (such as Gmail, Outlook, and Yahoo) enforce strict attachment size limits of 20 MB to 25 MB. Compression can help multiple high-resolution photos comfortably fit within attachment size limits, preventing bounced emails.
+                </p>
+              </div>
+            </div>
+
+            {/* 5. Website optimization */}
+            <div className="ci-benefit-card">
+              <div className="ci-benefit-icon-badge" aria-hidden="true">
+                <SlidersHorizontal size={20} />
+              </div>
+              <div className="ci-benefit-content">
+                <h3>Website Optimization</h3>
+                <p>
+                  Image optimization can contribute to a better page-loading experience, lower server bandwidth costs, and improve search engine rankings by satisfying Google Core Web Vitals (LCP and CLS) standards.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Original Real-World Example: 3 MB vs 500 KB */}
+          <div className="ci-example-box">
+            <div className="ci-example-head">
+              <div className="ci-example-icon" aria-hidden="true">
+                <Sparkles size={20} />
+              </div>
+              <div>
+                <h3>Real-World Example: Reducing an Image from 3 MB to 500 KB</h3>
+                <p>
+                  Here is how compressing a typical camera photo from 3 MB down to 500 KB transforms its file size and download requirements:
+                </p>
+              </div>
+            </div>
+
+            <div className="ci-example-metrics">
+              {/* Before Card */}
+              <div className="ci-metric-card before">
+                <span className="ci-metric-tag">Original Uncompressed Image</span>
+                <div className="ci-metric-size">3.0 MB <span>(3,072 KB)</span></div>
+                <ul className="ci-metric-details">
+                  <li><strong>Download Time (10 Mbps 4G):</strong> ~2.5 seconds</li>
+                  <li><strong>10-Image Gallery Weight:</strong> 30 MB download</li>
+                  <li><strong>Bandwidth for 1,000 Visitors:</strong> 3.0 GB of host data transfer</li>
+                  <li><strong>User Experience:</strong> Noticeable delay, image loading pop-in</li>
+                </ul>
+              </div>
+
+              {/* Transformation Badge */}
+              <div className="ci-metric-arrow" aria-hidden="true">
+                <div className="ci-reduction-badge">
+                  <span>83.3% Smaller</span>
+                  <ArrowRight size={16} />
+                  <span>2.5 MB Saved</span>
+                </div>
+              </div>
+
+              {/* After Card */}
+              <div className="ci-metric-card after">
+                <span className="ci-metric-tag success">ImgMojo Compressed Image</span>
+                <div className="ci-metric-size success">500 KB <span>(0.5 MB)</span></div>
+                <ul className="ci-metric-details">
+                  <li><strong>Download Time (10 Mbps 4G):</strong> ~0.4 seconds (6× faster!)</li>
+                  <li><strong>10-Image Gallery Weight:</strong> Just 5 MB total</li>
+                  <li><strong>Bandwidth for 1,000 Visitors:</strong> Only 500 MB (saves 2.5 GB bandwidth)</li>
+                  <li><strong>User Experience:</strong> Near-instant rendering, smooth mobile viewing</li>
+                </ul>
+              </div>
+            </div>
+
+            <p className="ci-example-summary">
+              <strong>Key Takeaway:</strong> By reducing the image from 3 MB to 500 KB, you eliminate over 83% of the data requirement. Mobile visitors consume far less cellular data, pages render six times faster, and visual clarity remains crisp and detailed on screens.
+            </p>
+          </div>
+        </section>
+
+        {/* Is It Safe to Compress Images Online? Privacy & Security Section */}
+        <section className="ci-security-section" aria-labelledby="ci-security-heading">
+          <div className="ci-security-head">
+            <span className="ci-security-kicker">PRIVACY & FILE SECURITY</span>
+            <h2 id="ci-security-heading">Is It Safe to Compress Images Online?</h2>
+            <p>
+              Yes, compressing your images with ImgMojo is completely safe, private, and secure. Unlike traditional cloud converters that upload your personal or sensitive pictures to remote servers, ImgMojo runs on an uncompromising <strong>client-side browser architecture</strong> that keeps your media strictly on your device.
+            </p>
+          </div>
+
+          <div className="ci-security-grid">
+            {/* 1. In-browser vs server */}
+            <div className="ci-security-card">
+              <div className="ci-security-icon-badge" aria-hidden="true">
+                <ShieldCheck size={22} />
+              </div>
+              <div className="ci-security-card-content">
+                <h3>100% In-Browser Processing</h3>
+                <p>
+                  Every compression calculation, canvas re-encoding, and dimension adjustment happens exclusively inside your browser (using modern HTML5 Canvas and WebAssembly). Your images are never uploaded or transmitted over the internet to our servers.
+                </p>
+              </div>
+            </div>
+
+            {/* 2. Server storage */}
+            <div className="ci-security-card">
+              <div className="ci-security-icon-badge" aria-hidden="true">
+                <Lock size={22} />
+              </div>
+              <div className="ci-security-card-content">
+                <h3>Zero Server Storage</h3>
+                <p>
+                  Because your files are never transmitted across the network, we maintain zero bytes of server storage. There are no temporary folders, remote databases, or cloud buckets storing or caching your images at any point.
+                </p>
+              </div>
+            </div>
+
+            {/* 3. Retention period */}
+            <div className="ci-security-card">
+              <div className="ci-security-icon-badge" aria-hidden="true">
+                <Clock3 size={22} />
+              </div>
+              <div className="ci-security-card-content">
+                <h3>Zero File Retention (0 Seconds)</h3>
+                <p>
+                  Because no file is ever uploaded, our server retention duration is exactly zero seconds. Your images live only in your device's temporary working memory while this page is open. Clearing your list or closing the browser tab immediately purges all data from memory.
+                </p>
+              </div>
+            </div>
+
+            {/* 4. Third-party sharing */}
+            <div className="ci-security-card">
+              <div className="ci-security-icon-badge" aria-hidden="true">
+                <Lock size={22} />
+              </div>
+              <div className="ci-security-card-content">
+                <h3>No Third-Party Sharing or AI Scraping</h3>
+                <p>
+                  We never share, sell, or disclose your images to third parties, advertising partners, or AI training datasets. What you compress remains confidential and strictly in your hands.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="ci-security-contact-box">
+            <div className="ci-security-contact-icon" aria-hidden="true">
+              <Mail size={20} />
+            </div>
+            <div className="ci-security-contact-text">
+              <h4>Questions or Privacy Inquiries?</h4>
+              <p>
+                We value your trust and take user privacy seriously. If you have any questions or feedback regarding our privacy standards or technical implementation, please review our <Link to="/privacy" className="ci-link">Privacy Policy</Link> or get in touch directly via our <Link to="/contact" className="ci-link">Contact Page</Link>.
+              </p>
+            </div>
+          </div>
+        </section>
+
         {/* Below-the-Fold SEO FAQ Section */}
         <section className="ci-faq-section" aria-labelledby="ci-faq-heading">
           <div className="ci-faq-header">
@@ -1150,6 +1487,82 @@ export default function CompressImage() {
                 </div>
               )
             })}
+          </div>
+        </section>
+
+        {/* Step 10: Explore More Image Tools Section (Internal Navigation) */}
+        <section className="ci-nav-tools-section" aria-labelledby="ci-nav-tools-heading">
+          <div className="ci-nav-tools-head">
+            <span className="ci-nav-tools-kicker">RELATED UTILITIES</span>
+            <h2 id="ci-nav-tools-heading">Explore More Image Tools</h2>
+            <p>
+              Discover more fast, browser-based creative utilities from ImgMojo to resize, convert, and crop your visuals without installing any software.
+            </p>
+          </div>
+
+          <div className="ci-nav-tools-grid">
+            {/* Tool 1: Image Resizer */}
+            <div className="ci-nav-tool-card">
+              <div className="ci-nav-tool-image-wrap">
+                <img
+                  src="https://images.openai.com/static-rsc-4/NsZfPIKBQoa62Rwu0OuMLX-bBWUHCyi2DRP1Xq7TU7It15XtMqgmCKQYnu_2q_GKmzvDggxfwHY7vPq31qUHqWmyBSBAlO6aTLBHCGaGl47HO39TZSwxSPX_cYRpIDow4UXU0uBZ6npwcQhhWPDBgtB4DPZivZaRX6fGieXbNV_OYp0iYEF9nHUWrPpNvUyG?purpose=inline"
+                  alt="Grab this creative design vector of image resize in modern style"
+                  loading="lazy"
+                  className="ci-nav-tool-img"
+                />
+                <span className="ci-nav-tool-tag">Dimensions</span>
+              </div>
+              <div className="ci-nav-tool-body">
+                <h3>Image Resizer</h3>
+                <p>Change image dimensions for different uses.</p>
+                <Link to="/image-resizer" className="ci-nav-tool-btn" title="Open Image Resizer">
+                  <span>Resize Image</span>
+                  <ArrowRight size={16} />
+                </Link>
+              </div>
+            </div>
+
+            {/* Tool 2: Image Converter */}
+            <div className="ci-nav-tool-card">
+              <div className="ci-nav-tool-image-wrap">
+                <img
+                  src="https://images.openai.com/static-rsc-4/wnAra42oxkRFPJE-OaW5JWW01ussZngQ1s19oQOpFh3JihpG983AkbCNOKvvNnzuaiZjUQ3V65JIw0cPsHbFEE5jAUDnIpiynVOkXwTehoLRF3vh1x1mwLcAtbN1uNakb--jM4NZtQtAxwCzWXgJXIWuZj9993y6qTp9IFweycc?purpose=inline"
+                  alt="Convert Image Format Online Free — JPG, PNG, WebP"
+                  loading="lazy"
+                  className="ci-nav-tool-img"
+                />
+                <span className="ci-nav-tool-tag">Format</span>
+              </div>
+              <div className="ci-nav-tool-body">
+                <h3>Image Converter</h3>
+                <p>Convert images between supported formats.</p>
+                <Link to="/image-converter" className="ci-nav-tool-btn" title="Open Image Converter">
+                  <span>Convert Format</span>
+                  <ArrowRight size={16} />
+                </Link>
+              </div>
+            </div>
+
+            {/* Tool 3: Image Cropper */}
+            <div className="ci-nav-tool-card">
+              <div className="ci-nav-tool-image-wrap">
+                <img
+                  src="https://images.openai.com/static-rsc-4/uKit9wbOytp1gYTj0mdrjDrA1kKm_ZgVNKmwDsI1T3E5bfiumeV6u-z7n8p-UHQncgzrAihQpgwDdLHc8iQZIrhcmfjx7y_2_nKqN1wVTIMhmVlIFQEtbkX1qqFm22AJLsvtZaSAteCkRfOTg-Ld7u3pRP8YKihGaBl72H6HPUK_qu8L7fhtfSi7fH3LXjeZ?purpose=inline"
+                  alt="Crop Icon"
+                  loading="lazy"
+                  className="ci-nav-tool-img"
+                />
+                <span className="ci-nav-tool-tag">Crop</span>
+              </div>
+              <div className="ci-nav-tool-body">
+                <h3>Image Cropper</h3>
+                <p>Crop images to the required dimensions.</p>
+                <Link to="/image-cropper" className="ci-nav-tool-btn" title="Open Image Cropper">
+                  <span>Crop Image</span>
+                  <ArrowRight size={16} />
+                </Link>
+              </div>
+            </div>
           </div>
         </section>
       </div>

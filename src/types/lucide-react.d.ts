@@ -23,6 +23,7 @@ declare module 'lucide-react' {
   export const Command: LucideIcon
   export const Copy: LucideIcon
   export const Cpu: LucideIcon
+  export const Crop: LucideIcon
   export const DatabaseBackup: LucideIcon
   export const Download: LucideIcon
   export const Droplets: LucideIcon
@@ -79,6 +80,10 @@ declare module 'lucide-react' {
   export const Redo2: LucideIcon
   export const RefreshCw: LucideIcon
   export const RotateCcw: LucideIcon
+  export const RotateCw: LucideIcon
+  export const FlipHorizontal: LucideIcon
+  export const FlipVertical: LucideIcon
+  export const Grid3X3: LucideIcon
   export const ScanLine: LucideIcon
   export const Search: LucideIcon
   export const Send: LucideIcon
