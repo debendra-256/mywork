@@ -263,7 +263,7 @@ export function CustomizedPosterGuide() {
               </div>
               <div className="dpg-shot-content">
                 <img
-                  src="/images/guide/party-logos-emblems.png"
+                  src="/images/guide/party-logos-emblems.jpg"
                   alt="Party Logos and Emblems Selection - Drag & Drop Support"
                   className="dpg-shot-img"
                   loading="lazy"
