@@ -2168,6 +2168,10 @@
   letter-spacing: 0.04em !important;
 }
 
+.detail-prompt-block {
+  margin-top: 22px;
+}
+
 .detail-prompt-text {
   padding: 18px 20px !important;
   border: 1.5px solid #e5e7eb !important;
@@ -2177,6 +2181,7 @@
   font-size: 13.5px !important;
   line-height: 1.7 !important;
   word-break: break-word !important;
+  white-space: pre-wrap !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02) !important;
 }
 

@@ -3463,6 +3463,7 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
               )}
             </div>
             <h1>{prompt.title}</h1>
+            {prompt.description && <p className="detail-description">{prompt.description}</p>}
 
             {/* Prompt Customization Studio Card */}
             <div className="prompt-customizer-card" ref={customizerRef}>
@@ -3725,6 +3726,14 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
                   ✨ Customizations are applied automatically when you copy
                 </span>
               </div>
+            </div>
+
+            {/* Display the Prompt for all Blogger / Prompt Pages */}
+            <div className="detail-prompt-block">
+              <div className="detail-prompt-label">
+                THE PROMPT <span>READY TO COPY</span>
+              </div>
+              <div className="detail-prompt-text">{effectivePrompt}</div>
             </div>
 
             <div className="detail-action-buttons">
