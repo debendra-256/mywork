@@ -1,0 +1,581 @@
+/* ==========================================================================
+   IMGMOJO SCREEN RECORDER — FULL CONTENT STYLES
+   AdSense Compliant · High-Value Content · Dynamic Theming
+   ========================================================================== */
+
+.screen-recorder-page {
+  --sr-brand: var(--brand, #7c3aed);
+  --sr-brand-dark: var(--brand-dark, #5f24c9);
+  --sr-brand-glow: var(--brand-glow, rgba(124, 58, 237, 0.25));
+  --sr-brand-soft: var(--brand-soft, #f1eafe);
+  --sr-brand-softer: var(--brand-softer, #f8f4ff);
+  --sr-brand-line: var(--brand-line, #ded0f9);
+  --sr-accent: var(--accent, #a855f7);
+  --sr-accent-2: var(--accent-2, #4f46e5);
+  --sr-ink: var(--ink, #1d1a2b);
+  --sr-muted: var(--muted, #77708c);
+  --sr-line: var(--line, #e9e4f5);
+  --sr-paper: var(--paper, #ffffff);
+  --sr-surface: var(--surface, #faf8fe);
+  --sr-subtle: var(--canvas, #f5f3fb);
+  --sr-shadow: var(--shadow, 0 8px 24px rgba(0, 0, 0, 0.08));
+
+  width: 100%;
+  color: var(--sr-ink);
+  padding: 12px 20px 80px;
+}
+
+.sr-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ==========================================================================
+   1 & 2. HERO HEADER & SHORT INTRODUCTION
+   ========================================================================== */
+.sr-hero-header {
+  text-align: center;
+  max-width: 1150px;
+  margin: 0 auto 12px;
+}
+
+.sr-hero-title {
+  font-size: clamp(24px, 3vw, 32px);
+  font-weight: 800;
+  color: var(--sr-ink);
+  line-height: 1.2;
+  margin: 0 0 6px;
+  letter-spacing: -0.5px;
+}
+
+.sr-hero-title .sr-gradient-word {
+  background: linear-gradient(135deg, var(--sr-brand), var(--sr-accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.sr-hero-intro {
+  font-size: 13.5px;
+  color: var(--sr-muted);
+  line-height: 1.4;
+  margin: 0 auto;
+  max-width: 1100px;
+}
+
+.sr-pills-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.sr-pill-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--sr-surface);
+  border: 1px solid var(--sr-line);
+  color: var(--sr-ink);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 999px;
+}
+
+.sr-pill-tag svg {
+  color: var(--sr-brand);
+}
+
+/* ==========================================================================
+   3. SCREEN RECORDING APPLICATION WRAPPER
+   ========================================================================== */
+.sr-app-wrapper {
+  background: var(--sr-paper);
+  border: 1.5px solid var(--sr-brand-line);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 12px 36px var(--sr-brand-glow);
+  margin-bottom: 48px;
+}
+
+/* ==========================================================================
+   COMMON CONTENT SECTION STYLES
+   ========================================================================== */
+.sr-section {
+  background: var(--sr-paper);
+  border: 1px solid var(--sr-line);
+  border-radius: 20px;
+  padding: 36px 36px;
+  margin-bottom: 32px;
+  box-shadow: var(--sr-shadow);
+}
+
+.sr-section-head {
+  text-align: center;
+  max-width: 760px;
+  margin: 0 auto 32px;
+}
+
+.sr-section-kicker {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: var(--sr-brand-dark);
+  background: var(--sr-brand-soft);
+  padding: 4px 12px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.sr-section-head h2 {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--sr-ink);
+  margin: 0 0 8px;
+  letter-spacing: -0.3px;
+}
+
+.sr-section-head p {
+  font-size: 14.5px;
+  color: var(--sr-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   4. HOW TO USE THE SCREEN RECORDER
+   ========================================================================== */
+.sr-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.sr-step-card {
+  background: var(--sr-surface);
+  border: 1px solid var(--sr-line);
+  border-radius: 14px;
+  padding: 24px 20px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.sr-step-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--sr-brand);
+  box-shadow: 0 8px 24px var(--sr-brand-glow);
+}
+
+.sr-step-num {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--sr-brand);
+  background: var(--sr-brand-soft);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.sr-step-card h3 {
+  font-size: 16px;
+  font-weight: 750;
+  color: var(--sr-ink);
+  margin: 0 0 8px;
+}
+
+.sr-step-card p {
+  font-size: 13px;
+  color: var(--sr-muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* ==========================================================================
+   5. WHAT CAN YOU RECORD?
+   ========================================================================== */
+.sr-usecases-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.sr-usecase-card {
+  background: var(--sr-surface);
+  border: 1px solid var(--sr-line);
+  border-radius: 14px;
+  padding: 24px;
+  transition: all 0.2s ease;
+}
+
+.sr-usecase-card:hover {
+  border-color: var(--sr-brand);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px var(--sr-brand-glow);
+}
+
+.sr-usecase-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--sr-brand-soft);
+  color: var(--sr-brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.sr-usecase-card h3 {
+  font-size: 16px;
+  font-weight: 750;
+  color: var(--sr-ink);
+  margin: 0 0 8px;
+}
+
+.sr-usecase-card p {
+  font-size: 13.5px;
+  color: var(--sr-muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* ==========================================================================
+   6. BROWSER COMPATIBILITY
+   ========================================================================== */
+.sr-compat-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--sr-line);
+  border-radius: 14px;
+  margin-bottom: 24px;
+}
+
+.sr-compat-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13.5px;
+}
+
+.sr-compat-table th {
+  background: var(--sr-surface);
+  color: var(--sr-ink);
+  font-weight: 750;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--sr-line);
+}
+
+.sr-compat-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--sr-line);
+  color: var(--sr-muted);
+}
+
+.sr-compat-table tr:last-child td {
+  border-bottom: none;
+}
+
+.sr-compat-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.sr-compat-status.supported {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.sr-compat-status.limited {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.sr-compat-note {
+  background: var(--sr-surface);
+  border-left: 4px solid var(--sr-brand);
+  padding: 14px 18px;
+  border-radius: 0 10px 10px 0;
+  font-size: 13px;
+  color: var(--sr-muted);
+  line-height: 1.55;
+}
+
+.sr-compat-note strong {
+  color: var(--sr-ink);
+}
+
+/* ==========================================================================
+   7. HOW SCREEN RECORDING WORKS (TECHNICAL EDUCATION)
+   ========================================================================== */
+.sr-tech-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.sr-tech-card {
+  background: var(--sr-surface);
+  border: 1px solid var(--sr-line);
+  border-radius: 14px;
+  padding: 24px;
+}
+
+.sr-tech-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.sr-tech-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: var(--sr-brand-soft);
+  color: var(--sr-brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sr-tech-head h3 {
+  font-size: 16px;
+  font-weight: 750;
+  color: var(--sr-ink);
+  margin: 0;
+}
+
+.sr-tech-card p {
+  font-size: 13.5px;
+  color: var(--sr-muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ==========================================================================
+   8. PRIVACY AND SECURITY
+   ========================================================================== */
+.sr-privacy-card {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.sr-privacy-icon-box {
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+  background: var(--sr-brand-soft);
+  color: var(--sr-brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sr-privacy-info h3 {
+  font-size: 20px;
+  font-weight: 750;
+  color: var(--sr-ink);
+  margin: 0 0 10px;
+}
+
+.sr-privacy-info p {
+  font-size: 14px;
+  color: var(--sr-muted);
+  line-height: 1.6;
+  margin: 0 0 18px;
+}
+
+.sr-privacy-bullets {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.sr-privacy-item {
+  background: var(--sr-surface);
+  border: 1px solid var(--sr-line);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.sr-privacy-item strong {
+  display: block;
+  font-size: 13.5px;
+  color: var(--sr-ink);
+  margin-bottom: 4px;
+}
+
+.sr-privacy-item span {
+  font-size: 12.5px;
+  color: var(--sr-muted);
+  line-height: 1.45;
+}
+
+/* ==========================================================================
+   9. FREQUENTLY ASKED QUESTIONS
+   ========================================================================== */
+.sr-faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sr-faq-item {
+  background: var(--sr-surface);
+  border: 1px solid var(--sr-line);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color 0.18s ease;
+}
+
+.sr-faq-item[open] {
+  border-color: var(--sr-brand-line);
+}
+
+.sr-faq-question {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--sr-ink);
+  cursor: pointer;
+  list-style: none;
+}
+
+.sr-faq-question::-webkit-details-marker {
+  display: none;
+}
+
+.sr-faq-arrow {
+  color: var(--sr-muted);
+  transition: transform 0.2s ease;
+}
+
+.sr-faq-item[open] .sr-faq-arrow {
+  transform: rotate(180deg);
+  color: var(--sr-brand);
+}
+
+.sr-faq-answer {
+  padding: 0 22px 18px;
+  font-size: 14px;
+  color: var(--sr-muted);
+  line-height: 1.65;
+}
+
+.sr-faq-answer p {
+  margin: 0;
+}
+
+/* ==========================================================================
+   10. EXPLORE MORE VIDEO TOOLS
+   ========================================================================== */
+.sr-tools-nav-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.sr-tool-nav-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: var(--sr-surface);
+  border: 1px solid var(--sr-line);
+  border-radius: 14px;
+  padding: 22px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.sr-tool-nav-card:hover {
+  border-color: var(--sr-brand);
+  background: var(--sr-brand-softer);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px var(--sr-brand-glow);
+}
+
+.sr-tool-nav-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--sr-brand-soft);
+  color: var(--sr-brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sr-tool-nav-info h3 {
+  font-size: 15.5px;
+  font-weight: 750;
+  color: var(--sr-ink);
+  margin: 0 0 4px;
+}
+
+.sr-tool-nav-info p {
+  font-size: 12.5px;
+  color: var(--sr-muted);
+  margin: 0 0 8px;
+  line-height: 1.45;
+}
+
+.sr-tool-nav-link {
+  font-size: 12px;
+  font-weight: 750;
+  color: var(--sr-brand);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ==========================================================================
+   RESPONSIVE BREAKPOINTS
+   ========================================================================== */
+@media (max-width: 960px) {
+  .sr-steps-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .sr-usecases-grid,
+  .sr-tools-nav-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sr-tech-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sr-privacy-card {
+    flex-direction: column;
+  }
+
+  .sr-privacy-bullets {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .sr-steps-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sr-section {
+    padding: 24px 20px;
+  }
+}
