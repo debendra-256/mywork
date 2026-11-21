@@ -1,8 +1,31 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Download, Droplets, Eraser, Film, ImagePlus, LoaderCircle, Paintbrush, Plus, RotateCcw, Scan, ShieldCheck, Square, Trash2, Undo2, Upload, Wand2, X } from 'lucide-react'
+import { ChevronDown, Download, Droplets, Eraser, Film, ImagePlus, LoaderCircle, Paintbrush, Plus, RotateCcw, Scan, ShieldCheck, Square, Trash2, Undo2, Upload, Wand2, X } from 'lucide-react'
 import { ENGINE_DEFAULTS } from './engine'
 import VideoWatermarkRemover from './VideoWatermarkRemover'
 import './WatermarkRemover.css'
+
+const WATERMARK_FAQS = [
+  {
+    q: 'How does client-side AI watermark removal work?',
+    a: 'ImgMojo uses advanced inpainting algorithms executed directly in your browser. When you brush over a watermark, date stamp, or unwanted object, the algorithm analyzes surrounding texture, color gradients, and edge contours to intelligently synthesize natural background pixels over the masked area.',
+  },
+  {
+    q: 'Can I remove semi-transparent or translucent watermarks?',
+    a: 'Yes. For semi-transparent logos, adjust the "Feather" and "Strength" sliders. Increasing the feather value softens the boundary between the infilled texture and the original photo, creating a seamless blend.',
+  },
+  {
+    q: 'Will removing a watermark reduce the quality of my photo?',
+    a: 'No. ImgMojo preserves your original resolution, pixel clarity, and color profile. Only the masked region where the watermark is located is reconstructed; the rest of the image remains completely untouched.',
+  },
+  {
+    q: 'Are my uploaded photos sent to remote servers?',
+    a: 'No. All image decoding, canvas mask generation, and inpainting algorithms run 100% locally on your device within your web browser. Your private photos never leave your machine.',
+  },
+  {
+    q: 'Is watermark removal legal?',
+    a: 'Watermark removal is completely legal when used on your own personal photos, content you own or have licensed, removing accidental camera date stamps, timestamps, dust spots, photobombers, or personal clutter. Please respect copyright laws and do not remove copyright notices or watermarks from creators without explicit authorization.',
+  },
+]
 
 const MAX_EDGE = 1400
 const MAX_FILE_BYTES = 25 * 1024 * 1024
@@ -39,6 +62,7 @@ function downloadName(name) {
 }
 
 export default function WatermarkRemover() {
+  const [openFaq, setOpenFaq] = useState(0)
   const [mediaType, setMediaType] = useState('photo')
   const [pendingVideo, setPendingVideo] = useState(null)
   const [image, setImage] = useState(null)
@@ -848,5 +872,72 @@ export default function WatermarkRemover() {
       </aside>
     </div>
     )}
+
+    {/* EDITORIAL, INPAINTING GUIDE & FAQS */}
+    <div className="wm-editorial-wrap">
+      <div className="wm-editorial-hero">
+        <span className="wm-editorial-badge">
+          <ShieldCheck size={14} />
+          <span>Intelligent Inpainting Guide</span>
+        </span>
+        <h2>How to Remove Watermarks, Logos &amp; Objects Online</h2>
+        <p>
+          ImgMojo combines browser-accelerated canvas masking with advanced texture synthesis to clean up photos. 
+          Erase unwanted stamps, text captions, tourist photobombers, wires, and sensor dust spots with 
+          100% private in-browser image processing.
+        </p>
+      </div>
+
+      <div className="wm-steps-grid">
+        <div className="wm-step-card">
+          <h3>1. Brush or Select</h3>
+          <p>
+            Use the smart rectangle tool to draw a quick boundary over corner watermarks, or select the brush tool to carefully paint over freeform shapes, date stamps, or background clutter.
+          </p>
+        </div>
+        <div className="wm-step-card">
+          <h3>2. Tune Texture &amp; Feathering</h3>
+          <p>
+            Adjust the feather slider to soften mask boundaries and configure strength for translucent logos. The inpainting engine analyzes neighboring gradients for seamless blending.
+          </p>
+        </div>
+        <div className="wm-step-card">
+          <h3>3. Export at Full Quality</h3>
+          <p>
+            Preview the reconstructed photo and export as a clean, high-resolution PNG. Original dimensions and transparency are fully preserved with zero forced watermarks.
+          </p>
+        </div>
+      </div>
+
+      <div className="wm-faq-section">
+        <div className="wm-faq-header">
+          <h3>Frequently Asked Questions</h3>
+          <p>Everything you need to know about watermark removal and ethical usage.</p>
+        </div>
+        <div className="wm-faq-list">
+          {WATERMARK_FAQS.map((faq, idx) => {
+            const isOpen = openFaq === idx
+            return (
+              <div key={faq.q} className={`wm-faq-item ${isOpen ? 'is-open' : ''}`}>
+                <button
+                  type="button"
+                  className="wm-faq-question"
+                  onClick={() => setOpenFaq(isOpen ? -1 : idx)}
+                  aria-expanded={isOpen}
+                >
+                  <span>{faq.q}</span>
+                  <ChevronDown size={18} className="wm-faq-chevron" />
+                </button>
+                {isOpen && (
+                  <div className="wm-faq-answer">
+                    <p>{faq.a}</p>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
   </section>
 }

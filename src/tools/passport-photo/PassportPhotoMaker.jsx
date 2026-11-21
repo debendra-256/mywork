@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowRight, Check, Crop, Download, FileText, FlipHorizontal2, Frame, Grid3x3, ImagePlus, LoaderCircle, Maximize2, Palette, Printer, RotateCcw, RotateCw, Ruler, ScanFace, Scissors, Shirt, SlidersHorizontal, Sparkles, Trash2, Upload, Wand2, X, ZoomIn, ZoomOut } from 'lucide-react'
+import { ArrowRight, Check, ChevronDown, Crop, Download, FileText, FlipHorizontal2, Frame, Grid3x3, ImagePlus, LoaderCircle, Maximize2, Palette, Printer, RotateCcw, RotateCw, Ruler, ScanFace, Scissors, ShieldCheck, Shirt, SlidersHorizontal, Sparkles, Trash2, Upload, Wand2, X, ZoomIn, ZoomOut } from 'lucide-react'
 import { preparePhotoFile, removePhotoBackground } from '../poster/template-studio/photo'
 import { backgrounds, customPreset, dpiOptions, framePixels, mmToUnit, paperById, papers, passportSizes, sizeById, sizeRegions, sizeUnits, unitToMm } from './sizes'
 import { defaultGarmentColors, drawGarment, garmentById, garmentGroups, garmentSwatches, garments, uploadedGarment } from './garments'
@@ -75,7 +75,35 @@ function GarmentThumb({ garment, colors, active }) {
   return <canvas className="pp-garment-thumb" ref={ref} aria-hidden="true" />
 }
 
+const PASSPORT_FAQS = [
+  {
+    q: 'What are the standard passport photo sizes for different countries?',
+    a: 'The United States requires 2x2 inches (51x51mm). India, the United Kingdom, Europe (Schengen countries), and Australia require 35x45mm. Canada requires 50x70mm, and China requires 33x48mm. ImgMojo includes built-in presets for over 80+ countries.',
+  },
+  {
+    q: 'What background color should I use for a passport photo?',
+    a: 'Most countries, including the United States, United Kingdom, and Schengen nations, strictly mandate a plain white or off-white background with no shadows, patterns, or objects. Some visa types (e.g. Philippines) accept light blue or grey. ImgMojo allows 1-click automatic background removal and solid color replacement.',
+  },
+  {
+    q: 'Can I wear glasses or head coverings in my passport photo?',
+    a: 'Eyeglasses are not permitted in US passport photos and most modern biometric passports to avoid flash reflection. Religious head coverings are allowed provided the full face from bottom of chin to top of forehead and both facial edges are clearly visible.',
+  },
+  {
+    q: 'How should I position my face during capture?',
+    a: 'Look directly into the camera with a neutral facial expression, mouth closed, and eyes open. Use our built-in biometric guide lines to ensure your head occupies between 70% to 80% of the total frame height.',
+  },
+  {
+    q: 'How do I print the passport photo sheet at home?',
+    a: 'Export the printable sheet (4x6 inch / A4). When printing on photo paper, set your printer scale to 100% or "Actual Size" (never select "Fit to Page"). This ensures the exported millimeter dimensions match official government requirements exactly.',
+  },
+  {
+    q: 'Are my uploaded portrait photos stored or shared?',
+    a: 'Never. ImgMojo processes your portraits and face alignments completely client-side in your browser. No images are uploaded to any external server or saved in any database.',
+  },
+]
+
 export default function PassportPhotoMaker() {
+  const [openFaq, setOpenFaq] = useState(0)
   const [stage, setStage] = useState(1)
   const [presetId, setPresetId] = useState('35x45')
   const [region, setRegion] = useState('popular')
@@ -644,6 +672,136 @@ export default function PassportPhotoMaker() {
           <button type="button" className="pp-ghost" disabled={stage === 1} onClick={() => setStage((s) => Math.max(1, s - 1))}>Back</button>
           <span className="pp-nav-count">Stage {stage} of 5</span>
           <button type="button" className="pp-primary small" disabled={stage === 5} onClick={() => setStage((s) => Math.min(5, s + 1))}>Next <ArrowRight size={14} /></button>
+        </div>
+      </div>
+    </div>
+
+    {/* EDITORIAL, BIOMETRIC SPECIFICATIONS & FAQS SECTION */}
+    <div className="pp-editorial-wrap">
+      <div className="pp-editorial-hero">
+        <span className="pp-editorial-badge">
+          <ShieldCheck size={14} />
+          <span>Biometric Standards Guide</span>
+        </span>
+        <h2>How to Make Official Biometric Passport Photos Online</h2>
+        <p>
+          Creating an official passport, visa, or national identity photo at home is simple with ImgMojo. 
+          Follow government biometric guidelines, auto-remove your room background, adjust formal attire, 
+          and generate print-ready sheets at exact physical millimeter dimensions.
+        </p>
+      </div>
+
+      {/* 3 Core Rules */}
+      <div className="pp-rules-grid">
+        <div className="pp-rule-card">
+          <h3>1. Head Position &amp; Facial Expression</h3>
+          <p>
+            Face the camera directly with both ears visible, shoulders straight, and head centered. 
+            Maintain a neutral expression with eyes wide open and mouth gently closed (no teeth showing).
+          </p>
+        </div>
+        <div className="pp-rule-card">
+          <h3>2. Lighting &amp; Shadows</h3>
+          <p>
+            Use uniform, balanced front lighting to eliminate facial shadows across the nose and cheeks. 
+            Avoid flash bounce or reflections on skin. Use natural window daylight when possible.
+          </p>
+        </div>
+        <div className="pp-rule-card">
+          <h3>3. Eyewear &amp; Head Coverings</h3>
+          <p>
+            Remove eyeglasses, tinted lenses, and headphones. Religious head coverings are accepted provided 
+            they do not cast shadows or obscure facial borders from chin to forehead.
+          </p>
+        </div>
+      </div>
+
+      {/* Country Size Specs Table */}
+      <div className="pp-specs-section">
+        <div className="pp-specs-header">
+          <h3>Official Passport &amp; Visa Photo Sizes by Country</h3>
+          <p>Verify your destination country’s exact dimensions before exporting.</p>
+        </div>
+        <div className="pp-specs-table-wrap">
+          <table className="pp-specs-table">
+            <thead>
+              <tr>
+                <th>Country / Region</th>
+                <th>Dimensions (mm / inches)</th>
+                <th>Head Height Ratio</th>
+                <th>Required Background</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>United States (Passport &amp; Visa)</strong></td>
+                <td>2 &times; 2 in (51 &times; 51 mm)</td>
+                <td>50% – 69% (1 to 1 3/8 in)</td>
+                <td>Plain White / Off-White</td>
+              </tr>
+              <tr>
+                <td><strong>India (Passport &amp; OCI)</strong></td>
+                <td>35 &times; 45 mm (or 51 &times; 51 mm)</td>
+                <td>70% – 80% (31 – 36 mm)</td>
+                <td>Plain White or Light Cream</td>
+              </tr>
+              <tr>
+                <td><strong>United Kingdom (HM Passport)</strong></td>
+                <td>35 &times; 45 mm</td>
+                <td>29 – 34 mm head size</td>
+                <td>Light Grey or Plain Cream</td>
+              </tr>
+              <tr>
+                <td><strong>Schengen Area (EU Visas)</strong></td>
+                <td>35 &times; 45 mm</td>
+                <td>70% – 80% (32 – 36 mm)</td>
+                <td>Plain Light Grey / White</td>
+              </tr>
+              <tr>
+                <td><strong>Canada (Passport &amp; PR)</strong></td>
+                <td>50 &times; 70 mm</td>
+                <td>31 – 36 mm chin to crown</td>
+                <td>Pure Plain White</td>
+              </tr>
+              <tr>
+                <td><strong>Australia (Passport)</strong></td>
+                <td>35 &times; 45 mm</td>
+                <td>32 – 36 mm chin to crown</td>
+                <td>Plain White or Light Grey</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* FAQs Section */}
+      <div className="pp-faq-section">
+        <div className="pp-faq-header">
+          <h3>Frequently Asked Questions</h3>
+          <p>Common questions about biometric requirements, sizing, and printing.</p>
+        </div>
+        <div className="pp-faq-list">
+          {PASSPORT_FAQS.map((faq, idx) => {
+            const isOpen = openFaq === idx
+            return (
+              <div key={faq.q} className={`pp-faq-item ${isOpen ? 'is-open' : ''}`}>
+                <button
+                  type="button"
+                  className="pp-faq-question"
+                  onClick={() => setOpenFaq(isOpen ? -1 : idx)}
+                  aria-expanded={isOpen}
+                >
+                  <span>{faq.q}</span>
+                  <ChevronDown size={18} className="pp-faq-chevron" />
+                </button>
+                {isOpen && (
+                  <div className="pp-faq-answer">
+                    <p>{faq.a}</p>
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>
