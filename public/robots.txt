@@ -1,4 +1,7 @@
 User-agent: *
 Allow: /
 
+Sitemap: https://www.imgmojo.com/sitemap.xml
 Sitemap: https://imgmojo.com/sitemap.xml
+Sitemap: https://www.imgmojo.com/sitemap.xml.gz
+Sitemap: https://imgmojo.com/sitemap.xml.gz

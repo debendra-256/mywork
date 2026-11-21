@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import zlib from 'node:zlib'
 import { fileURLToPath } from 'node:url'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -26,31 +27,31 @@ function escapeXml(unsafe = '') {
 
 // 1. Core Tool and Information Pages
 const STATIC_ROUTES = [
-  { path: '/', priority: '1.0', changefreq: 'daily', title: 'ImgMojo – Free Online Image, Video & PDF Tools' },
-  { path: '/Recorder', priority: '0.9', changefreq: 'weekly', title: 'Free Online Screen Recorder' },
-  { path: '/screen-recorder', priority: '0.8', changefreq: 'weekly', title: 'Screen Recorder Online' },
-  { path: '/qr-code', priority: '0.9', changefreq: 'weekly', title: 'Free QR Code Generator Online' },
-  { path: '/compress-image', priority: '0.9', changefreq: 'weekly', title: 'Compress Image Online' },
-  { path: '/image-resizer', priority: '0.9', changefreq: 'weekly', title: 'Image Resizer Online' },
-  { path: '/image-converter', priority: '0.9', changefreq: 'weekly', title: 'Image Converter Online' },
-  { path: '/image-cropper', priority: '0.8', changefreq: 'weekly', title: 'Image Cropper Online' },
-  { path: '/passport-photo', priority: '0.9', changefreq: 'weekly', title: 'Passport Photo Maker Online' },
-  { path: '/watermark-remover', priority: '0.8', changefreq: 'weekly', title: 'Watermark Remover Online' },
-  { path: '/remove-object', priority: '0.8', changefreq: 'weekly', title: 'Remove Object from Image Online' },
-  { path: '/collage', priority: '0.8', changefreq: 'weekly', title: 'Photo and Video Collage Studio' },
-  { path: '/shorts', priority: '0.8', changefreq: 'weekly', title: 'YouTube Video to Shorts & Reels Maker' },
-  { path: '/poster', priority: '0.8', changefreq: 'weekly', title: 'Create Poster Online' },
-  { path: '/fakechat', priority: '0.7', changefreq: 'weekly', title: 'FakeChat Generator Online' },
-  { path: '/get-emoji', priority: '0.7', changefreq: 'weekly', title: 'GetEmoji – Copy and Paste Emojis' },
-  { path: '/emoji-text', priority: '0.7', changefreq: 'weekly', title: 'Emoji Text Generator' },
-  { path: '/mindcloud', priority: '0.7', changefreq: 'weekly', title: 'Mind Cloud Mind Mapping Tool' },
-  { path: '/prompt-generator', priority: '0.8', changefreq: 'weekly', title: 'AI Prompt Generator Studio' },
-  { path: '/store', priority: '0.8', changefreq: 'daily', title: 'ImgMojo Digital Store' },
-  { path: '/Globalsearch', priority: '0.6', changefreq: 'weekly', title: 'Search Prompts & Tools' },
-  { path: '/about', priority: '0.5', changefreq: 'monthly', title: 'About Us' },
-  { path: '/privacy', priority: '0.5', changefreq: 'monthly', title: 'Privacy Policy' },
-  { path: '/terms', priority: '0.5', changefreq: 'monthly', title: 'Terms of Service' },
-  { path: '/contact', priority: '0.5', changefreq: 'monthly', title: 'Contact Us' },
+  { path: '/', title: 'ImgMojo – Free Online Image, Video & PDF Tools' },
+  { path: '/Recorder', title: 'Free Online Screen Recorder' },
+  { path: '/screen-recorder', title: 'Screen Recorder Online' },
+  { path: '/qr-code', title: 'Free QR Code Generator Online' },
+  { path: '/compress-image', title: 'Compress Image Online' },
+  { path: '/image-resizer', title: 'Image Resizer Online' },
+  { path: '/image-converter', title: 'Image Converter Online' },
+  { path: '/image-cropper', title: 'Image Cropper Online' },
+  { path: '/passport-photo', title: 'Passport Photo Maker Online' },
+  { path: '/watermark-remover', title: 'Watermark Remover Online' },
+  { path: '/remove-object', title: 'Remove Object from Image Online' },
+  { path: '/collage', title: 'Photo and Video Collage Studio' },
+  { path: '/shorts', title: 'YouTube Video to Shorts & Reels Maker' },
+  { path: '/poster', title: 'Create Poster Online' },
+  { path: '/fakechat', title: 'FakeChat Generator Online' },
+  { path: '/get-emoji', title: 'GetEmoji – Copy and Paste Emojis' },
+  { path: '/emoji-text', title: 'Emoji Text Generator' },
+  { path: '/mindcloud', title: 'Mind Cloud Mind Mapping Tool' },
+  { path: '/prompt-generator', title: 'AI Prompt Generator Studio' },
+  { path: '/store', title: 'ImgMojo Digital Store' },
+  { path: '/Globalsearch', title: 'Search Prompts & Tools' },
+  { path: '/about', title: 'About Us' },
+  { path: '/privacy', title: 'Privacy Policy' },
+  { path: '/terms', title: 'Terms of Service' },
+  { path: '/contact', title: 'Contact Us' },
 ]
 
 // 2. Extract Catalog Prompts from local files
@@ -139,21 +140,21 @@ async function fetchBloggerPosts() {
 }
 
 export async function generateSitemap() {
-  console.log('[sitemap] Generating sitemap.xml for ImgMojo...')
+  console.log('[sitemap] Generating sitemap.xml and sitemap.xml.gz for ImgMojo...')
   const today = formatDate()
   const urlEntries = []
   const seenUrls = new Set()
 
-  function addUrl(loc, lastmod = today, changefreq = 'weekly', priority = '0.7', image = null, title = '') {
+  function addUrl(loc, lastmod = today, image = null, title = '') {
     const cleanLoc = loc.trim()
     if (seenUrls.has(cleanLoc.toLowerCase())) return
     seenUrls.add(cleanLoc.toLowerCase())
 
     let xml = '  <url>\n'
     xml += `    <loc>${escapeXml(cleanLoc)}</loc>\n`
-    xml += `    <lastmod>${escapeXml(lastmod)}</lastmod>\n`
-    xml += `    <changefreq>${escapeXml(changefreq)}</changefreq>\n`
-    xml += `    <priority>${escapeXml(priority)}</priority>\n`
+    if (lastmod) {
+      xml += `    <lastmod>${escapeXml(lastmod)}</lastmod>\n`
+    }
 
     if (image) {
       xml += '    <image:image>\n'
@@ -168,7 +169,7 @@ export async function generateSitemap() {
 
   // 1. Add Static Routes
   for (const route of STATIC_ROUTES) {
-    addUrl(`${BASE_URL}${route.path}`, today, route.changefreq, route.priority)
+    addUrl(`${BASE_URL}${route.path}`, today, null, route.title)
   }
 
   // 2. Fetch Live Blogger Posts
@@ -179,8 +180,6 @@ export async function generateSitemap() {
     addUrl(
       `${BASE_URL}/prompt/${post.slug}`,
       post.lastmod || today,
-      'weekly',
-      '0.8',
       post.image,
       post.title
     )
@@ -194,14 +193,12 @@ export async function generateSitemap() {
     addUrl(
       `${BASE_URL}/prompt/${p.slug}.html`,
       p.lastmod || today,
-      'weekly',
-      '0.8',
       null,
       p.title
     )
   }
 
-  // 4. Construct Full XML
+  // 4. Construct Full XML (clean, standard-compliant without ignored tags)
   const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
@@ -209,16 +206,23 @@ ${urlEntries.join('\n')}
 </urlset>
 `
 
-  // 5. Write to public/sitemap.xml and dist/sitemap.xml
-  const publicPath = path.join(ROOT_DIR, 'public', 'sitemap.xml')
-  fs.writeFileSync(publicPath, sitemapXml, 'utf8')
-  console.log(`[sitemap] Successfully wrote ${urlEntries.length} URLs to ${publicPath}`)
+  // 5. Write to public/sitemap.xml and public/sitemap.xml.gz
+  const publicXmlPath = path.join(ROOT_DIR, 'public', 'sitemap.xml')
+  fs.writeFileSync(publicXmlPath, sitemapXml, 'utf8')
+  console.log(`[sitemap] Successfully wrote ${urlEntries.length} URLs to ${publicXmlPath}`)
+
+  const gzipBuffer = zlib.gzipSync(Buffer.from(sitemapXml, 'utf-8'), { level: 9 })
+  const publicGzPath = path.join(ROOT_DIR, 'public', 'sitemap.xml.gz')
+  fs.writeFileSync(publicGzPath, gzipBuffer)
+  console.log(`[sitemap] Successfully wrote compressed sitemap to ${publicGzPath}`)
 
   const distDir = path.join(ROOT_DIR, 'dist')
   if (fs.existsSync(distDir)) {
-    const distPath = path.join(distDir, 'sitemap.xml')
-    fs.writeFileSync(distPath, sitemapXml, 'utf8')
-    console.log(`[sitemap] Mirrored sitemap to ${distPath}`)
+    const distXmlPath = path.join(distDir, 'sitemap.xml')
+    fs.writeFileSync(distXmlPath, sitemapXml, 'utf8')
+    const distGzPath = path.join(distDir, 'sitemap.xml.gz')
+    fs.writeFileSync(distGzPath, gzipBuffer)
+    console.log(`[sitemap] Mirrored sitemap.xml and sitemap.xml.gz to dist/`)
   }
 
   return urlEntries.length
