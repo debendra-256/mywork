@@ -1,154 +1,204 @@
 import { useState, useRef, useEffect, useCallback, type ChangeEvent, type DragEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import {
   Upload,
-  Download,
   Trash2,
   Plus,
-  RotateCcw,
-  Maximize2,
-  Crop,
   RotateCw,
-  FlipHorizontal,
-  SlidersHorizontal,
-  Undo2,
-  Redo2,
-  ScanLine,
-  Monitor,
-  LayoutGrid,
-  Layers,
-  ShieldCheck,
-  FolderArchive,
+  Crop,
+  X,
+  Lock,
   ChevronDown,
   ArrowRight,
-  Clock3,
-  Lock,
   Check,
+  FolderArchive,
+  SlidersHorizontal,
+  Maximize2,
+  Globe,
+  Store,
+  Mail,
+  Sparkles,
+  ShieldCheck,
+  Layers,
+  Wand2,
+  FileText,
+  Zap,
 } from 'lucide-react'
-import type { ResizedItem, ResizeSettings, DimensionPreset } from './types'
+
+function CameraIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+      <circle cx="12" cy="13" r="3" />
+    </svg>
+  )
+}
+
+function PrinterIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="6 9 6 2 18 2 18 9" />
+      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+      <rect width="12" height="8" x="6" y="14" />
+    </svg>
+  )
+}
+
+function HelpIcon({ size = 14, color = 'currentColor' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  )
+}
+
+function LinkIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </svg>
+  )
+}
+import type {
+  ResizedItem,
+  ResizeSettings,
+  DimensionUnit,
+  DpiOption,
+  SocialPlatform,
+  OutputFormat,
+  TargetSizeUnit,
+  CropRect,
+} from './types'
 import {
   formatBytes,
   getFileExtension,
   loadImageDimensions,
+  calculateTargetDimensions,
+  convertUnitToPx,
+  convertPxToUnit,
   resizeSingleImage,
   downloadSingleFile,
   createAndDownloadZip,
+  SOCIAL_PRESETS,
 } from './resizeEngine'
 import './ImageResizer.css'
 
-interface HistoryEntry {
-  width: number
-  height: number
-  percentage: number
-  rotation: number
-  flipH: boolean
-}
-
-const POPULAR_PRESETS: DimensionPreset[] = [
-  { id: 'insta-square', name: 'Instagram Square', width: 1080, height: 1080, tag: '1080 × 1080 (1:1)' },
-  { id: 'insta-portrait', name: 'Instagram Portrait', width: 1080, height: 1350, tag: '1080 × 1350 (4:5)' },
-  { id: 'tiktok-story', name: 'Story / Reel / TikTok', width: 1080, height: 1920, tag: '1080 × 1920 (9:16)' },
-  { id: 'yt-thumb', name: 'YouTube Thumbnail', width: 1280, height: 720, tag: '1280 × 720 (16:9)' },
-  { id: 'full-hd', name: 'Full HD Wallpaper', width: 1920, height: 1080, tag: '1920 × 1080 (1080p)' },
-  { id: 'web-banner', name: 'Website Hero / Banner', width: 1920, height: 600, tag: '1920 × 600 (~3:1)' },
-]
-
 const RESIZER_FAQS = [
-  {
-    question: 'How do I resize an image using the interactive handles?',
-    answer:
-      'Upload an image to the canvas studio. Eight interactive handles appear on the dashed bounding box (4 corners and 4 edge centers). Click and drag any handle to scale width and height dynamically. The image itself smoothly resizes on the canvas in real time.',
-  },
-  {
-    question: 'How does the color adapt to the applied site theme?',
-    answer:
-      'The resizer workbench directly inherits ImgMojo’s active design tokens (Premium Purple, Dark Neon, Ocean Cyan, and Sunset Gradient). The handles, dashed bounding box, preset highlights, banner glow, and action buttons dynamically match your selected theme.',
-  },
   {
     question: 'What is the difference between image resizing and image compression?',
     answer:
-      'Resizing alters the actual pixel dimensions (width and height in pixels), directly changing how large the photo renders. Compression reduces file size (in KB or MB) by optimizing image encoding and stripping redundant metadata without necessarily changing dimensions.',
+      'Resizing directly changes the physical pixel dimensions (width and height in pixels, inches, or centimeters) of an image, altering how large or small it renders on screens and in print. Compression, on the other hand, reduces the file size (in KB or MB) by optimizing image encoding algorithms and stripping redundant metadata without necessarily changing the pixel dimensions.',
   },
   {
-    question: 'How does "Maintain Aspect Ratio" protect image proportions?',
+    question: 'Will resizing an image reduce its visual sharpness or make it blurry?',
     answer:
-      'When "Maintain Aspect Ratio" is enabled, dragging a corner handle or typing a width automatically recalculates the height proportionally, guaranteeing your image subject never appears squashed or stretched.',
+      'Downscaling (reducing dimensions from large to small) retains exceptional visual sharpness because our HTML5 canvas resampling uses high-precision multi-pass bicubic smoothing. Upscaling (enlarging a low-resolution photo beyond its native capture dimensions) must synthesize new pixels through interpolation, which can introduce slight softness if enlarged too far beyond the original.',
   },
   {
-    question: 'Are my images uploaded to any cloud server?',
+    question: 'What does "Lock Aspect Ratio" do, and should I keep it enabled?',
     answer:
-      'No. Resizing takes place 100% inside your web browser using HTML5 Canvas. Your private photos never leave your device, ensuring complete privacy, zero upload stalls, and instant performance.',
+      'Keeping "Lock Aspect Ratio" checked guarantees that when you enter a width, the height is automatically recalculated proportionally according to the original image ratio (and vice versa). This completely prevents unwanted distortion, stretching, or squishing of faces, logos, typography, and subjects.',
   },
   {
-    question: 'Can I batch resize multiple images at once?',
+    question: 'How does the DPI selector work when resizing in inches or centimeters?',
     answer:
-      'Yes! You can drop multiple JPG, PNG, and WebP images. You can fine-tune each one individually or batch-resize them with one click and download a clean ZIP archive.',
+      'DPI (Dots Per Inch) determines the density of pixels required for crisp physical paper printing. For commercial publishing, marketing flyers, and photo lab prints, 300 DPI is the universal high-definition standard. When you specify 4 × 6 inches at 300 DPI, ImgMojo calculates an exact 1200 × 1800 pixel canvas so your prints appear sharp and grain-free.',
+  },
+  {
+    question: 'How do I resize an image to a specific maximum file size (e.g. under 100 KB)?',
+    answer:
+      'Expand the "Export Settings" accordion in the sidebar and enter your maximum threshold (e.g., 100) under "Target file size" with the unit set to KB. When exporting to JPG or WebP, our engine dynamically optimizes the compression quality using iterative binary search to guarantee your file meets or undercuts your target file size.',
+  },
+  {
+    question: 'Can I batch resize multiple images at once and download a ZIP?',
+    answer:
+      'Yes! You can select or drop up to 50 images simultaneously. Every image in your queue will automatically inherit your chosen scaling dimensions, aspect ratios, or percentage adjustments. Once processed, you can download each image individually or download the complete batch packaged into an organized ZIP folder.',
+  },
+  {
+    question: 'Are there any hidden watermarks, fees, or account requirements?',
+    answer:
+      'No. ImgMojo is 100% free with no watermarks added, no account signups required, and no hidden subscriptions. All image operations execute directly on your device in your web browser sandbox.',
   },
 ]
 
 export default function ImageResizer() {
-  const navigate = useNavigate()
   const [items, setItems] = useState<ResizedItem[]>([])
-  const [activeId, setActiveId] = useState<string>('')
+  const [activeItemId, setActiveItemId] = useState<string>('')
   const [isDragging, setIsDragging] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [zipProgress, setZipProgress] = useState(0)
+  const [exportProgress, setExportProgress] = useState<number>(0)
+  const [exportCompleteModal, setExportCompleteModal] = useState(false)
+  const [processedResults, setProcessedResults] = useState<ResizedItem[]>([])
 
-  // Transformation states
-  const [rotation, setRotation] = useState<number>(0)
-  const [flipH, setFlipH] = useState<boolean>(false)
+  // Split button dropdown state
+  const [showUploadDropdown, setShowUploadDropdown] = useState(false)
 
-  // Zoom / Viewport scale
-  const [zoomLevel, setZoomLevel] = useState<number>(0.28)
+  // Filter / Sort dropdown
+  const [sortOption, setSortOption] = useState<'name-asc' | 'name-desc' | 'size-desc' | 'size-asc'>('name-asc')
+  const [showSortMenu, setShowSortMenu] = useState(false)
+
+  // Modals state
+  const [cropModalItem, setCropModalItem] = useState<ResizedItem | null>(null)
+  const [infoModalItem, setInfoModalItem] = useState<ResizedItem | null>(null)
+  const [urlModalOpen, setUrlModalOpen] = useState(false)
+  const [urlInput, setUrlInput] = useState('')
+
+  // Crop configuration state inside Crop modal
+  const [cropAspect, setCropAspect] = useState<'free' | '1:1' | '4:5' | '16:9' | '4:3'>('free')
+  const [cropCoords, setCropCoords] = useState<CropRect>({ x: 0, y: 0, width: 100, height: 100 })
+
+  // Accordion state
+  const [exportSettingsOpen, setExportSettingsOpen] = useState(true)
+
+  // Mobile sidebar drawer
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+
+  // FAQ accordion open index
+  const [openFaqIndex, setOpenFaqIndex] = useState<number>(0)
 
   // Settings
   const [settings, setSettings] = useState<ResizeSettings>({
-    mode: 'dimensions',
-    width: 150,
+    mode: 'by-size',
+    width: 200,
     height: 150,
-    percentage: 14,
+    percentage: 100,
     maintainAspectRatio: true,
+    unit: 'px',
+    dpi: 300,
+    socialPlatform: 'Facebook',
+    socialPreset: 'Profile (170 X 170)',
+    backgroundFill: {
+      enabled: false,
+      color: '#000000',
+      transparent: true,
+    },
+    targetFileSizeEnabled: false,
+    targetFileSize: undefined,
+    targetSizeUnit: 'KB',
     format: 'original',
-    quality: 92,
+    quality: 90,
     zipFolderName: 'ImgMojo-Resized-Images',
   })
 
-  // Selected preset id
-  const [activePresetId, setActivePresetId] = useState<string>('insta-square')
-
-  // Undo / Redo History
-  const [history, setHistory] = useState<HistoryEntry[]>([])
-  const [historyIdx, setHistoryIdx] = useState<number>(-1)
-
-  // Dragging handle state
-  const [dragHandle, setDragHandle] = useState<string | null>(null)
-  const [dragStart, setDragStart] = useState<{
-    x: number
-    y: number
-    initialW: number
-    initialH: number
-  }>({ x: 0, y: 0, initialW: 0, initialH: 0 })
-
   const fileInputRef = useRef<HTMLInputElement>(null)
   const addMoreRef = useRef<HTMLInputElement>(null)
-  const canvasViewportRef = useRef<HTMLDivElement>(null)
 
-  // Active item lookup
-  const activeItem = items.find((it) => it.id === activeId) || items[0]
-
-  // SEO & Title
+  // SEO
   useEffect(() => {
     document.title = 'Free Online Image Resizer – Resize JPG, PNG & WebP | ImgMojo'
     const metaDesc = document.querySelector('meta[name="description"]')
     if (metaDesc) {
       metaDesc.setAttribute(
         'content',
-        'Resize JPG, PNG and WebP images quickly online with ImgMojo. Change dimensions visually with drag handles or by percentage without losing quality. 100% free and client-side safe.'
+        'Easily resize JPG, PNG, and WebP images online for free. Set dimensions in pixels, inches, cm, or mm. Reduce file size to target KB/MB.'
       )
     }
   }, [])
 
-  // Auto-preload sample image if items is empty so the studio is immediately displayed like reference image
+  // Auto-preload sample image if items is empty so the editor is immediately visible and interactive
   useEffect(() => {
     let isCancelled = false
     const loadSample = async () => {
@@ -171,32 +221,18 @@ export default function ImageResizer() {
           originalUrl: url,
           aspectRatio: width / height,
           isProcessing: false,
+          rotation: 0,
         }
 
         setItems([initialItem])
-        setActiveId(initialItem.id)
+        setActiveItemId(initialItem.id)
 
-        // Set initial dimensions matching reference image: 150x150 (14%)
-        const initW = 150
-        const initH = 150
         setSettings((s) => ({
           ...s,
-          width: initW,
-          height: initH,
-          percentage: Math.round((initW / width) * 100),
+          width,
+          height,
+          percentage: 100,
         }))
-
-        // Push initial history entry
-        setHistory([
-          {
-            width: initW,
-            height: initH,
-            percentage: Math.round((initW / width) * 100),
-            rotation: 0,
-            flipH: false,
-          },
-        ])
-        setHistoryIdx(0)
       } catch (err) {
         console.error('Failed to preload sample', err)
       }
@@ -211,48 +247,7 @@ export default function ImageResizer() {
     }
   }, [items.length])
 
-  // Push to history helper
-  const pushHistory = useCallback(
-    (entry: HistoryEntry) => {
-      setHistory((prev) => {
-        const truncated = prev.slice(0, historyIdx + 1)
-        return [...truncated, entry]
-      })
-      setHistoryIdx((prev) => prev + 1)
-    },
-    [historyIdx]
-  )
-
-  const handleUndo = () => {
-    if (historyIdx > 0) {
-      const target = history[historyIdx - 1]
-      setSettings((s) => ({
-        ...s,
-        width: target.width,
-        height: target.height,
-        percentage: target.percentage,
-      }))
-      setRotation(target.rotation)
-      setFlipH(target.flipH)
-      setHistoryIdx((idx) => idx - 1)
-    }
-  }
-
-  const handleRedo = () => {
-    if (historyIdx < history.length - 1) {
-      const target = history[historyIdx + 1]
-      setSettings((s) => ({
-        ...s,
-        width: target.width,
-        height: target.height,
-        percentage: target.percentage,
-      }))
-      setRotation(target.rotation)
-      setFlipH(target.flipH)
-      setHistoryIdx((idx) => idx + 1)
-    }
-  }
-
+  // Handle uploaded files
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return
     const newItems: ResizedItem[] = []
@@ -273,6 +268,7 @@ export default function ImageResizer() {
           originalUrl: url,
           aspectRatio: width / height,
           isProcessing: false,
+          rotation: 0,
         })
       } catch (err) {
         console.error('Failed to load image', err)
@@ -281,28 +277,16 @@ export default function ImageResizer() {
 
     if (newItems.length > 0) {
       setItems((prev) => {
-        // filter out sample default placeholder if user uploaded real files
         const filtered = prev.filter((p) => p.id !== 'sample-portrait')
         return [...filtered, ...newItems]
       })
-      setActiveId(newItems[0].id)
-      const targetW = newItems[0].originalWidth
-      const targetH = newItems[0].originalHeight
+      setActiveItemId(newItems[0].id)
       setSettings((s) => ({
         ...s,
-        width: targetW,
-        height: targetH,
+        width: newItems[0].originalWidth,
+        height: newItems[0].originalHeight,
         percentage: 100,
       }))
-      setRotation(0)
-      setFlipH(false)
-      pushHistory({
-        width: targetW,
-        height: targetH,
-        percentage: 100,
-        rotation: 0,
-        flipH: false,
-      })
     }
   }
 
@@ -317,351 +301,296 @@ export default function ImageResizer() {
     if (e.target) e.target.value = ''
   }
 
-  const removeItem = (id: string) => {
+  // Remove single item
+  const removeItem = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
     setItems((prev) => {
       const target = prev.find((item) => item.id === id)
       if (target?.originalUrl && target.id !== 'sample-portrait') URL.revokeObjectURL(target.originalUrl)
       if (target?.resizedUrl) URL.revokeObjectURL(target.resizedUrl)
       const remaining = prev.filter((item) => item.id !== id)
-      if (activeId === id && remaining.length > 0) {
-        setActiveId(remaining[0].id)
-        setSettings((s) => ({
-          ...s,
-          width: remaining[0].originalWidth,
-          height: remaining[0].originalHeight,
-          percentage: 100,
-        }))
+      if (activeItemId === id && remaining.length > 0) {
+        setActiveItemId(remaining[0].id)
       }
       return remaining
     })
   }
 
+  // Clear all items
   const clearAll = () => {
+    if (items.length > 1 && !window.confirm('Are you sure you want to remove all images?')) {
+      return
+    }
     items.forEach((item) => {
       if (item.originalUrl && item.id !== 'sample-portrait') URL.revokeObjectURL(item.originalUrl)
       if (item.resizedUrl) URL.revokeObjectURL(item.resizedUrl)
     })
     setItems([])
-    setActiveId('')
+    setActiveItemId('')
   }
 
-  const selectActiveItem = (item: ResizedItem) => {
-    setActiveId(item.id)
-    const w = item.resizedWidth || item.originalWidth
-    const h = item.resizedHeight || item.originalHeight
-    setSettings((s) => ({
-      ...s,
-      width: w,
-      height: h,
-      percentage: Math.round((w / item.originalWidth) * 100),
-    }))
-    setRotation(0)
-    setFlipH(false)
-  }
-
-  const applyPreset = (preset: DimensionPreset) => {
-    setActivePresetId(preset.id)
-    setSettings((prev) => ({
-      ...prev,
-      mode: 'dimensions',
-      width: preset.width,
-      height: preset.height,
-      percentage: activeItem ? Math.round((preset.width / activeItem.originalWidth) * 100) : 100,
-      maintainAspectRatio: false,
-    }))
-    pushHistory({
-      width: preset.width,
-      height: preset.height,
-      percentage: activeItem ? Math.round((preset.width / activeItem.originalWidth) * 100) : 100,
-      rotation,
-      flipH,
-    })
-  }
-
-  const resetToOriginal = () => {
-    if (!activeItem) return
-    const origW = activeItem.originalWidth
-    const origH = activeItem.originalHeight
-    setSettings((s) => ({
-      ...s,
-      width: origW,
-      height: origH,
-      percentage: 100,
-    }))
-    setRotation(0)
-    setFlipH(false)
-    pushHistory({
-      width: origW,
-      height: origH,
-      percentage: 100,
-      rotation: 0,
-      flipH: false,
-    })
-  }
-
-  // Handle Dragging Logic
-  const startHandleDrag = (handle: string, e: React.PointerEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (!activeItem) return
-
-    setDragHandle(handle)
-    setDragStart({
-      x: e.clientX,
-      y: e.clientY,
-      initialW: settings.width || activeItem.originalWidth,
-      initialH: settings.height || activeItem.originalHeight,
-    })
-  }
-
-  const onPointerMove = useCallback(
-    (e: PointerEvent) => {
-      if (!dragHandle || !activeItem) return
-      const { x, y, initialW, initialH } = dragStart
-
-      // In canvas viewport, scaleFactor matches zoomLevel
-      const effectiveZoom = Math.max(0.05, zoomLevel)
-      const deltaX = (e.clientX - x) / effectiveZoom
-      const deltaY = (e.clientY - y) / effectiveZoom
-
-      let newW = initialW
-      let newH = initialH
-
-      if (dragHandle.includes('e')) {
-        newW = Math.round(initialW + deltaX)
-      } else if (dragHandle.includes('w')) {
-        newW = Math.round(initialW - deltaX)
-      }
-
-      if (dragHandle.includes('s')) {
-        newH = Math.round(initialH + deltaY)
-      } else if (dragHandle.includes('n')) {
-        newH = Math.round(initialH - deltaY)
-      }
-
-      newW = Math.max(20, Math.min(10000, newW))
-      newH = Math.max(20, Math.min(10000, newH))
-
-      if (settings.maintainAspectRatio) {
-        const ratio = activeItem.aspectRatio || 1
-        if (dragHandle === 'e' || dragHandle === 'w' || dragHandle.length === 2) {
-          newH = Math.max(20, Math.round(newW / ratio))
-        } else if (dragHandle === 'n' || dragHandle === 's') {
-          newW = Math.max(20, Math.round(newH * ratio))
+  // Rotate single item 90 degrees clockwise
+  const rotateItem = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    setItems((prev) =>
+      prev.map((item) => {
+        if (item.id === id) {
+          const newRot = ((item.rotation || 0) + 90) % 360
+          return { ...item, rotation: newRot }
         }
+        return item
+      })
+    )
+  }
+
+  // Open Crop modal for an item
+  const openCropModal = (item: ResizedItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    setCropModalItem(item)
+    setCropAspect('free')
+    setCropCoords({
+      x: 0,
+      y: 0,
+      width: item.originalWidth,
+      height: item.originalHeight,
+    })
+  }
+
+  const applyCrop = () => {
+    if (!cropModalItem) return
+    setItems((prev) =>
+      prev.map((item) => {
+        if (item.id === cropModalItem.id) {
+          return {
+            ...item,
+            crop: cropCoords,
+          }
+        }
+        return item
+      })
+    )
+    setCropModalItem(null)
+  }
+
+  // Open Info modal
+  const openInfoModal = (item: ResizedItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    setInfoModalItem(item)
+  }
+
+  // Load from URL
+  const handleLoadFromUrl = async () => {
+    if (!urlInput.trim()) return
+    try {
+      const resp = await fetch(urlInput.trim())
+      if (!resp.ok) throw new Error('Failed to fetch image from URL')
+      const blob = await resp.blob()
+      const filename = urlInput.split('/').pop()?.split('?')[0] || 'web-image.jpg'
+      const file = new File([blob], filename, { type: blob.type || 'image/jpeg' })
+      const { width, height, url } = await loadImageDimensions(file)
+
+      const newItem: ResizedItem = {
+        id: `${filename}-${Date.now()}`,
+        file,
+        name: filename,
+        originalWidth: width,
+        originalHeight: height,
+        originalSize: file.size,
+        originalUrl: url,
+        aspectRatio: width / height,
+        isProcessing: false,
+        rotation: 0,
       }
 
-      setSettings((s) => ({
-        ...s,
-        width: newW,
-        height: newH,
-        percentage: Math.round((newW / activeItem.originalWidth) * 100),
-      }))
+      setItems((prev) => {
+        const filtered = prev.filter((p) => p.id !== 'sample-portrait')
+        return [...filtered, newItem]
+      })
+      setActiveItemId(newItem.id)
+      setUrlModalOpen(false)
+      setUrlInput('')
+    } catch (err) {
+      alert('Unable to load image from that URL. Ensure the URL allows cross-origin requests.')
+    }
+  }
+
+  // Active item reference
+  const activeItem = items.find((it) => it.id === activeItemId) || items[0]
+
+  // Dimension calculations for an item
+  const getItemTargetDimensions = useCallback(
+    (item: ResizedItem) => {
+      const srcW = item.crop ? item.crop.width : item.originalWidth
+      const srcH = item.crop ? item.crop.height : item.originalHeight
+      const rot = (item.rotation || 0) % 360
+      const swapped = rot === 90 || rot === 270
+      const effW = swapped ? srcH : srcW
+      const effH = swapped ? srcW : srcH
+      return calculateTargetDimensions(effW, effH, settings)
     },
-    [dragHandle, dragStart, activeItem, zoomLevel, settings.maintainAspectRatio]
+    [settings]
   )
 
-  const onPointerUp = useCallback(() => {
-    if (dragHandle && activeItem) {
-      pushHistory({
-        width: settings.width,
-        height: settings.height,
-        percentage: settings.percentage,
-        rotation,
-        flipH,
-      })
+  // Change width handler (with aspect ratio lock)
+  const handleWidthChange = (valStr: string) => {
+    const val = parseFloat(valStr) || 0
+    if (!settings.maintainAspectRatio || !activeItem) {
+      setSettings((s) => ({ ...s, width: val }))
+      return
     }
-    setDragHandle(null)
-  }, [dragHandle, activeItem, settings.width, settings.height, settings.percentage, rotation, flipH, pushHistory])
-
-  useEffect(() => {
-    if (dragHandle) {
-      window.addEventListener('pointermove', onPointerMove)
-      window.addEventListener('pointerup', onPointerUp)
-      return () => {
-        window.removeEventListener('pointermove', onPointerMove)
-        window.removeEventListener('pointerup', onPointerUp)
-      }
-    }
-  }, [dragHandle, onPointerMove, onPointerUp])
-
-  // Left strip toolbar actions
-  const handleRotate = () => {
-    const nextRot = (rotation + 90) % 360
-    setRotation(nextRot)
-    pushHistory({
-      width: settings.width,
-      height: settings.height,
-      percentage: settings.percentage,
-      rotation: nextRot,
-      flipH,
-    })
+    const ratio = activeItem.aspectRatio || 1
+    const newHeight = val > 0 ? Math.round(val / ratio) : 0
+    setSettings((s) => ({ ...s, width: val, height: newHeight }))
   }
 
-  const handleFlip = () => {
-    const nextFlip = !flipH
-    setFlipH(nextFlip)
-    pushHistory({
-      width: settings.width,
-      height: settings.height,
-      percentage: settings.percentage,
-      rotation,
-      flipH: nextFlip,
-    })
+  // Change height handler (with aspect ratio lock)
+  const handleHeightChange = (valStr: string) => {
+    const val = parseFloat(valStr) || 0
+    if (!settings.maintainAspectRatio || !activeItem) {
+      setSettings((s) => ({ ...s, height: val }))
+      return
+    }
+    const ratio = activeItem.aspectRatio || 1
+    const newWidth = val > 0 ? Math.round(val * ratio) : 0
+    setSettings((s) => ({ ...s, width: newWidth, height: val }))
   }
 
-  // Dimension inputs change
-  const handleWidthChange = (val: number) => {
-    if (!activeItem) return
-    const w = Math.max(1, val)
-    let h = settings.height
-    if (settings.maintainAspectRatio) {
-      h = Math.max(1, Math.round(w / activeItem.aspectRatio))
-    }
+  // Handle Social preset pick
+  const handleSocialPresetSelect = (presetLabel: string) => {
+    const preset = SOCIAL_PRESETS.find(
+      (p) => p.platform === settings.socialPlatform && p.label === presetLabel
+    )
+    if (!preset) return
     setSettings((s) => ({
       ...s,
-      width: w,
-      height: h,
-      percentage: Math.round((w / activeItem.originalWidth) * 100),
+      socialPreset: preset.label,
+      width: preset.width,
+      height: preset.height,
     }))
   }
 
-  const handleHeightChange = (val: number) => {
-    if (!activeItem) return
-    const h = Math.max(1, val)
-    let w = settings.width
-    if (settings.maintainAspectRatio) {
-      w = Math.max(1, Math.round(h * activeItem.aspectRatio))
-    }
+  // Switch Social platform
+  const handleSocialPlatformSelect = (platform: SocialPlatform) => {
+    const presetsForPlat = SOCIAL_PRESETS.filter((p) => p.platform === platform)
+    const firstPreset = presetsForPlat[0]
     setSettings((s) => ({
       ...s,
-      width: w,
-      height: h,
-      percentage: Math.round((w / activeItem.originalWidth) * 100),
+      socialPlatform: platform,
+      socialPreset: firstPreset ? firstPreset.label : '',
+      width: firstPreset ? firstPreset.width : s.width,
+      height: firstPreset ? firstPreset.height : s.height,
     }))
   }
 
-  // Zoom controls
-  const handleZoomIn = () => {
-    setZoomLevel((prev) => Math.min(1.5, Number((prev + 0.05).toFixed(2))))
+  // Unit switch
+  const handleUnitChange = (newUnit: DimensionUnit) => {
+    const currentUnit = settings.unit
+    if (newUnit === currentUnit) return
+    const pxW = convertUnitToPx(settings.width, currentUnit, settings.dpi)
+    const pxH = convertUnitToPx(settings.height, currentUnit, settings.dpi)
+    const convertedW = convertPxToUnit(pxW, newUnit, settings.dpi)
+    const convertedH = convertPxToUnit(pxH, newUnit, settings.dpi)
+    setSettings((s) => ({
+      ...s,
+      unit: newUnit,
+      width: convertedW,
+      height: convertedH,
+    }))
   }
 
-  const handleZoomOut = () => {
-    setZoomLevel((prev) => Math.max(0.1, Number((prev - 0.05).toFixed(2))))
+  // DPI switch
+  const handleDpiChange = (newDpi: DpiOption) => {
+    setSettings((s) => ({ ...s, dpi: newDpi }))
   }
 
-  const handleZoomFit = () => {
-    if (!activeItem) return
-    // Fit image nicely into stage
-    const fitScale = Math.min(420 / settings.width, 380 / settings.height, 0.5)
-    setZoomLevel(Math.max(0.1, Number(fitScale.toFixed(2))))
-  }
-
-  // Resize & Download Action
-  const processActiveImage = async () => {
-    if (!activeItem || isProcessing) return
+  // Export process
+  const handleExport = async () => {
+    if (items.length === 0) return
     setIsProcessing(true)
+    setExportProgress(10)
 
     try {
-      const res = await resizeSingleImage(activeItem, settings, { rotation, flipH })
-      setItems((prev) =>
-        prev.map((it) =>
-          it.id === activeItem.id
-            ? {
-                ...it,
-                resizedBlob: res.blob,
-                resizedUrl: res.url,
-                resizedSize: res.size,
-                resizedWidth: res.width,
-                resizedHeight: res.height,
-                outputName: res.outputName,
-              }
-            : it
-        )
-      )
-      // Instant download of the resized file
-      downloadSingleFile(res.blob, res.outputName)
+      const results: ResizedItem[] = []
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i]
+        const res = await resizeSingleImage(item, settings)
+        results.push({
+          ...item,
+          resizedBlob: res.blob,
+          resizedUrl: res.url,
+          resizedWidth: res.width,
+          resizedHeight: res.height,
+          resizedSize: res.size,
+          outputName: res.outputName,
+        })
+        setExportProgress(Math.round(((i + 1) / items.length) * 80) + 10)
+      }
+
+      setProcessedResults(results)
+      setExportProgress(100)
+
+      if (results.length === 1 && results[0].resizedBlob) {
+        downloadSingleFile(results[0].resizedBlob, results[0].outputName || results[0].name)
+      } else if (results.length > 1) {
+        setExportCompleteModal(true)
+      }
     } catch (err) {
-      console.error('Resize failed', err)
+      console.error('Export failed', err)
+      alert('An error occurred during resizing. Please check your settings.')
     } finally {
       setIsProcessing(false)
     }
   }
 
-  const handleDownloadAllZip = async () => {
-    const readyItems = items.filter((item) => item.resizedBlob)
-    if (readyItems.length === 0) return
-    setZipProgress(1)
-    try {
-      await createAndDownloadZip(readyItems, settings.zipFolderName, (pct) => setZipProgress(pct))
-    } catch (err) {
-      console.error('Zip creation error', err)
-    } finally {
-      setZipProgress(0)
-    }
+  // Download all as ZIP
+  const handleDownloadZip = async () => {
+    if (processedResults.length === 0) return
+    await createAndDownloadZip(processedResults, settings.zipFolderName)
   }
 
-  // Visual aspect scale factor for the handler box
-  const scalePercent = activeItem
-    ? Math.round(((settings.width || activeItem.originalWidth) / activeItem.originalWidth) * 100)
-    : 100
+  // Sorted items
+  const sortedItems = [...items].sort((a, b) => {
+    if (sortOption === 'name-asc') return a.name.localeCompare(b.name)
+    if (sortOption === 'name-desc') return b.name.localeCompare(a.name)
+    if (sortOption === 'size-desc') return b.originalSize - a.originalSize
+    if (sortOption === 'size-asc') return a.originalSize - b.originalSize
+    return 0
+  })
 
-  // Generous, clear display dimensions so uploaded image is ALWAYS prominently shown
-  const baseStageDim = 350
-  const aspect = activeItem ? activeItem.aspectRatio || 1 : 1
-  const baseW = aspect >= 1 ? baseStageDim : Math.round(baseStageDim * aspect)
-  const baseH = aspect >= 1 ? Math.round(baseStageDim / aspect) : baseStageDim
-
-  const scaleFactor = activeItem && activeItem.originalWidth > 0
-    ? settings.width / activeItem.originalWidth
-    : 1
-
-  // Display size scaled gracefully in range [220px to 500px]
-  const displayW = Math.max(
-    220,
-    Math.min(500, Math.round(baseW * Math.pow(Math.max(0.1, scaleFactor), 0.32) * (zoomLevel / 0.28)))
-  )
-  const displayH = Math.max(
-    220,
-    Math.min(500, Math.round(baseH * Math.pow(Math.max(0.1, scaleFactor), 0.32) * (zoomLevel / 0.28)))
-  )
+  const presetsForCurrentPlatform = SOCIAL_PRESETS.filter((p) => p.platform === settings.socialPlatform)
 
   return (
-    <div className="image-resizer-page">
-      <div className="ir-container">
-        {/* TOP HERO BANNER: Matches media_1795243424607_8391b10f.jpg */}
-        <div className="ir-banner">
-          <div className="ir-banner-left">
-            <div className="ir-banner-icon">
-              <Maximize2 size={24} color="#ffffff" strokeWidth={2.2} />
-            </div>
-            <div className="ir-banner-text">
-              <h1 className="ir-banner-title">
-                Image <span className="ir-banner-gradient-text">Resizer</span>
-              </h1>
-              <p className="ir-banner-subtitle">
-                Resize your images to any dimension or percentage while keeping high quality.
-              </p>
-            </div>
+    <div className="ir-page-container">
+      {/* Hidden File Inputs */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        style={{ display: 'none' }}
+        onChange={handleFileInput}
+      />
+      <input
+        ref={addMoreRef}
+        type="file"
+        accept="image/*"
+        multiple
+        style={{ display: 'none' }}
+        onChange={handleFileInput}
+      />
+
+      {items.length === 0 ? (
+        /* ====================================================================
+           Empty State / Landing Dropzone
+           ==================================================================== */
+        <div className="ir-landing-hero">
+          <div className="ir-landing-header">
+            <h1>Image Resizer</h1>
+            <p>Easily resize images online for free.</p>
           </div>
 
-          <div className="ir-banner-right">
-            <div className="ir-floating-card">
-              <div className="ir-card-screen">
-                <div className="ir-card-sun" />
-                <div className="ir-card-mountains" />
-              </div>
-            </div>
-            <span className="ir-sparkle s1">✦</span>
-            <span className="ir-sparkle s2">✧</span>
-            <span className="ir-sparkle s3">✦</span>
-          </div>
-        </div>
-
-        {/* Dropzone (When items are cleared) */}
-        {items.length === 0 ? (
           <div
-            className={`ir-dropzone ${isDragging ? 'dragging' : ''}`}
+            className={`ir-dropzone-box ${isDragging ? 'drag-over' : ''}`}
             onDragOver={(e) => {
               e.preventDefault()
               setIsDragging(true)
@@ -669,917 +598,1625 @@ export default function ImageResizer() {
             onDragLeave={() => setIsDragging(false)}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            role="button"
-            tabIndex={0}
           >
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept="image/jpeg,image/png,image/webp"
-              style={{ display: 'none' }}
-              onChange={handleFileInput}
-            />
-            <div className="ir-dropzone-inner">
-              <div className="ir-dropzone-icon">
-                <Upload size={30} />
-              </div>
-              <h2 className="ir-dropzone-title">Drop your images here, or browse files</h2>
-              <p className="ir-dropzone-sub">
-                Supports high-res JPG, PNG, and WebP up to 50MB. Drag handles appear automatically upon upload!
-              </p>
-              <button type="button" className="ir-browse-btn">
-                <Plus size={16} /> Choose Images to Resize
-              </button>
+            <div className="ir-dropzone-icon-wrap">
+              <Upload size={32} />
             </div>
-          </div>
-        ) : (
-          <>
-            {/* Active Uploaded Image Overview Bar */}
-            {activeItem && (
-              <div className="ir-active-image-bar">
-                <div className="ir-active-meta-left">
-                  <img src={activeItem.originalUrl} alt={activeItem.name} className="ir-active-mini-thumb" />
-                  <div>
-                    <div className="ir-active-name-row">
-                      <strong className="ir-active-name" title={activeItem.name}>
-                        {activeItem.name}
-                      </strong>
-                      <span className="ir-active-fmt-chip">
-                        {getFileExtension(activeItem.name).toUpperCase() || 'IMAGE'}
-                      </span>
-                    </div>
-                    <span className="ir-active-details">
-                      Original: {activeItem.originalWidth} × {activeItem.originalHeight} px · {formatBytes(activeItem.originalSize)}
-                    </span>
-                  </div>
-                </div>
-                <div className="ir-active-meta-right">
+
+            <div className="ir-split-btn-group" onClick={(e) => e.stopPropagation()}>
+              <button
+                type="button"
+                className="ir-btn-primary-main"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload size={18} />
+                Select Images
+              </button>
+              <button
+                type="button"
+                className="ir-btn-primary-split"
+                onClick={() => setShowUploadDropdown((prev) => !prev)}
+                title="Upload sources"
+              >
+                <ChevronDown size={16} />
+              </button>
+
+              {showUploadDropdown && (
+                <div className="ir-split-dropdown-menu">
                   <button
                     type="button"
-                    className="ir-active-change-btn"
-                    onClick={() => addMoreRef.current?.click()}
-                    title="Upload or switch image"
-                  >
-                    <Upload size={14} /> Upload New Image
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* WORKBENCH STUDIO: Matches media_1795243424607_8391b10f.jpg */}
-            <div className="ir-studio">
-            {/* 1. LEFT VERTICAL TOOLBAR */}
-            <div className="ir-tool-strip">
-              <button
-                type="button"
-                className="ir-tool-btn active"
-                title="Resize (Interactive Drag Handler Active)"
-              >
-                <div className="ir-tool-icon">
-                  <Maximize2 size={20} />
-                </div>
-                <span className="ir-tool-label">Resize</span>
-              </button>
-
-              <button
-                type="button"
-                className="ir-tool-btn"
-                title="Switch to Image Cropper"
-                onClick={() => navigate('/image-cropper')}
-              >
-                <div className="ir-tool-icon">
-                  <Crop size={20} />
-                </div>
-                <span className="ir-tool-label">Crop</span>
-              </button>
-
-              <button
-                type="button"
-                className="ir-tool-btn"
-                title="Rotate 90° Clockwise"
-                onClick={handleRotate}
-              >
-                <div className="ir-tool-icon">
-                  <RotateCw size={20} />
-                </div>
-                <span className="ir-tool-label">Rotate</span>
-              </button>
-
-              <button
-                type="button"
-                className="ir-tool-btn"
-                title="Flip Horizontally"
-                onClick={handleFlip}
-              >
-                <div className="ir-tool-icon">
-                  <FlipHorizontal size={20} />
-                </div>
-                <span className="ir-tool-label">Flip</span>
-              </button>
-
-              <button
-                type="button"
-                className="ir-tool-btn"
-                title="Toggle Aspect Ratio Adjust"
-                onClick={() =>
-                  setSettings((s) => ({ ...s, maintainAspectRatio: !s.maintainAspectRatio }))
-                }
-              >
-                <div className="ir-tool-icon">
-                  <SlidersHorizontal size={20} />
-                </div>
-                <span className="ir-tool-label">Adjust</span>
-              </button>
-            </div>
-
-            {/* 2. CENTER CANVAS STAGE */}
-            <div className="ir-canvas-area" ref={canvasViewportRef}>
-              <div className="ir-canvas-stage">
-                {activeItem && (
-                  <div
-                    className={`ir-resizable-box ${dragHandle ? 'dragging' : ''}`}
-                    style={{
-                      width: `${displayW}px`,
-                      height: `${displayH}px`,
+                    className="ir-split-dropdown-item"
+                    onClick={() => {
+                      setShowUploadDropdown(false)
+                      fileInputRef.current?.click()
                     }}
                   >
-                    {/* Live floating dimensions badge */}
-                    <div className="ir-live-badge">
-                      {settings.width} × {settings.height} px ({scalePercent}%)
+                    <Upload size={16} /> From Device
+                  </button>
+                  <button
+                    type="button"
+                    className="ir-split-dropdown-item"
+                    onClick={() => {
+                      setShowUploadDropdown(false)
+                      setUrlModalOpen(true)
+                    }}
+                  >
+                    <LinkIcon size={16} /> From URL
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <p className="ir-drop-subtext">or, drag and drop images here</p>
+            <span className="ir-drop-limit-badge">Max file size: 50 MB. Sign up for more.</span>
+          </div>
+
+          {/* Feature Highlights Grid */}
+          <div className="ir-landing-features">
+            <div className="ir-feature-card">
+              <h3>
+                <Check size={18} color="#3b82f6" /> Perfect Quality
+              </h3>
+              <p>The best online image resizer to resize your JPG, PNG, and WebP images at the highest quality.</p>
+            </div>
+            <div className="ir-feature-card">
+              <h3>
+                <Check size={18} color="#3b82f6" /> Lightning Fast
+              </h3>
+              <p>Client-side HTML5 canvas acceleration scales and resizes your images instantaneously without server lag.</p>
+            </div>
+            <div className="ir-feature-card">
+              <h3>
+                <Check size={18} color="#3b82f6" /> Supported Units
+              </h3>
+              <p>Resize dimensions can be specified in pixels, inches, centimeters, or millimeters with print DPI support.</p>
+            </div>
+            <div className="ir-feature-card">
+              <h3>
+                <Check size={18} color="#3b82f6" /> Reduce File Size
+              </h3>
+              <p>Optionally specify a target max file size in KB or MB to compress files down to your required limit.</p>
+            </div>
+            <div className="ir-feature-card">
+              <h3>
+                <Check size={18} color="#3b82f6" /> Social Media Ready
+              </h3>
+              <p>One-click dimensions for Facebook, Instagram, Twitter/X, and YouTube profile, banner, and posts.</p>
+            </div>
+            <div className="ir-feature-card">
+              <h3>
+                <Check size={18} color="#3b82f6" /> Privacy Guaranteed
+              </h3>
+              <p>All resizing runs entirely inside your browser sandbox. Your photos are never stored on external clouds.</p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* ====================================================================
+           Editor Mode (Left Sidebar + Right Image Cards Grid)
+           ==================================================================== */
+        <div className="ir-editor-layout">
+          {/* Left Sidebar */}
+          <aside className={`ir-sidebar ${mobileSidebarOpen ? 'mobile-open' : ''}`}>
+            <div className="ir-sidebar-body">
+              {/* Top Toolbar */}
+              <div className="ir-sidebar-toolbar">
+                <div className="ir-toolbar-actions">
+                  <button
+                    type="button"
+                    className="ir-tool-btn"
+                    title="Add Images"
+                    onClick={() => addMoreRef.current?.click()}
+                  >
+                    <Plus size={18} />
+                  </button>
+
+                  <div style={{ position: 'relative' }}>
+                    <button
+                      type="button"
+                      className="ir-tool-btn"
+                      title="Filter / Sort"
+                      onClick={() => setShowSortMenu((prev) => !prev)}
+                    >
+                      <SlidersHorizontal size={16} />
+                    </button>
+                    {showSortMenu && (
+                      <div className="ir-split-dropdown-menu" style={{ left: 0, right: 'auto' }}>
+                        <button
+                          type="button"
+                          className="ir-split-dropdown-item"
+                          onClick={() => {
+                            setSortOption('name-asc')
+                            setShowSortMenu(false)
+                          }}
+                        >
+                          Name (A - Z)
+                        </button>
+                        <button
+                          type="button"
+                          className="ir-split-dropdown-item"
+                          onClick={() => {
+                            setSortOption('name-desc')
+                            setShowSortMenu(false)
+                          }}
+                        >
+                          Name (Z - A)
+                        </button>
+                        <button
+                          type="button"
+                          className="ir-split-dropdown-item"
+                          onClick={() => {
+                            setSortOption('size-desc')
+                            setShowSortMenu(false)
+                          }}
+                        >
+                          Size (Largest)
+                        </button>
+                        <button
+                          type="button"
+                          className="ir-split-dropdown-item"
+                          onClick={() => {
+                            setSortOption('size-asc')
+                            setShowSortMenu(false)
+                          }}
+                        >
+                          Size (Smallest)
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    className="ir-tool-btn danger"
+                    title="Clear All"
+                    onClick={clearAll}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+
+                <span className="ir-max-size-pill">Max file size : 50 MB</span>
+              </div>
+
+              {/* Title */}
+              <h2 className="ir-section-heading">Resize Settings</h2>
+
+              {/* Segmented 3 Tabs */}
+              <div className="ir-tabs-segmented">
+                <button
+                  type="button"
+                  className={`ir-tab-btn ${settings.mode === 'by-size' || settings.mode === 'dimensions' ? 'active' : ''}`}
+                  onClick={() => setSettings((s) => ({ ...s, mode: 'by-size' }))}
+                >
+                  By Size
+                </button>
+                <button
+                  type="button"
+                  className={`ir-tab-btn ${settings.mode === 'percentage' ? 'active' : ''}`}
+                  onClick={() => setSettings((s) => ({ ...s, mode: 'percentage' }))}
+                >
+                  As Percentage
+                </button>
+                <button
+                  type="button"
+                  className={`ir-tab-btn ${settings.mode === 'social-media' ? 'active' : ''}`}
+                  onClick={() => setSettings((s) => ({ ...s, mode: 'social-media' }))}
+                >
+                  Social Media
+                </button>
+              </div>
+
+              {/* Tab 1: By Size */}
+              {(settings.mode === 'by-size' || settings.mode === 'dimensions') && (
+                <div>
+                  <div className="ir-row-inputs">
+                    <div>
+                      <label className="ir-label">width</label>
+                      <input
+                        type="number"
+                        className="ir-input-text"
+                        placeholder="Enter Width"
+                        value={settings.width || ''}
+                        onChange={(e) => handleWidthChange(e.target.value)}
+                        min={1}
+                      />
                     </div>
+                    <div>
+                      <label className="ir-label">height</label>
+                      <div className="ir-input-with-unit">
+                        <input
+                          type="number"
+                          className="ir-input-text"
+                          placeholder="Enter Height"
+                          value={settings.height || ''}
+                          onChange={(e) => handleHeightChange(e.target.value)}
+                          min={1}
+                        />
+                        <select
+                          className="ir-unit-select-inline"
+                          value={settings.unit}
+                          onChange={(e) => handleUnitChange(e.target.value as DimensionUnit)}
+                        >
+                          <option value="px">px</option>
+                          <option value="in">inch</option>
+                          <option value="cm">cm</option>
+                          <option value="mm">mm</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
 
-                    {/* Image with real-time scaling and rotation/flip */}
-                    <img
-                      src={activeItem.originalUrl}
-                      alt={activeItem.name}
-                      className="ir-canvas-img"
-                      style={{
-                        transform: `rotate(${rotation}deg) scaleX(${flipH ? -1 : 1})`,
-                      }}
-                      draggable={false}
+                  <label className="ir-checkbox-row">
+                    <input
+                      type="checkbox"
+                      checked={settings.maintainAspectRatio}
+                      onChange={(e) =>
+                        setSettings((s) => ({ ...s, maintainAspectRatio: e.target.checked }))
+                      }
                     />
+                    <span className="ir-checkbox-icon">
+                      {settings.maintainAspectRatio ? <Lock size={14} /> : <Lock size={14} style={{ opacity: 0.35 }} />}
+                    </span>
+                    Lock Aspect Ratio
+                  </label>
 
-                    {/* Dashed selection border with 8 handles */}
-                    <div className="ir-dashed-border">
-                      {/* 4 Corners */}
-                      <div
-                        className="ir-handle nw"
-                        onPointerDown={(e) => startHandleDrag('nw', e)}
-                        title="Resize Top-Left"
-                      />
-                      <div
-                        className="ir-handle ne"
-                        onPointerDown={(e) => startHandleDrag('ne', e)}
-                        title="Resize Top-Right"
-                      />
-                      <div
-                        className="ir-handle se"
-                        onPointerDown={(e) => startHandleDrag('se', e)}
-                        title="Resize Bottom-Right"
-                      />
-                      <div
-                        className="ir-handle sw"
-                        onPointerDown={(e) => startHandleDrag('sw', e)}
-                        title="Resize Bottom-Left"
-                      />
+                  {/* DPI field if unit is in/cm/mm */}
+                  {settings.unit !== 'px' && (
+                    <div className="ir-form-group">
+                      <label className="ir-label">DPI</label>
+                      <select
+                        className="ir-select"
+                        value={settings.dpi}
+                        onChange={(e) => handleDpiChange(Number(e.target.value) as DpiOption)}
+                      >
+                        <option value={300}>300 DPI (inkjet)</option>
+                        <option value={150}>150 DPI (standard print)</option>
+                        <option value={96}>96 DPI (standard screen)</option>
+                        <option value={72}>72 DPI (web screen)</option>
+                      </select>
+                      <p className="ir-helper-note">DPI (dots per inch) is for printing. Choose 300 if unsure.</p>
+                    </div>
+                  )}
+                </div>
+              )}
 
-                      {/* 4 Edges */}
-                      <div
-                        className="ir-handle n"
-                        onPointerDown={(e) => startHandleDrag('n', e)}
-                        title="Resize Top Edge"
+              {/* Tab 2: As Percentage */}
+              {settings.mode === 'percentage' && (
+                <div>
+                  <div className="ir-slider-box">
+                    <div className="ir-slider-header">
+                      <span className="ir-label" style={{ margin: 0 }}>
+                        Size
+                      </span>
+                      <span className="ir-slider-badge">{settings.percentage}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      className="ir-range-slider"
+                      min={1}
+                      max={500}
+                      step={1}
+                      value={settings.percentage}
+                      onChange={(e) =>
+                        setSettings((s) => ({ ...s, percentage: Number(e.target.value) }))
+                      }
+                    />
+                    <p className="ir-slider-subtext">
+                      Make my image {settings.percentage}% of original size
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 3: Social Media */}
+              {settings.mode === 'social-media' && (
+                <div>
+                  <div className="ir-form-group">
+                    <label className="ir-label">Choose the Social Media Platform</label>
+                    <select
+                      className="ir-select"
+                      value={settings.socialPlatform}
+                      onChange={(e) => handleSocialPlatformSelect(e.target.value as SocialPlatform)}
+                    >
+                      <option value="Facebook">Facebook</option>
+                      <option value="Instagram">Instagram</option>
+                      <option value="Twitter">Twitter</option>
+                      <option value="YouTube">YouTube</option>
+                    </select>
+                  </div>
+
+                  <div className="ir-form-group">
+                    <label className="ir-label">Preset Type</label>
+                    <select
+                      className="ir-select"
+                      value={settings.socialPreset}
+                      onChange={(e) => handleSocialPresetSelect(e.target.value)}
+                    >
+                      {presetsForCurrentPlatform.map((p) => (
+                        <option key={p.id} value={p.label}>
+                          {p.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="ir-row-inputs">
+                    <div>
+                      <label className="ir-label">width</label>
+                      <input
+                        type="number"
+                        className="ir-input-text"
+                        value={settings.width || ''}
+                        onChange={(e) => handleWidthChange(e.target.value)}
                       />
-                      <div
-                        className="ir-handle s"
-                        onPointerDown={(e) => startHandleDrag('s', e)}
-                        title="Resize Bottom Edge"
-                      />
-                      <div
-                        className="ir-handle w"
-                        onPointerDown={(e) => startHandleDrag('w', e)}
-                        title="Resize Left Edge"
-                      />
-                      <div
-                        className="ir-handle e"
-                        onPointerDown={(e) => startHandleDrag('e', e)}
-                        title="Resize Right Edge"
+                    </div>
+                    <div>
+                      <label className="ir-label">height</label>
+                      <input
+                        type="number"
+                        className="ir-input-text"
+                        value={settings.height || ''}
+                        onChange={(e) => handleHeightChange(e.target.value)}
                       />
                     </div>
                   </div>
+
+                  <label className="ir-checkbox-row">
+                    <input
+                      type="checkbox"
+                      checked={settings.maintainAspectRatio}
+                      onChange={(e) =>
+                        setSettings((s) => ({ ...s, maintainAspectRatio: e.target.checked }))
+                      }
+                    />
+                    <span className="ir-checkbox-icon">
+                      {settings.maintainAspectRatio ? <Lock size={14} /> : <Lock size={14} style={{ opacity: 0.35 }} />}
+                    </span>
+                    Lock Aspect Ratio
+                  </label>
+
+                  {/* Background Fill */}
+                  <div className="ir-bg-fill-box">
+                    <div className="ir-bg-fill-header">
+                      <label
+                        className="ir-checkbox-row"
+                        style={{ margin: 0, fontWeight: 600 }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={settings.backgroundFill.enabled}
+                          onChange={(e) =>
+                            setSettings((s) => ({
+                              ...s,
+                              backgroundFill: {
+                                ...s.backgroundFill,
+                                enabled: e.target.checked,
+                              },
+                            }))
+                          }
+                        />
+                        Background Fill
+                      </label>
+                      <span title="Fills excess letterboxed background when aspect ratios differ">
+                        <HelpIcon size={14} color="#94a3b8" />
+                      </span>
+                    </div>
+
+                    {settings.backgroundFill.enabled && (
+                      <div className="ir-color-swatch-row">
+                        <span style={{ fontSize: 13, color: '#64748b' }}>Pick a color:</span>
+                        <input
+                          type="color"
+                          className="ir-color-picker-input"
+                          value={settings.backgroundFill.color}
+                          onChange={(e) =>
+                            setSettings((s) => ({
+                              ...s,
+                              backgroundFill: {
+                                ...s.backgroundFill,
+                                color: e.target.value,
+                              },
+                            }))
+                          }
+                        />
+                        <span className="ir-color-hex-text">{settings.backgroundFill.color}</span>
+
+                        {settings.format !== 'jpeg' && (
+                          <label
+                            className="ir-checkbox-row"
+                            style={{ margin: 0, marginLeft: 'auto', fontSize: 12 }}
+                            title="Only works with PNG images"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={settings.backgroundFill.transparent}
+                              onChange={(e) =>
+                                setSettings((s) => ({
+                                  ...s,
+                                  backgroundFill: {
+                                    ...s.backgroundFill,
+                                    transparent: e.target.checked,
+                                  },
+                                }))
+                              }
+                            />
+                            Transparent
+                          </label>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="ir-form-group">
+                    <label className="ir-label">Unit</label>
+                    <select
+                      className="ir-select"
+                      value={settings.unit}
+                      onChange={(e) => handleUnitChange(e.target.value as DimensionUnit)}
+                    >
+                      <option value="px">Pixels</option>
+                      <option value="in">Inch</option>
+                      <option value="cm">Cm</option>
+                      <option value="mm">Mm</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* Export Settings Accordion */}
+              <div
+                className="ir-accordion-header"
+                onClick={() => setExportSettingsOpen((prev) => !prev)}
+              >
+                <span>Export Settings</span>
+                {exportSettingsOpen ? (
+                  <ChevronDown size={16} style={{ transform: 'rotate(180deg)' }} />
+                ) : (
+                  <ChevronDown size={16} />
                 )}
               </div>
 
-              {/* Bottom Canvas Toolbar */}
-              <div className="ir-canvas-bottom-bar">
-                <div className="ir-canvas-history-group">
-                  <button
-                    type="button"
-                    className="ir-canvas-icon-btn"
-                    onClick={handleUndo}
-                    disabled={historyIdx <= 0}
-                    title="Undo (Ctrl+Z)"
-                  >
-                    <Undo2 size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    className="ir-canvas-icon-btn"
-                    onClick={handleRedo}
-                    disabled={historyIdx >= history.length - 1}
-                    title="Redo (Ctrl+Y)"
-                  >
-                    <Redo2 size={16} />
-                  </button>
-                </div>
-
-                <div className="ir-canvas-zoom-pill">
-                  <button
-                    type="button"
-                    className="ir-zoom-btn"
-                    onClick={handleZoomOut}
-                    title="Zoom Out"
-                  >
-                    −
-                  </button>
-                  <span className="ir-zoom-val">{scalePercent}%</span>
-                  <button
-                    type="button"
-                    className="ir-zoom-btn"
-                    onClick={handleZoomIn}
-                    title="Zoom In"
-                  >
-                    +
-                  </button>
-                  <button
-                    type="button"
-                    className="ir-zoom-fit-btn"
-                    onClick={handleZoomFit}
-                    title="Fit to Screen"
-                  >
-                    <Maximize2 size={13} />
-                  </button>
-                </div>
-
-                <div className="ir-canvas-reset-group">
-                  <button
-                    type="button"
-                    className="ir-canvas-reset-btn"
-                    onClick={resetToOriginal}
-                    title="Reset to Original Dimensions"
-                  >
-                    <RotateCcw size={14} />
-                    <span>Reset</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* 3. RIGHT SIDEBAR CONTROLS */}
-            <div className="ir-sidebar-panel">
-              {/* SECTION 1: Resize Mode */}
-              <div className="ir-control-section">
-                <div className="ir-section-head">
-                  <ScanLine size={16} className="ir-section-icon" />
-                  <span>Resize Mode</span>
-                </div>
-                <div className="ir-mode-toggle-group">
-                  <button
-                    type="button"
-                    className={`ir-mode-tab ${settings.mode === 'dimensions' ? 'active' : ''}`}
-                    onClick={() => setSettings((s) => ({ ...s, mode: 'dimensions' }))}
-                  >
-                    <Maximize2 size={13} /> By Dimensions
-                  </button>
-                  <button
-                    type="button"
-                    className={`ir-mode-tab ${settings.mode === 'percentage' ? 'active' : ''}`}
-                    onClick={() => setSettings((s) => ({ ...s, mode: 'percentage' }))}
-                  >
-                    % By Percentage
-                  </button>
-                </div>
-              </div>
-
-              {/* SECTION 2: Target Dimensions (Pixels) */}
-              <div className="ir-control-section">
-                <div className="ir-section-head">
-                  <Monitor size={16} className="ir-section-icon" />
-                  <span>Target Dimensions (Pixels)</span>
-                </div>
-                <div className="ir-dims-inputs-row">
-                  <div className="ir-dim-field">
-                    <label htmlFor="ir-width-input">WIDTH (PX)</label>
-                    <div className="ir-input-stepper-wrap">
+              {exportSettingsOpen && (
+                <div className="ir-accordion-body">
+                  {/* Target File Size */}
+                  <div className="ir-form-group">
+                    <label className="ir-label">Target file size (optional)</label>
+                    <div className="ir-input-with-unit">
                       <input
-                        id="ir-width-input"
                         type="number"
+                        className="ir-input-text"
+                        placeholder="e.g. 200"
+                        value={settings.targetFileSize || ''}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value)
+                          setSettings((s) => ({
+                            ...s,
+                            targetFileSizeEnabled: !isNaN(val) && val > 0,
+                            targetFileSize: !isNaN(val) && val > 0 ? val : undefined,
+                          }))
+                        }}
                         min={1}
-                        max={10000}
-                        value={settings.width}
-                        onChange={(e) => handleWidthChange(parseInt(e.target.value) || 1)}
                       />
-                      <div className="ir-stepper-btns">
-                        <button
-                          type="button"
-                          onClick={() => handleWidthChange(settings.width + 10)}
-                        >
-                          ▲
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleWidthChange(Math.max(1, settings.width - 10))}
-                        >
-                          ▼
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="ir-dim-field">
-                    <label htmlFor="ir-height-input">HEIGHT (PX)</label>
-                    <div className="ir-input-stepper-wrap">
-                      <input
-                        id="ir-height-input"
-                        type="number"
-                        min={1}
-                        max={10000}
-                        value={settings.height}
-                        onChange={(e) => handleHeightChange(parseInt(e.target.value) || 1)}
-                      />
-                      <div className="ir-stepper-btns">
-                        <button
-                          type="button"
-                          onClick={() => handleHeightChange(settings.height + 10)}
-                        >
-                          ▲
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleHeightChange(Math.max(1, settings.height - 10))}
-                        >
-                          ▼
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <label className="ir-aspect-checkbox-row">
-                  <input
-                    type="checkbox"
-                    checked={settings.maintainAspectRatio}
-                    onChange={(e) =>
-                      setSettings((s) => ({ ...s, maintainAspectRatio: e.target.checked }))
-                    }
-                  />
-                  <span className="ir-checkbox-custom">
-                    <Check size={12} strokeWidth={3} />
-                  </span>
-                  <span className="ir-checkbox-text">Maintain Aspect Ratio</span>
-                </label>
-              </div>
-
-              {/* SECTION 3: Popular Presets */}
-              <div className="ir-control-section">
-                <div className="ir-section-head">
-                  <LayoutGrid size={16} className="ir-section-icon" />
-                  <span>Popular Presets</span>
-                </div>
-                <div className="ir-presets-grid">
-                  {POPULAR_PRESETS.map((preset) => {
-                    const isSelected = activePresetId === preset.id
-                    return (
-                      <button
-                        key={preset.id}
-                        type="button"
-                        className={`ir-preset-card ${isSelected ? 'active' : ''}`}
-                        onClick={() => applyPreset(preset)}
+                      <select
+                        className="ir-unit-select-inline"
+                        value={settings.targetSizeUnit}
+                        onChange={(e) =>
+                          setSettings((s) => ({
+                            ...s,
+                            targetSizeUnit: e.target.value as TargetSizeUnit,
+                          }))
+                        }
                       >
-                        <div className="ir-preset-icon-col">
-                          {preset.id.startsWith('insta') ? (
-                            /* Instagram Gradient Icon */
-                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
-                              <rect width="20" height="20" x="2" y="2" rx="5" ry="5" fill="url(#ig-grad)" />
-                              <path
-                                stroke="#fff"
-                                strokeWidth="1.8"
-                                d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"
-                              />
-                              <circle cx="17.5" cy="6.5" r="1" fill="#fff" />
-                              <defs>
-                                <linearGradient id="ig-grad" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
-                                  <stop stopColor="#f09433" />
-                                  <stop offset="0.5" stopColor="#e6683c" />
-                                  <stop offset="1" stopColor="#bc1888" />
-                                </linearGradient>
-                              </defs>
-                            </svg>
-                          ) : preset.id === 'tiktok-story' ? (
-                            /* TikTok Icon */
-                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
-                              <path
-                                d="M16.6 5.82a4.28 4.28 0 0 1-2.9-2.82h-2.73v11.83a2.38 2.38 0 1 1-1.68-2.28V9.78a5.15 5.15 0 1 0 4.41 5.05V8.16a7.07 7.07 0 0 0 4.15 1.34V6.73a4.34 4.34 0 0 1-1.25-.91z"
-                                fill="#25F4EE"
-                              />
-                              <path
-                                d="M17.1 5.32a4.28 4.28 0 0 1-2.9-2.82h-2.73v11.83a2.38 2.38 0 1 1-1.68-2.28V9.78a5.15 5.15 0 1 0 4.41 5.05V8.16a7.07 7.07 0 0 0 4.15 1.34V6.73a4.34 4.34 0 0 1-1.25-.91z"
-                                fill="#FE2C55"
-                                style={{ mixBlendMode: 'screen' }}
-                              />
-                            </svg>
-                          ) : preset.id === 'yt-thumb' ? (
-                            /* YouTube Red Icon */
-                            <svg viewBox="0 0 24 24" width="18" height="18">
-                              <rect width="22" height="16" x="1" y="4" rx="4" fill="#FF0000" />
-                              <polygon points="9.5,8.5 15.5,12 9.5,15.5" fill="#FFFFFF" />
-                            </svg>
-                          ) : preset.id === 'full-hd' ? (
-                            /* Full HD Monitor Icon */
-                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <rect x="2" y="3" width="20" height="14" rx="2" />
-                              <line x1="8" y1="21" x2="16" y2="21" />
-                              <line x1="12" y1="17" x2="12" y2="21" />
-                            </svg>
-                          ) : (
-                            /* Website Hero / Banner Icon */
-                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#34d399" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <rect x="2" y="5" width="20" height="14" rx="2" />
-                              <circle cx="8" cy="10" r="2" />
-                              <path d="m21 15-5-5L5 21" />
-                            </svg>
-                          )}
-                        </div>
-                        <div className="ir-preset-text-col">
-                          <span className="ir-preset-title">{preset.name}</span>
-                          <span className="ir-preset-sub">{preset.tag}</span>
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
+                        <option value="KB">KB</option>
+                        <option value="MB">MB</option>
+                      </select>
+                    </div>
+                    <p className="ir-helper-note">Set a max output file size. Only works for JPG files</p>
+                  </div>
 
-              {/* SECTION 4: Output Format */}
-              <div className="ir-control-section">
-                <div className="ir-section-head">
-                  <Layers size={16} className="ir-section-icon" />
-                  <span>Output Format</span>
-                </div>
-                <div className="ir-select-wrap">
-                  <select
-                    value={settings.format}
-                    onChange={(e) =>
-                      setSettings((s) => ({
-                        ...s,
-                        format: e.target.value as ResizeSettings['format'],
-                      }))
-                    }
-                  >
-                    <option value="original">Keep Original Format</option>
-                    <option value="jpeg">JPG / JPEG (.jpg)</option>
-                    <option value="png">PNG (.png)</option>
-                    <option value="webp">WebP (.webp)</option>
-                  </select>
-                  <ChevronDown size={14} className="ir-select-arrow" />
-                </div>
-              </div>
-
-              {/* SECTION 5: Resize & Download Action Button */}
-              <div className="ir-action-col">
-                <button
-                  type="button"
-                  className="ir-download-action-btn"
-                  onClick={processActiveImage}
-                  disabled={isProcessing}
-                >
-                  <Download size={18} strokeWidth={2.5} />
-                  <span>{isProcessing ? 'Processing...' : 'Resize & Download'}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-
-        {/* UPLOAD / MULTI-IMAGE MANAGEMENT STRIP */}
-        {items.length > 0 && (
-          <div className="ir-image-selector-strip">
-            <div className="ir-strip-label">
-              <span>Uploaded Images ({items.length}):</span>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button
-                  type="button"
-                  className="ir-strip-add-btn"
-                  onClick={() => addMoreRef.current?.click()}
-                >
-                  <Plus size={13} /> Add more
-                </button>
-                <button
-                  type="button"
-                  className="ir-strip-add-btn"
-                  style={{ color: '#ef4444' }}
-                  onClick={clearAll}
-                >
-                  <Trash2 size={13} /> Clear all
-                </button>
-              </div>
-              <input
-                ref={addMoreRef}
-                type="file"
-                multiple
-                accept="image/jpeg,image/png,image/webp"
-                style={{ display: 'none' }}
-                onChange={handleFileInput}
-              />
-            </div>
-            <div className="ir-strip-pills">
-              {items.map((it) => {
-                const isSelected = it.id === activeItem?.id
-                return (
-                  <button
-                    key={it.id}
-                    type="button"
-                    className={`ir-strip-pill ${isSelected ? 'active' : ''}`}
-                    onClick={() => selectActiveItem(it)}
-                  >
-                    <img src={it.originalUrl} alt={it.name} className="ir-strip-thumb" />
-                    <span className="ir-strip-name">{it.name}</span>
-                    <button
-                      type="button"
-                      className="ir-strip-remove-btn"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        removeItem(it.id)
-                      }}
-                      title="Remove image"
+                  {/* Save Image As */}
+                  <div className="ir-form-group">
+                    <label className="ir-label">Save Image As</label>
+                    <select
+                      className="ir-select"
+                      value={settings.format}
+                      onChange={(e) =>
+                        setSettings((s) => ({ ...s, format: e.target.value as OutputFormat }))
+                      }
                     >
-                      ×
-                    </button>
-                  </button>
+                      <option value="original">Original</option>
+                      <option value="jpeg">JPG</option>
+                      <option value="png">PNG</option>
+                      <option value="webp">WEBP</option>
+                    </select>
+                  </div>
+
+                  {/* Quality Slider (for JPG or WEBP) */}
+                  {(settings.format === 'jpeg' || settings.format === 'webp') && (
+                    <div className="ir-form-group" style={{ marginTop: 12 }}>
+                      <div className="ir-slider-header" style={{ marginBottom: 4 }}>
+                        <span className="ir-label" style={{ margin: 0, fontSize: 12 }}>
+                          Quality
+                        </span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6' }}>
+                          {settings.quality}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        className="ir-range-slider"
+                        min={10}
+                        max={100}
+                        value={settings.quality}
+                        onChange={(e) =>
+                          setSettings((s) => ({ ...s, quality: Number(e.target.value) }))
+                        }
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Pinned Bottom CTA */}
+            <div className="ir-sidebar-footer">
+              <button
+                type="button"
+                className="ir-export-cta"
+                onClick={handleExport}
+                disabled={isProcessing || items.length === 0}
+              >
+                {isProcessing ? (
+                  <>Processing ({exportProgress}%) ...</>
+                ) : (
+                  <>
+                    Export {items.length > 1 ? `(${items.length}) ` : ''}
+                    <ArrowRight size={18} />
+                  </>
+                )}
+              </button>
+            </div>
+          </aside>
+
+          {/* Right Main Workspace (Image Cards Grid) */}
+          <main className="ir-main-workspace">
+            <div className="ir-cards-grid">
+              {sortedItems.map((item) => {
+                const targetDim = getItemTargetDimensions(item)
+                const isSwapped = (item.rotation || 0) % 180 !== 0
+                const origW = isSwapped ? item.originalHeight : item.originalWidth
+                const origH = isSwapped ? item.originalWidth : item.originalHeight
+
+                return (
+                  <div
+                    key={item.id}
+                    className="ir-image-card"
+                    onClick={() => setActiveItemId(item.id)}
+                  >
+                    <div className="ir-card-preview-area">
+                      <img
+                        src={item.originalUrl}
+                        alt={item.name}
+                        className="ir-card-img-preview"
+                        style={{
+                          transform: `rotate(${item.rotation || 0}deg) ${item.flipH ? 'scaleX(-1)' : ''}`,
+                        }}
+                      />
+
+                      {/* 4 Circular Action Buttons: Crop, Rotate, Info, Delete */}
+                      <div className="ir-card-overlays">
+                        <button
+                          type="button"
+                          className="ir-card-overlay-btn"
+                          title="Crop Image"
+                          onClick={(e) => openCropModal(item, e)}
+                        >
+                          <Crop size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          className="ir-card-overlay-btn"
+                          title="Rotate 90°"
+                          onClick={(e) => rotateItem(item.id, e)}
+                        >
+                          <RotateCw size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          className="ir-card-overlay-btn"
+                          title="Image Info"
+                          onClick={(e) => openInfoModal(item, e)}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 16v-4"/>
+                            <path d="M12 8h.01"/>
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          className="ir-card-overlay-btn danger"
+                          title="Remove Image"
+                          onClick={(e) => removeItem(item.id, e)}
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="ir-card-info-row">
+                      <div className="ir-card-filename" title={item.name}>
+                        {item.name}
+                      </div>
+
+                      <div className="ir-dimension-pills">
+                        <span className="ir-pill-orig">
+                          {settings.unit === 'px'
+                            ? `${origW} X ${origH}`
+                            : `${convertPxToUnit(origW, settings.unit, settings.dpi)} X ${convertPxToUnit(origH, settings.unit, settings.dpi)}`}
+                        </span>
+                        <span className="ir-pill-arrow">→</span>
+                        <span className="ir-pill-target">
+                          {settings.unit === 'px'
+                            ? `${targetDim.targetW} X ${targetDim.targetH}`
+                            : `${convertPxToUnit(targetDim.targetW, settings.unit, settings.dpi)} X ${convertPxToUnit(targetDim.targetH, settings.unit, settings.dpi)}`}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 )
               })}
-            </div>
-          </div>
-        )}
 
-        {/* REQUIREMENT 2: STRUCTURE AFTER RESIZE COMPARISON */}
-        {activeItem && (
-          <div className="ir-structure-panel">
-            <div className="ir-structure-head">
-              <div className="ir-structure-title-row">
-                <span className="ir-structure-badge">STRUCTURE COMPARISON</span>
-                <h2>Image Structure: Original vs. Resized</h2>
-              </div>
-              <p>
-                Inspect the structural breakdown of resolution, pixel count, aspect ratio, file size, and data optimization.
-              </p>
-            </div>
-
-            <div className="ir-structure-comparison">
-              {/* Before: Original Structure */}
-              <div className="ir-structure-card before">
-                <div className="ir-structure-card-header">
-                  <span className="ir-structure-tag">ORIGINAL STRUCTURE</span>
-                  <span className="ir-structure-format">
-                    {getFileExtension(activeItem.name).toUpperCase() || 'IMAGE'}
-                  </span>
+              {/* Add More Images Card in Grid */}
+              <div
+                className="ir-add-card-dashed"
+                onClick={() => addMoreRef.current?.click()}
+                title="Add more images"
+              >
+                <div className="ir-add-card-icon-wrap">
+                  <Plus size={24} />
                 </div>
-                <div className="ir-structure-preview-box">
-                  <img
-                    src={activeItem.originalUrl}
-                    alt={activeItem.name}
-                    className="ir-structure-img"
-                  />
-                  <span className="ir-structure-dims-pill">
-                    {activeItem.originalWidth} × {activeItem.originalHeight} px
-                  </span>
-                </div>
-                <div className="ir-structure-specs">
-                  <div className="ir-spec-row">
-                    <span>Resolution:</span>
-                    <strong>
-                      {activeItem.originalWidth} × {activeItem.originalHeight} px
-                    </strong>
-                  </div>
-                  <div className="ir-spec-row">
-                    <span>Total Pixels:</span>
-                    <strong>
-                      {((activeItem.originalWidth * activeItem.originalHeight) / 1000000).toFixed(2)} MP
-                    </strong>
-                  </div>
-                  <div className="ir-spec-row">
-                    <span>Aspect Ratio:</span>
-                    <strong>{activeItem.aspectRatio.toFixed(2)}:1</strong>
-                  </div>
-                  <div className="ir-spec-row">
-                    <span>File Size:</span>
-                    <strong>{formatBytes(activeItem.originalSize)}</strong>
-                  </div>
-                </div>
-              </div>
-
-              {/* Arrow Indicator */}
-              <div className="ir-structure-arrow-wrap">
-                <div className="ir-structure-arrow">➔</div>
-                <span className="ir-structure-arrow-label">
-                  {scalePercent === 100
-                    ? '100% Dimensions'
-                    : scalePercent < 100
-                    ? `${scalePercent}% Scaled Down`
-                    : `${scalePercent}% Scaled Up`}
-                </span>
-              </div>
-
-              {/* After: Resized Structure */}
-              <div className="ir-structure-card after">
-                <div className="ir-structure-card-header">
-                  <span className="ir-structure-tag ready">TARGET STRUCTURE</span>
-                  <span className="ir-structure-format">
-                    {settings.format === 'original'
-                      ? getFileExtension(activeItem.name).toUpperCase() || 'IMAGE'
-                      : settings.format.toUpperCase()}
-                  </span>
-                </div>
-                <div className="ir-structure-preview-box">
-                  <img
-                    src={activeItem.resizedUrl || activeItem.originalUrl}
-                    alt="Resized preview"
-                    className="ir-structure-img"
-                  />
-                  <span className="ir-structure-dims-pill target">
-                    {settings.width} × {settings.height} px
-                  </span>
-                </div>
-                <div className="ir-structure-specs">
-                  <div className="ir-spec-row">
-                    <span>Resolution:</span>
-                    <strong className="ir-highlight">
-                      {settings.width} × {settings.height} px
-                    </strong>
-                  </div>
-                  <div className="ir-spec-row">
-                    <span>Total Pixels:</span>
-                    <strong className="ir-highlight">
-                      {((settings.width * settings.height) / 1000000).toFixed(2)} MP
-                    </strong>
-                  </div>
-                  <div className="ir-spec-row">
-                    <span>Aspect Ratio:</span>
-                    <strong>{(settings.width / settings.height).toFixed(2)}:1</strong>
-                  </div>
-                  <div className="ir-spec-row">
-                    <span>Status:</span>
-                    <strong>
-                      {activeItem.resizedBlob ? (
-                        <span style={{ color: '#10b981' }}>
-                          ✓ Resized ({formatBytes(activeItem.resizedSize || 0)})
-                        </span>
-                      ) : (
-                        'Ready to download'
-                      )}
-                    </strong>
-                  </div>
-                </div>
+                <span className="ir-add-card-text">Add More Images</span>
               </div>
             </div>
-          </div>
-        )}
+          </main>
 
-        {/* BATCH DOWNLOAD ALL AS ZIP (When multiple images ready) */}
-        {items.filter((it) => it.resizedBlob).length > 1 && (
-          <div className="ir-batch-bar">
-            <div>
-              <h3>Batch Resizing Ready</h3>
-              <p>
-                {items.filter((it) => it.resizedBlob).length} of {items.length} images resized.
-              </p>
-            </div>
+          {/* Mobile Bottom Fixed Bar */}
+          <div className="ir-mobile-bottom-bar">
             <button
               type="button"
-              className="ir-batch-zip-btn"
-              onClick={handleDownloadAllZip}
-              disabled={zipProgress > 0}
+              className="ir-mobile-bottom-btn"
+              onClick={() => addMoreRef.current?.click()}
             >
-              <FolderArchive size={16} />
-              <span>
-                {zipProgress > 0 ? `Zipping (${zipProgress}%)...` : 'Download All as ZIP'}
-              </span>
+              <Plus size={20} /> Add
+            </button>
+            <button
+              type="button"
+              className="ir-mobile-bottom-btn"
+              onClick={() => setMobileSidebarOpen((prev) => !prev)}
+            >
+              Resize Settings
+            </button>
+            <button type="button" className="ir-mobile-bottom-btn" onClick={clearAll}>
+              <Trash2 size={18} />
             </button>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* SECTION: STEP-BY-STEP USAGE INSTRUCTIONS */}
-        <section className="ir-content-section">
-          <h2>How to Resize Images Step-by-Step</h2>
-          <p className="ir-section-lead">
-            Follow these simple steps to resize your digital photos visually or to exact specifications:
-          </p>
+      {/* ====================================================================
+         Crop Modal
+         ==================================================================== */}
+      {cropModalItem && (
+        <div className="ir-modal-backdrop" onClick={() => setCropModalItem(null)}>
+          <div className="ir-modal-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="ir-modal-header">
+              <h2>Crop: {cropModalItem.name}</h2>
+              <button
+                type="button"
+                className="ir-modal-close-btn"
+                onClick={() => setCropModalItem(null)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="ir-modal-content">
+              <div className="ir-crop-canvas-wrapper">
+                <img
+                  src={cropModalItem.originalUrl}
+                  alt={cropModalItem.name}
+                  className="ir-crop-source-img"
+                  style={{
+                    transform: `rotate(${cropModalItem.rotation || 0}deg)`,
+                  }}
+                />
+              </div>
+
+              <div className="ir-crop-aspect-selector">
+                <span style={{ fontSize: 13, fontWeight: 600, alignSelf: 'center' }}>
+                  Aspect Ratio:
+                </span>
+                {(['free', '1:1', '4:5', '16:9', '4:3'] as const).map((asp) => (
+                  <button
+                    key={asp}
+                    type="button"
+                    className={`ir-crop-aspect-pill ${cropAspect === asp ? 'active' : ''}`}
+                    onClick={() => {
+                      setCropAspect(asp)
+                      const origW = cropModalItem.originalWidth
+                      const origH = cropModalItem.originalHeight
+                      if (asp === '1:1') {
+                        const dim = Math.min(origW, origH)
+                        setCropCoords({
+                          x: Math.round((origW - dim) / 2),
+                          y: Math.round((origH - dim) / 2),
+                          width: dim,
+                          height: dim,
+                        })
+                      } else if (asp === '16:9') {
+                        const newH = Math.round(origW * (9 / 16))
+                        setCropCoords({
+                          x: 0,
+                          y: Math.max(0, Math.round((origH - newH) / 2)),
+                          width: origW,
+                          height: Math.min(origH, newH),
+                        })
+                      } else if (asp === '4:5') {
+                        const newW = Math.round(origH * (4 / 5))
+                        setCropCoords({
+                          x: Math.max(0, Math.round((origW - newW) / 2)),
+                          y: 0,
+                          width: Math.min(origW, newW),
+                          height: origH,
+                        })
+                      } else {
+                        setCropCoords({ x: 0, y: 0, width: origW, height: origH })
+                      }
+                    }}
+                  >
+                    {asp}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ marginTop: 14, fontSize: 13, color: '#64748b' }}>
+                Crop bounds: {cropCoords.width} X {cropCoords.height} px
+              </div>
+            </div>
+
+            <div className="ir-modal-footer">
+              <button
+                type="button"
+                className="ir-btn-secondary"
+                onClick={() => setCropModalItem(null)}
+              >
+                Cancel
+              </button>
+              <button type="button" className="ir-btn-primary" onClick={applyCrop}>
+                Apply Crop
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ====================================================================
+         Info Modal
+         ==================================================================== */}
+      {infoModalItem && (
+        <div className="ir-modal-backdrop" onClick={() => setInfoModalItem(null)}>
+          <div
+            className="ir-modal-dialog"
+            style={{ maxWidth: 480 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="ir-modal-header">
+              <h2>Image Details</h2>
+              <button
+                type="button"
+                className="ir-modal-close-btn"
+                onClick={() => setInfoModalItem(null)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="ir-modal-content">
+              <table className="ir-info-table">
+                <tbody>
+                  <tr>
+                    <td>File Name</td>
+                    <td>{infoModalItem.name}</td>
+                  </tr>
+                  <tr>
+                    <td>Original Resolution</td>
+                    <td>
+                      {infoModalItem.originalWidth} × {infoModalItem.originalHeight} px
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Target Resolution</td>
+                    <td>
+                      {getItemTargetDimensions(infoModalItem).targetW} ×{' '}
+                      {getItemTargetDimensions(infoModalItem).targetH} px
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Original File Size</td>
+                    <td>{formatBytes(infoModalItem.originalSize)}</td>
+                  </tr>
+                  <tr>
+                    <td>Rotation</td>
+                    <td>{infoModalItem.rotation || 0}°</td>
+                  </tr>
+                  <tr>
+                    <td>File Type</td>
+                    <td>{infoModalItem.file.type || 'image/jpeg'}</td>
+                  </tr>
+                  <tr>
+                    <td>Export Format</td>
+                    <td>
+                      {settings.format === 'original'
+                        ? getFileExtension(infoModalItem.name).toUpperCase()
+                        : settings.format.toUpperCase()}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div className="ir-modal-footer">
+              <button
+                type="button"
+                className="ir-btn-primary"
+                onClick={() => setInfoModalItem(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ====================================================================
+         URL Upload Modal
+         ==================================================================== */}
+      {urlModalOpen && (
+        <div className="ir-modal-backdrop" onClick={() => setUrlModalOpen(false)}>
+          <div
+            className="ir-modal-dialog"
+            style={{ maxWidth: 480 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="ir-modal-header">
+              <h2>Upload from URL</h2>
+              <button
+                type="button"
+                className="ir-modal-close-btn"
+                onClick={() => setUrlModalOpen(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="ir-modal-content">
+              <label className="ir-label">Image Web Address (URL)</label>
+              <input
+                type="url"
+                className="ir-input-text"
+                placeholder="https://example.com/photo.jpg"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                autoFocus
+              />
+              <p className="ir-helper-note">Enter direct image link ending in .jpg, .png, or .webp</p>
+            </div>
+
+            <div className="ir-modal-footer">
+              <button
+                type="button"
+                className="ir-btn-secondary"
+                onClick={() => setUrlModalOpen(false)}
+              >
+                Cancel
+              </button>
+              <button type="button" className="ir-btn-primary" onClick={handleLoadFromUrl}>
+                Fetch Image
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ====================================================================
+         Batch Export Complete Modal
+         ==================================================================== */}
+      {exportCompleteModal && (
+        <div className="ir-modal-backdrop" onClick={() => setExportCompleteModal(false)}>
+          <div
+            className="ir-modal-dialog"
+            style={{ maxWidth: 540 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="ir-modal-header">
+              <h2>Images Resized Successfully!</h2>
+              <button
+                type="button"
+                className="ir-modal-close-btn"
+                onClick={() => setExportCompleteModal(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="ir-modal-content">
+              <p style={{ fontSize: 14, color: '#64748b', marginBottom: 16 }}>
+                All {processedResults.length} images have been processed with your chosen settings.
+              </p>
+
+              <div className="ir-download-list">
+                {processedResults.map((res) => (
+                  <div key={res.id} className="ir-download-item">
+                    <div>
+                      <div className="ir-download-item-title">{res.outputName || res.name}</div>
+                      <div className="ir-download-item-meta">
+                        {res.resizedWidth} × {res.resizedHeight} px •{' '}
+                        {res.resizedSize ? formatBytes(res.resizedSize) : ''}
+                      </div>
+                    </div>
+                    {res.resizedBlob && (
+                      <button
+                        type="button"
+                        className="ir-btn-secondary"
+                        style={{ padding: '6px 12px', fontSize: 13 }}
+                        onClick={() =>
+                          downloadSingleFile(res.resizedBlob!, res.outputName || res.name)
+                        }
+                      >
+                        <Upload size={14} style={{ transform: 'rotate(180deg)', marginRight: 6 }} /> Download
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="ir-modal-footer">
+              <button
+                type="button"
+                className="ir-btn-secondary"
+                onClick={() => setExportCompleteModal(false)}
+              >
+                Close
+              </button>
+              <button type="button" className="ir-btn-primary" onClick={handleDownloadZip}>
+                <FolderArchive size={16} style={{ marginRight: 6 }} /> Download All as ZIP
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ====================================================================
+         Content Sections Down Below the Tool
+         ==================================================================== */}
+      <div className="ir-content-wrap">
+        {/* ------------------------------------------------------------------
+           Section 1: Image Structure: Original vs. Resized
+           ------------------------------------------------------------------ */}
+        <section className="ir-content-section" aria-labelledby="ir-structure-heading">
+          <div className="ir-content-head">
+            <span className="ir-kicker">ANATOMY & MATRIX</span>
+            <h2 id="ir-structure-heading" className="ir-content-title">
+              Image Structure: Original vs. Resized
+            </h2>
+            <p className="ir-content-subtitle">
+              Understand the core mechanics of raster pixels, aspect ratios, file weight, and resampling algorithms when transforming digital images.
+            </p>
+          </div>
+
+          <div className="ir-structure-prose">
+            <p>
+              Every digital raster image (whether formatted as JPG, PNG, or WebP) is fundamentally an organized two-dimensional grid of color pixels. The dimensions of this grid—measured by width and height in pixels—determine how much visual information the image contains and how large it renders on desktop monitors, smartphone displays, and printed media.
+            </p>
+            <p>
+              When you resize an image, you modify the total number of pixels in this grid. Scaling down reduces the total pixel count by intelligently consolidating color samples (downsampling), which drastically lowers file weight without compromising visual sharpness. Conversely, enlarging an image (upsampling) requires interpolation algorithms to synthesize new pixels between existing ones.
+            </p>
+          </div>
+
+          <div className="ir-structure-grid">
+            <div className="ir-structure-card">
+              <div className="ir-structure-card-icon">
+                <Maximize2 size={22} />
+              </div>
+              <h3>Pixel Matrix & Dimension Scaling</h3>
+              <h4>Width × Height Coordinate Arrays</h4>
+              <p>
+                A high-resolution 4K photo contains over 8.2 million individual pixels. When resized to standard Full HD (1920 × 1080), the grid drops to approximately 2 million pixels—a 75% reduction in data points that immediately improves browser rendering and mobile loading.
+              </p>
+            </div>
+
+            <div className="ir-structure-card">
+              <div className="ir-structure-card-icon">
+                <Lock size={22} />
+              </div>
+              <h3>Aspect Ratio Integrity</h3>
+              <h4>Proportional Scaling vs. Geometric Distortion</h4>
+              <p>
+                The aspect ratio represents the proportional relationship between image width and height (e.g., 16:9 widescreen or 1:1 square). Locking the aspect ratio guarantees your subject never appears squashed or stretched when adjusting dimensions.
+              </p>
+            </div>
+
+            <div className="ir-structure-card">
+              <div className="ir-structure-card-icon">
+                <Layers size={22} />
+              </div>
+              <h3>Resampling & Bicubic Interpolation</h3>
+              <h4>Multi-Pass Mathematical Pixel Blending</h4>
+              <p>
+                ImgMojo employs HTML5 Canvas hardware-accelerated bicubic interpolation. Instead of harsh pixel drops, adjacent color values are smoothly blended across neighbor matrices, preserving sharp edge contrast and fine gradients.
+              </p>
+            </div>
+          </div>
+
+          {/* Side-by-Side Comparison Matrix */}
+          <div className="ir-table-card">
+            <div className="ir-table-card-head">
+              <h3>Structural Comparison: Original Master vs. Resized Web Asset</h3>
+              <p>How physical and digital attributes transform across a typical 4K to HD web optimization workflow</p>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="ir-structure-table">
+                <thead>
+                  <tr>
+                    <th>Attribute</th>
+                    <th>Original Image (Camera Raw / Master)</th>
+                    <th>Resized Image (Web & Social Optimized)</th>
+                    <th>Practical Advantage</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Pixel Dimensions</strong></td>
+                    <td><span className="ir-tag-orig">3840 × 2160 px (4K)</span></td>
+                    <td><span className="ir-tag-target">1280 × 720 px (HD)</span></td>
+                    <td>Fits standard display containers perfectly</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Total Pixel Count</strong></td>
+                    <td>8,294,400 pixels</td>
+                    <td>921,600 pixels (-88.9%)</td>
+                    <td>Requires 88% less GPU rendering memory</td>
+                  </tr>
+                  <tr>
+                    <td><strong>File Size Footprint</strong></td>
+                    <td>~4.8 MB to 8.5 MB</td>
+                    <td>~140 KB to 280 KB (-95%)</td>
+                    <td>Instant loading over cellular networks</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Web Load Speed (4G)</strong></td>
+                    <td>~1.8 to 2.4 seconds</td>
+                    <td>&lt; 0.05 seconds (Instant)</td>
+                    <td>Passes Google Core Web Vitals (LCP)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Primary Purpose</strong></td>
+                    <td>Archival, photography masters, editing</td>
+                    <td>Websites, email newsletters, social media</td>
+                    <td>Optimal balance of quality and performance</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        {/* ------------------------------------------------------------------
+           Section 2: How to Resize Images Step-by-Step
+           ------------------------------------------------------------------ */}
+        <section className="ir-content-section" aria-labelledby="ir-howto-heading">
+          <div className="ir-content-head">
+            <span className="ir-kicker">STEP-BY-STEP WORKFLOW</span>
+            <h2 id="ir-howto-heading" className="ir-content-title">
+              How to Resize Images Step-by-Step
+            </h2>
+            <p className="ir-content-subtitle">
+              Follow four simple steps to scale, crop, rotate, and export your photos with pixel-perfect precision.
+            </p>
+          </div>
 
           <div className="ir-steps-grid">
             <div className="ir-step-card">
-              <span className="ir-step-num">1</span>
-              <h3>Upload Your Image</h3>
+              <div className="ir-step-top">
+                <span className="ir-step-badge">01</span>
+                <Upload size={22} className="ir-step-icon" />
+              </div>
+              <h3>Select or Drop Images</h3>
+              <h4>Batch Upload JPG, PNG, or WebP Files</h4>
               <p>
-                Drag and drop your JPG, PNG, or WebP photo into the workspace or choose a sample image.
+                Click "Select Images" or drag and drop single or multiple photos directly into the resizer studio. You can also import images directly from a web URL.
               </p>
             </div>
 
             <div className="ir-step-card">
-              <span className="ir-step-num">2</span>
-              <h3>Drag Handles or Set Dimensions</h3>
+              <div className="ir-step-top">
+                <span className="ir-step-badge">02</span>
+                <SlidersHorizontal size={22} className="ir-step-icon" />
+              </div>
+              <h3>Choose Resizing Mode</h3>
+              <h4>By Size, Percentage, or Social Media</h4>
               <p>
-                Click and drag any of the 8 interactive handles to visually resize the image, or type exact pixels in the sidebar.
+                Select "By Size" to enter custom dimensions in pixels or inches, "As Percentage" for smooth scaling (1%–500%), or "Social Media" for instant platform presets.
               </p>
             </div>
 
             <div className="ir-step-card">
-              <span className="ir-step-num">3</span>
-              <h3>Inspect Structure & Download</h3>
+              <div className="ir-step-top">
+                <span className="ir-step-badge">03</span>
+                <Crop size={22} className="ir-step-icon" />
+              </div>
+              <h3>Adjust Ratios & Options</h3>
+              <h4>Lock Aspect Ratio, Crop, or Set Max KB</h4>
               <p>
-                Review the structural before-and-after breakdown, verify resolution and aspect ratio, and click "Resize & Download".
+                Keep "Lock Aspect Ratio" checked to preserve proportions. Use the card action buttons to rotate or crop, and optionally specify a target maximum file size in KB.
+              </p>
+            </div>
+
+            <div className="ir-step-card">
+              <div className="ir-step-top">
+                <span className="ir-step-badge">04</span>
+                <FolderArchive size={22} className="ir-step-icon" />
+              </div>
+              <h3>Export & Download</h3>
+              <h4>Single File Download or Bulk ZIP Folder</h4>
+              <p>
+                Click the blue "Export" button. Single images download immediately to your device, while multi-image batches can be downloaded individually or in a packaged ZIP archive.
               </p>
             </div>
           </div>
         </section>
 
-        {/* SECTION: RESIZING VS COMPRESSION */}
-        <section className="ir-content-section">
-          <h2>Understanding Image Resizing vs. Image Compression</h2>
-          <p>
-            While resizing and compression both reduce digital payload, they serve distinct technical functions in modern web optimization:
-          </p>
-          <div className="ir-compare-grid">
-            <div className="ir-compare-col">
-              <h3>Image Resizing (Dimensions)</h3>
-              <ul>
-                <li>Changes the physical pixel matrix (e.g. 4000 × 3000 px to 1200 × 900 px).</li>
-                <li>Directly determines how large or small an image appears on screen or prints.</li>
-                <li>Prevents web browsers from downloading massive desktop-sized hero images onto mobile phones.</li>
-                <li>Provides instant reduction in memory footprint when rendering in web pages.</li>
-              </ul>
-            </div>
-            <div className="ir-compare-col">
-              <h3>Image Compression (Bitrate & Quality)</h3>
-              <ul>
-                <li>Optimizes binary file encoding and strips unnecessary camera EXIF metadata.</li>
-                <li>Retains original width and height while discarding non-essential color data.</li>
-                <li>Can be lossy (perceptible reduction for massive size savings) or lossless.</li>
-                <li>Best paired with resizing for maximum web performance and SEO Core Web Vitals.</li>
-              </ul>
-            </div>
+        {/* ------------------------------------------------------------------
+           Section 3: Supported Image Formats
+           ------------------------------------------------------------------ */}
+        <section className="ir-content-section" aria-labelledby="ir-formats-heading">
+          <div className="ir-content-head">
+            <span className="ir-kicker">FORMAT COMPATIBILITY</span>
+            <h2 id="ir-formats-heading" className="ir-content-title">
+              Supported Image Formats
+            </h2>
+            <p className="ir-content-subtitle">
+              ImgMojo provides native, high-performance resizing and conversion across the most widely used raster image formats on the internet.
+            </p>
           </div>
-        </section>
 
-        {/* SECTION: SUPPORTED FORMATS */}
-        <section className="ir-content-section">
-          <h2>Supported Image Formats</h2>
-          <p>ImgMojo's Image Resizer fully supports the web's three primary digital raster standards:</p>
           <div className="ir-formats-grid">
             <div className="ir-format-card">
-              <div className="ir-format-chip">JPG / JPEG</div>
-              <h4>Joint Photographic Experts Group</h4>
+              <div className="ir-format-badge-wrap">
+                <span className="ir-format-badge">.jpg / .jpeg</span>
+                <CameraIcon size={18} />
+              </div>
+              <h3>JPG / JPEG Format</h3>
+              <h4>Photographic Web Standard</h4>
               <p>
-                The universal standard for photography. Resizing photographs removes excess camera sensor resolution, dramatically improving load times.
+                The gold standard for real-world photography and complex color gradients. ImgMojo supports custom quality thresholds and optional target file size capping in KB/MB.
               </p>
             </div>
+
             <div className="ir-format-card">
-              <div className="ir-format-chip">PNG</div>
-              <h4>Portable Network Graphics</h4>
+              <div className="ir-format-badge-wrap">
+                <span className="ir-format-badge">.png</span>
+                <Sparkles size={18} color="#3b82f6" />
+              </div>
+              <h3>PNG Format</h3>
+              <h4>Lossless Detail with Alpha Transparency</h4>
               <p>
-                Ideal for graphics, logos, illustrations, and UI screenshots requiring lossless transparency. Resizes with complete alpha-channel preservation.
+                Ideal for logos, UI icons, graphic illustrations, and screenshots. Resizing maintains razor-sharp line art and completely preserves transparent background channels.
               </p>
             </div>
+
             <div className="ir-format-card">
-              <div className="ir-format-chip">WebP</div>
-              <h4>Google WebP Format</h4>
+              <div className="ir-format-badge-wrap">
+                <span className="ir-format-badge">.webp</span>
+                <Globe size={18} color="#3b82f6" />
+              </div>
+              <h3>WebP Format</h3>
+              <h4>Modern High-Efficiency Web Standard</h4>
               <p>
-                Modern next-gen image standard offering 25-35% superior compression efficiency compared to JPG while retaining full transparency.
+                Created by Google to supercharge website speeds. Delivers 25%–35% smaller file sizes than comparable JPGs and PNGs while supporting both 24-bit rich color and transparency.
+              </p>
+            </div>
+
+            <div className="ir-format-card">
+              <div className="ir-format-badge-wrap">
+                <span className="ir-format-badge">Physical / Print</span>
+                <PrinterIcon size={18} />
+              </div>
+              <h3>Print Units & DPI</h3>
+              <h4>Inches, Centimeters, and Millimeters</h4>
+              <p>
+                Specify physical dimensions in inches, cm, or mm with selectable print DPI (72, 96, 150, or 300 DPI). Perfectly calculates exact pixel counts for lab printing and flyers.
               </p>
             </div>
           </div>
-        </section>
 
-        {/* SECTION: PRACTICAL USE CASES */}
-        <section className="ir-content-section">
-          <h2>Practical Use Cases for Image Resizing</h2>
-          <div className="ir-usecases-grid">
-            <div className="ir-usecase-item">
-              <h4>Social Media Optimization</h4>
-              <p>
-                Scale your profile pictures, stories, and feed posts to exact platform dimensions like Instagram (1080×1080), TikTok (1080×1920), and YouTube (1280×720).
-              </p>
-            </div>
-            <div className="ir-usecase-item">
-              <h4>E-Commerce Product Galleries</h4>
-              <p>
-                Standardize all product catalog listings to uniform square proportions (such as 1000×1000 px) for Shopify, Amazon, and WooCommerce stores.
-              </p>
-            </div>
-            <div className="ir-usecase-item">
-              <h4>Web & Mobile App Development</h4>
-              <p>
-                Generate multi-resolution responsive assets (1x, 2x, 3x) for retina screens and responsive picture elements.
-              </p>
-            </div>
-            <div className="ir-usecase-item">
-              <h4>Government & Job Application Portals</h4>
-              <p>
-                Easily resize passport photos, exam admit signatures, and identity cards to strict dimension and kilobyte specifications.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* SECTION: FAQS */}
-        <section className="ir-content-section">
-          <h2>Frequently Asked Questions</h2>
-          <div className="ir-faq-list">
-            {RESIZER_FAQS.map((faq, idx) => (
-              <details key={idx} className="ir-faq-item">
-                <summary className="ir-faq-question">
-                  <span>{faq.question}</span>
-                  <ChevronDown size={16} className="ir-faq-arrow" />
-                </summary>
-                <div className="ir-faq-answer">
-                  <p>{faq.answer}</p>
-                </div>
-              </details>
-            ))}
-          </div>
-        </section>
-
-        {/* SECTION: PRIVACY & SECURITY */}
-        <section className="ir-content-section ir-privacy-section">
-          <div className="ir-privacy-card">
-            <div className="ir-privacy-icon">
-              <ShieldCheck size={28} />
+          {/* Conversion Banner */}
+          <div className="ir-conversion-banner">
+            <div className="ir-conversion-banner-icon">
+              <Layers size={22} />
             </div>
             <div>
-              <h2>Is It Safe to Resize Images Online?</h2>
+              <h3>Keep Original Format or Transcode in Bulk</h3>
               <p>
-                Yes, completely. Unlike traditional cloud photo tools that upload your files to remote servers, ImgMojo processes <strong>100% of your images locally in your web browser</strong> using client-side HTML5 Canvas.
+                ImgMojo gives you total export control. By default, your images retain their original format (JPG remains JPG, PNG remains PNG, WebP remains WebP). You can also use the <strong>"Save Image As"</strong> selector in Export Settings to instantly convert your entire batch to WebP for modern web delivery, JPG for universal software compatibility, or PNG for lossless transparency.
               </p>
-              <ul className="ir-privacy-bullets">
-                <li>
-                  <Clock3 size={15} /> <strong>Zero Cloud Upload:</strong> Your photos never leave your device.
-                </li>
-                <li>
-                  <Lock size={15} /> <strong>Total Privacy:</strong> No photos are stored, cataloged, or retained.
-                </li>
-                <li>
-                  <ShieldCheck size={15} /> <strong>No Third-Party Sharing:</strong> Zero telemetry or AI training on your private images.
-                </li>
-              </ul>
             </div>
           </div>
         </section>
 
-        {/* SECTION: EXPLORE MORE TOOLS */}
-        <section className="ir-content-section ir-tools-nav-section">
-          <h2>Explore More Image Tools</h2>
-          <p className="ir-section-lead">
-            Discover our complementary browser-based digital image utilities:
-          </p>
-          <div className="ir-tools-nav-grid">
-            <Link to="/compress-image" className="ir-nav-tool-card">
-              <div className="ir-nav-icon">
-                <Maximize2 size={24} />
+        {/* ------------------------------------------------------------------
+           Section 4: Practical Use Cases for Image Resizing
+           ------------------------------------------------------------------ */}
+        <section className="ir-content-section" aria-labelledby="ir-usecases-heading">
+          <div className="ir-content-head">
+            <span className="ir-kicker">REAL-WORLD APPLICATIONS</span>
+            <h2 id="ir-usecases-heading" className="ir-content-title">
+              Practical Use Cases for Image Resizing
+            </h2>
+            <p className="ir-content-subtitle">
+              Explore how creators, businesses, developers, and photographers use custom image scaling to solve everyday digital workflow challenges.
+            </p>
+          </div>
+
+          <div className="ir-usecases-grid">
+            <div className="ir-usecase-card">
+              <div className="ir-usecase-icon-box">
+                <Zap size={20} />
               </div>
-              <div className="ir-nav-info">
+              <div className="ir-usecase-body">
+                <h3>Web Design & SEO Optimization</h3>
+                <h4>Core Web Vitals & Fast Page Loading</h4>
+                <p>
+                  Serving unscaled 4000px camera photos on a 600px mobile card wastes megabytes of bandwidth and slows Largest Contentful Paint (LCP). Resizing to exact container dimensions speeds up page loads and boosts Google search rankings.
+                </p>
+              </div>
+            </div>
+
+            <div className="ir-usecase-card">
+              <div className="ir-usecase-icon-box">
+                <Globe size={20} />
+              </div>
+              <div className="ir-usecase-body">
+                <h3>Social Media Graphics & Stories</h3>
+                <h4>Tailored Ratios for Instagram, TikTok & YouTube</h4>
+                <p>
+                  Prevent awkward automated cropping and blurry re-encoding. Scale images to official platform dimensions: Instagram Square (1080 × 1080), Stories/Reels (1080 × 1920), YouTube Thumbnails (1280 × 720), and Facebook Covers.
+                </p>
+              </div>
+            </div>
+
+            <div className="ir-usecase-card">
+              <div className="ir-usecase-icon-box">
+                <Store size={20} />
+              </div>
+              <div className="ir-usecase-body">
+                <h3>E-Commerce Product Catalogs</h3>
+                <h4>Consistent Listings for Amazon, Shopify & Etsy</h4>
+                <p>
+                  Online storefronts look clean and trustworthy when every product thumbnail shares identical square proportions (e.g. 1000 × 1000 px or 1200 × 1200 px). Batch resize your entire catalog in seconds with zero distortion.
+                </p>
+              </div>
+            </div>
+
+            <div className="ir-usecase-card">
+              <div className="ir-usecase-icon-box">
+                <Mail size={20} />
+              </div>
+              <div className="ir-usecase-body">
+                <h3>Email Attachments & Newsletters</h3>
+                <h4>Bypass Attachment Limits and Inbox Quotas</h4>
+                <p>
+                  Corporate mail servers routinely reject email attachments larger than 20 MB. Downscaling photos to standard email widths (600px–1200px) reduces file sizes by up to 90%, ensuring fast inbox delivery without bounce-backs.
+                </p>
+              </div>
+            </div>
+
+            <div className="ir-usecase-card">
+              <div className="ir-usecase-icon-box">
+                <PrinterIcon size={20} />
+              </div>
+              <div className="ir-usecase-body">
+                <h3>High-Resolution Print Production</h3>
+                <h4>Exact Physical Sizes in Inches & CM with 300 DPI</h4>
+                <p>
+                  Whether printing photo lab portraits (4 × 6 or 8 × 10 inches), business brochures, or posters, our physical unit selector calculates the exact pixel matrix required at 300 DPI for crisp, professional print shop output.
+                </p>
+              </div>
+            </div>
+
+            <div className="ir-usecase-card">
+              <div className="ir-usecase-icon-box">
+                <FileText size={20} />
+              </div>
+              <div className="ir-usecase-body">
+                <h3>Government Forms & Visa Applications</h3>
+                <h4>Strict Pixel & Maximum KB File Size Constraints</h4>
+                <p>
+                  Government portals, passport authorities, and job boards often enforce strict rules like "photo must be 600 × 600 px and under 240 KB". Use our combined dimension controls and target file size feature to meet strict upload guidelines.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ------------------------------------------------------------------
+           Section 5: Frequently Asked Questions
+           ------------------------------------------------------------------ */}
+        <section className="ir-content-section" aria-labelledby="ir-faq-heading">
+          <div className="ir-content-head">
+            <span className="ir-kicker">FREQUENTLY ASKED QUESTIONS</span>
+            <h2 id="ir-faq-heading" className="ir-content-title">
+              Frequently Asked Questions
+            </h2>
+            <p className="ir-content-subtitle">
+              Get answers to the most common questions about image dimensions, print DPI, aspect ratios, and safe browser resizing.
+            </p>
+          </div>
+
+          <div className="ir-faq-list">
+            {RESIZER_FAQS.map((faq, idx) => {
+              const isOpen = openFaqIndex === idx
+              return (
+                <div key={faq.question} className={`ir-faq-item ${isOpen ? 'is-open' : ''}`}>
+                  <button
+                    type="button"
+                    className="ir-faq-question"
+                    onClick={() => setOpenFaqIndex(isOpen ? -1 : idx)}
+                    aria-expanded={isOpen}
+                  >
+                    <span>{faq.question}</span>
+                    <ChevronDown size={18} className="ir-faq-chevron" />
+                  </button>
+                  {isOpen && (
+                    <div className="ir-faq-answer">
+                      <p>{faq.answer}</p>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </section>
+
+        {/* ------------------------------------------------------------------
+           Section 6: Is It Safe to Resize Images Online?
+           ------------------------------------------------------------------ */}
+        <section className="ir-content-section" aria-labelledby="ir-safety-heading">
+          <div className="ir-content-head">
+            <span className="ir-kicker">SECURITY & PRIVACY GUARANTEE</span>
+            <h2 id="ir-safety-heading" className="ir-content-title">
+              Is It Safe to Resize Images Online?
+            </h2>
+            <p className="ir-content-subtitle">
+              Why ImgMojo's client-side architecture provides unmatched privacy compared to traditional cloud-based resizing tools.
+            </p>
+          </div>
+
+          <div className="ir-safety-card">
+            <div className="ir-safety-main">
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: '#3b82f6', marginBottom: 12 }}>
+                <ShieldCheck size={28} />
+                <span style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Client-Side Sandbox</span>
+              </div>
+              <h3>100% In-Browser Client-Side Processing</h3>
+              <h4>Your Private Photos Never Touch Any Remote Cloud Server</h4>
+              <p>
+                Most traditional online image resizers require you to upload your personal files to a remote cloud server. This exposes your sensitive photos, contracts, family pictures, and documents to third-party servers, data retention policies, and potential data leaks.
+              </p>
+              <p>
+                <strong>ImgMojo works completely differently:</strong> All image decoding, resampling, dimension scaling, and ZIP bundling occur 100% locally inside your web browser using HTML5 Canvas and JavaScript Web APIs. Your images are never transmitted across the network, never stored in any database, and never used to train external AI models.
+              </p>
+              <p>
+                As soon as you close or refresh your browser tab, all allocated canvas memory is immediately released. You enjoy instant, private processing with enterprise-grade confidentiality.
+              </p>
+            </div>
+
+            <div className="ir-safety-badges">
+              <div className="ir-safety-badge-item">
+                <span className="ir-safety-badge-icon">
+                  <Check size={14} />
+                </span>
+                <span>Zero Cloud Server Uploads</span>
+              </div>
+              <div className="ir-safety-badge-item">
+                <span className="ir-safety-badge-icon">
+                  <Check size={14} />
+                </span>
+                <span>Local HTML5 Canvas Sandbox</span>
+              </div>
+              <div className="ir-safety-badge-item">
+                <span className="ir-safety-badge-icon">
+                  <Check size={14} />
+                </span>
+                <span>No User Account or Registration</span>
+              </div>
+              <div className="ir-safety-badge-item">
+                <span className="ir-safety-badge-icon">
+                  <Check size={14} />
+                </span>
+                <span>Zero Watermarks or Hidden Fees</span>
+              </div>
+              <div className="ir-safety-badge-item">
+                <span className="ir-safety-badge-icon">
+                  <Check size={14} />
+                </span>
+                <span>Instant Local Memory Cleanup</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ------------------------------------------------------------------
+           Section 7: Explore More Image Tools
+           ------------------------------------------------------------------ */}
+        <section className="ir-content-section" aria-labelledby="ir-tools-heading" style={{ marginBottom: 0 }}>
+          <div className="ir-content-head">
+            <span className="ir-kicker">DISCOVER OUR CREATIVE SUITE</span>
+            <h2 id="ir-tools-heading" className="ir-content-title">
+              Explore More Image Tools
+            </h2>
+            <p className="ir-content-subtitle">
+              Expand your creative workflow with ImgMojo's complete collection of free, high-speed, browser-based utilities.
+            </p>
+          </div>
+
+          <div className="ir-tools-grid">
+            {/* Image Compressor */}
+            <div className="ir-tool-card">
+              <div>
+                <div className="ir-tool-icon-wrap">
+                  <FolderArchive size={22} />
+                </div>
                 <h3>Image Compressor</h3>
-                <p>Reduce file size in KB or MB without visible loss of quality.</p>
-                <span className="ir-nav-link-text">
-                  Compress Images Now <ArrowRight size={13} />
-                </span>
+                <h4>Reduce File Size Without Quality Loss</h4>
+                <p>
+                  Compress JPG, PNG, and WebP images by up to 80% while retaining pristine visual fidelity. Ideal for web performance and email delivery.
+                </p>
               </div>
-            </Link>
+              <Link to="/compress-image" className="ir-tool-link-btn" title="Open Image Compressor">
+                <span>Compress Images</span>
+                <ArrowRight size={14} />
+              </Link>
+            </div>
 
-            <Link to="/image-converter" className="ir-nav-tool-card">
-              <div className="ir-nav-icon">
-                <Layers size={24} />
-              </div>
-              <div className="ir-nav-info">
+            {/* Image Converter */}
+            <div className="ir-tool-card">
+              <div>
+                <div className="ir-tool-icon-wrap">
+                  <Layers size={22} />
+                </div>
                 <h3>Image Converter</h3>
-                <p>Convert seamlessly between JPG, PNG, and WebP raster standards.</p>
-                <span className="ir-nav-link-text">
-                  Convert Formats <ArrowRight size={13} />
-                </span>
+                <h4>Transcode Across All Image Formats</h4>
+                <p>
+                  Batch convert images between JPG, PNG, WebP, SVG, AVIF, and GIF with custom compression settings and zero software downloads.
+                </p>
               </div>
-            </Link>
+              <Link to="/image-converter" className="ir-tool-link-btn" title="Open Image Converter">
+                <span>Convert Formats</span>
+                <ArrowRight size={14} />
+              </Link>
+            </div>
 
-            <Link to="/image-cropper" className="ir-nav-tool-card">
-              <div className="ir-nav-icon">
-                <Crop size={24} />
-              </div>
-              <div className="ir-nav-info">
+            {/* Image Cropper */}
+            <div className="ir-tool-card">
+              <div>
+                <div className="ir-tool-icon-wrap">
+                  <Crop size={22} />
+                </div>
                 <h3>Image Cropper</h3>
-                <p>Crop images to exact aspect ratios with grid guides and angle rotation.</p>
-                <span className="ir-nav-link-text">
-                  Crop Images Now <ArrowRight size={13} />
-                </span>
+                <h4>Precision Framing & Aspect Ratio Ratios</h4>
+                <p>
+                  Crop photos visually with pixel grids, freeform handles, and fixed aspect ratio presets for avatars, banners, and circular profile pictures.
+                </p>
               </div>
-            </Link>
+              <Link to="/image-cropper" className="ir-tool-link-btn" title="Open Image Cropper">
+                <span>Crop Visuals</span>
+                <ArrowRight size={14} />
+              </Link>
+            </div>
+
+            {/* Watermark Remover */}
+            <div className="ir-tool-card">
+              <div>
+                <div className="ir-tool-icon-wrap">
+                  <Wand2 size={22} />
+                </div>
+                <h3>Watermark Remover</h3>
+                <h4>Clean Object & Text Inpainting</h4>
+                <p>
+                  Erase unwanted logos, timestamps, text, and overlays from photos cleanly using local canvas-based inpainting brushes.
+                </p>
+              </div>
+              <Link to="/watermark-remover" className="ir-tool-link-btn" title="Open Watermark Remover">
+                <span>Remove Watermark</span>
+                <ArrowRight size={14} />
+              </Link>
+            </div>
+
+            {/* Remove Object */}
+            <div className="ir-tool-card">
+              <div>
+                <div className="ir-tool-icon-wrap">
+                  <Sparkles size={22} />
+                </div>
+                <h3>Remove Object</h3>
+                <h4>Erase Unwanted Photobombers & Items</h4>
+                <p>
+                  Brush over distracting background objects, power lines, or blemishes and watch them disappear with seamless texture synthesis.
+                </p>
+              </div>
+              <Link to="/remove-object" className="ir-tool-link-btn" title="Open Remove Object">
+                <span>Erase Objects</span>
+                <ArrowRight size={14} />
+              </Link>
+            </div>
+
+            {/* Collage Studio */}
+            <div className="ir-tool-card">
+              <div>
+                <div className="ir-tool-icon-wrap">
+                  <Maximize2 size={22} />
+                </div>
+                <h3>Collage Studio</h3>
+                <h4>Combine Multiple Photos into Grids</h4>
+                <p>
+                  Create stunning photo collages with customizable borders, rounded corners, spacing grids, filters, and background gradients.
+                </p>
+              </div>
+              <Link to="/collage" className="ir-tool-link-btn" title="Open Collage Studio">
+                <span>Create Collage</span>
+                <ArrowRight size={14} />
+              </Link>
+            </div>
+
+            {/* Passport Photo Maker */}
+            <div className="ir-tool-card">
+              <div>
+                <div className="ir-tool-icon-wrap">
+                  <FileText size={22} />
+                </div>
+                <h3>Passport Photo Maker</h3>
+                <h4>Bio-Metric Document Sizing</h4>
+                <p>
+                  Generate official 2 × 2 inch passport and visa photos with white backdrops and print-ready multi-cut sheets compliant with government rules.
+                </p>
+              </div>
+              <Link to="/passport-photo" className="ir-tool-link-btn" title="Open Passport Photo Maker">
+                <span>Create Passport Photo</span>
+                <ArrowRight size={14} />
+              </Link>
+            </div>
+
+            {/* QR Code Generator */}
+            <div className="ir-tool-card">
+              <div>
+                <div className="ir-tool-icon-wrap">
+                  <Globe size={22} />
+                </div>
+                <h3>QR Code Generator</h3>
+                <h4>Branded Custom Scannable QR Codes</h4>
+                <p>
+                  Generate custom high-resolution QR codes for websites, Wi-Fi networks, contact cards, and text with custom colors and embedded logo icons.
+                </p>
+              </div>
+              <Link to="/qr-code" className="ir-tool-link-btn" title="Open QR Code Generator">
+                <span>Generate QR Code</span>
+                <ArrowRight size={14} />
+              </Link>
+            </div>
           </div>
         </section>
       </div>
