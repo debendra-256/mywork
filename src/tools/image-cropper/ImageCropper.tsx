@@ -1,10 +1,9 @@
-import { useState, useRef, useEffect, useCallback, type ChangeEvent, type DragEvent } from 'react'
+import { useState, useRef, useCallback, type ChangeEvent, type DragEvent } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Upload,
   Download,
   Trash2,
-  Plus,
   RefreshCw,
   RotateCw,
   RotateCcw,
@@ -19,15 +18,17 @@ import {
   Mail,
   Grid3X3,
   SlidersHorizontal,
+  Maximize2,
+  Crop,
+  Check,
 } from 'lucide-react'
-import type { CropArea, CropSettings, AspectRatioPreset } from './types'
+import type { CropArea, CropSettings } from './types'
 import {
   CROP_PRESETS,
   loadImage,
   exportCroppedImage,
   downloadSingleFile,
   formatBytes,
-  getFileExtension,
 } from './cropEngine'
 import './ImageCropper.css'
 
@@ -59,6 +60,8 @@ const CROPPER_FAQS = [
   },
 ]
 
+type HandleDirection = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'move'
+
 export default function ImageCropper() {
   const [file, setFile] = useState<File | null>(null)
   const [loadedImg, setLoadedImg] = useState<HTMLImageElement | null>(null)
@@ -67,523 +70,939 @@ export default function ImageCropper() {
   const [isDragging, setIsDragging] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const [openFaq, setOpenFaq] = useState<number>(0)
+  const [showToast, setShowToast] = useState(false)
+  const [toastMsg, setToastMsg] = useState('')
 
-  // Crop Box in normalized coordinates [0, 1] relative to the image
-  const [normCrop, setNormCrop] = useState<CropArea>({ x: 0.1, y: 0.1, width: 0.8, height: 0.8 })
+  // Split-button dropdown menu state
+  const [showUploadMenu, setShowUploadMenu] = useState(false)
+  const [isUrlMode, setIsUrlMode] = useState(false)
+  const [urlInputValue, setUrlInputValue] = useState('')
+  const [isLoadingUrl, setIsLoadingUrl] = useState(false)
 
-  // Active interaction drag state
-  const [dragAction, setDragAction] = useState<string | null>(null)
-  const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
-  const [initialCrop, setInitialCrop] = useState<CropArea>(normCrop)
+  // Crop Area in original image pixel units
+  const [crop, setCrop] = useState<CropArea>({ x: 0, y: 0, width: 0, height: 0 })
 
+  // Custom aspect ratio numbers
+  const [customRatioW, setCustomRatioW] = useState<number>(1)
+  const [customRatioH, setCustomRatioH] = useState<number>(1)
+
+  // Settings
   const [settings, setSettings] = useState<CropSettings>({
     aspectRatioPreset: 'free',
     format: 'jpeg',
-    quality: 90,
+    quality: 92,
     rotation: 0,
     flipH: false,
     flipV: false,
     showGrid: true,
   })
 
-  // Exported result
-  const [result, setResult] = useState<{
-    blob: Blob
-    url: string
-    size: number
-    width: number
-    height: number
-    filename: string
-  } | null>(null)
-
+  // Display scaling refs & drag interaction state
   const containerRef = useRef<HTMLDivElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    document.title = 'Free Online Image Cropper – Crop & Frame Photos | ImgMojo'
-    const metaDesc = document.querySelector('meta[name="description"]')
-    if (metaDesc) {
-      metaDesc.setAttribute(
-        'content',
-        'Crop photos online to exact social media aspect ratios (1:1, 4:5, 16:9, 9:16) with ImgMojo. 100% free, private browser-based cropping with zero quality loss.'
-      )
-    }
+  const [dragState, setDragState] = useState<{
+    action: HandleDirection
+    startX: number
+    startY: number
+    startCrop: CropArea
+  } | null>(null)
 
-    // Preload default sample portrait so cropper is never empty and image is clearly shown
-    let cancelled = false
-    const loadDefault = async () => {
-      try {
-        const resp = await fetch('/sample-portrait.jpg')
-        if (!resp.ok) return
-        const blob = await resp.blob()
-        if (cancelled) return
-        const sampleFile = new File([blob], 'sample-portrait.jpg', { type: 'image/jpeg' })
-        const data = await loadImage(sampleFile)
-        if (cancelled) return
-        setFile(sampleFile)
-        setLoadedImg(data.img)
-        setImgUrl(data.url)
-        setOrigDims({ width: data.width, height: data.height })
-        setNormCrop({ x: 0.1, y: 0.1, width: 0.8, height: 0.8 })
-        setResult(null)
-      } catch (err) {
-        console.error('Error preloading cropper image', err)
+  // Returns active numerical aspect ratio (or null for freeform)
+  const getActiveRatio = useCallback((): number | null => {
+    if (settings.aspectRatioPreset === 'free') return null
+    if (settings.aspectRatioPreset === 'original') {
+      return origDims.width && origDims.height ? origDims.width / origDims.height : null
+    }
+    if (settings.aspectRatioPreset === 'custom') {
+      const w = Math.max(0.01, customRatioW)
+      const h = Math.max(0.01, customRatioH)
+      return w / h
+    }
+    const found = CROP_PRESETS.find((p) => p.id === settings.aspectRatioPreset)
+    return found?.ratio ?? null
+  }, [settings.aspectRatioPreset, customRatioW, customRatioH, origDims])
+
+  // Center & fit crop box whenever a new ratio or image is set
+  const fitCropToRatio = useCallback(
+    (ratio: number | null, origW: number, origH: number) => {
+      if (!origW || !origH) return
+      let w: number
+      let h: number
+      if (ratio === null) {
+        // Freeform default: 75% of image, perfectly centered in the middle
+        w = Math.round(origW * 0.75)
+        h = Math.round(origH * 0.75)
+      } else {
+        w = origW * 0.8
+        h = w / ratio
+        if (h > origH * 0.8) {
+          h = origH * 0.8
+          w = h * ratio
+        }
+        w = Math.max(10, Math.round(w))
+        h = Math.max(10, Math.round(h))
       }
-    }
+      // Always place selector exactly in the middle
+      const x = Math.max(0, Math.round((origW - w) / 2))
+      const y = Math.max(0, Math.round((origH - h) / 2))
+      setCrop({ x, y, width: w, height: h })
+    },
+    []
+  )
 
-    void loadDefault()
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  // File loading
+  const handleFile = useCallback(
+    async (selectedFile: File) => {
+      try {
+        const loaded = await loadImage(selectedFile)
+        setFile(selectedFile)
+        setLoadedImg(loaded.img)
+        setImgUrl(loaded.url)
+        setOrigDims({ width: loaded.width, height: loaded.height })
+        setSettings((prev) => ({
+          ...prev,
+          format: selectedFile.type === 'image/png' ? 'png' : selectedFile.type === 'image/webp' ? 'webp' : 'jpeg',
+          rotation: 0,
+          flipH: false,
+          flipV: false,
+        }))
+        fitCropToRatio(null, loaded.width, loaded.height)
+      } catch (err) {
+        alert(err instanceof Error ? err.message : 'Failed to load image')
+      }
+    },
+    [fitCropToRatio]
+  )
 
-  const handleFile = async (selected: File) => {
-    if (!selected.type.startsWith('image/')) return
-    try {
-      const data = await loadImage(selected)
-      setFile(selected)
-      setLoadedImg(data.img)
-      setImgUrl(data.url)
-      setOrigDims({ width: data.width, height: data.height })
-      setNormCrop({ x: 0.1, y: 0.1, width: 0.8, height: 0.8 })
-      setResult(null)
-    } catch (err) {
-      console.error('Error loading image', err)
+  const onFileInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      handleFile(e.target.files[0])
     }
   }
 
-  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+  // URL Image Loader
+  const handleLoadFromUrl = async () => {
+    if (!urlInputValue.trim()) return
+    setIsLoadingUrl(true)
+    try {
+      const resp = await fetch(urlInputValue)
+      if (!resp.ok) throw new Error('Could not fetch image from the provided URL')
+      const blob = await resp.blob()
+      const ext = blob.type.split('/')[1] || 'jpg'
+      const remoteFile = new File([blob], `image-url.${ext}`, { type: blob.type })
+      await handleFile(remoteFile)
+      setIsUrlMode(false)
+      setUrlInputValue('')
+    } catch {
+      // Fallback: direct Image src
+      try {
+        const img = new Image()
+        img.crossOrigin = 'anonymous'
+        img.onload = () => {
+          const canvas = document.createElement('canvas')
+          canvas.width = img.width
+          canvas.height = img.height
+          const ctx = canvas.getContext('2d')
+          if (ctx) {
+            ctx.drawImage(img, 0, 0)
+            canvas.toBlob((b) => {
+              if (b) {
+                const f = new File([b], 'image-url.jpg', { type: 'image/jpeg' })
+                handleFile(f)
+                setIsUrlMode(false)
+                setUrlInputValue('')
+              }
+            }, 'image/jpeg', 0.95)
+          }
+        }
+        img.onerror = () => alert('Unable to load image from URL. The host may block cross-origin access.')
+        img.src = urlInputValue
+      } catch (err) {
+        alert('Failed to load image from URL')
+      }
+    } finally {
+      setIsLoadingUrl(false)
+    }
+  }
+
+  // Drag and Drop handlers on Landing View
+  const onDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  const onDragLeave = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     setIsDragging(false)
-    if (e.dataTransfer.files[0]) void handleFile(e.dataTransfer.files[0])
   }
 
-  const handleFileInput = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) void handleFile(e.target.files[0])
-    if (e.target) e.target.value = ''
-  }
-
-  const clearImage = () => {
-    if (imgUrl) URL.revokeObjectURL(imgUrl)
-    if (result?.url) URL.revokeObjectURL(result.url)
-    setFile(null)
-    setLoadedImg(null)
-    setImgUrl('')
-    setResult(null)
-  }
-
-  // Preset Ratio Adjustment
-  const setPresetRatio = (presetId: AspectRatioPreset) => {
-    const preset = CROP_PRESETS.find((p) => p.id === presetId)
-    setSettings((s) => ({ ...s, aspectRatioPreset: presetId }))
-
-    if (!preset || preset.ratio === null || origDims.width === 0) return
-
-    const imgRatio = origDims.width / origDims.height
-    const targetRatio = preset.ratio
-
-    // Calculate crop dimensions maintaining target aspect ratio inside image
-    let normW = 0.8
-    let normH = normW * (imgRatio / targetRatio)
-
-    if (normH > 0.9) {
-      normH = 0.8
-      normW = normH * (targetRatio / imgRatio)
+  const onDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setIsDragging(false)
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFile(e.dataTransfer.files[0])
     }
+  }
 
-    normW = Math.min(0.95, Math.max(0.1, normW))
-    normH = Math.min(0.95, Math.max(0.1, normH))
+  // Ratio Preset Changer
+  const handlePresetChange = (presetId: string) => {
+    setSettings((prev) => ({ ...prev, aspectRatioPreset: presetId }))
+    let ratio: number | null = null
+    if (presetId === 'free') {
+      ratio = null
+    } else if (presetId === 'original') {
+      ratio = origDims.width && origDims.height ? origDims.width / origDims.height : null
+    } else if (presetId === 'custom') {
+      ratio = customRatioW / customRatioH
+    } else {
+      const match = CROP_PRESETS.find((p) => p.id === presetId)
+      ratio = match?.ratio ?? null
+    }
+    fitCropToRatio(ratio, origDims.width, origDims.height)
+  }
 
-    setNormCrop({
-      x: (1 - normW) / 2,
-      y: (1 - normH) / 2,
-      width: normW,
-      height: normH,
+  // Handle custom ratio input changes
+  const handleCustomRatioWChange = (val: number) => {
+    const safeVal = Math.max(1, val)
+    setCustomRatioW(safeVal)
+    fitCropToRatio(safeVal / customRatioH, origDims.width, origDims.height)
+  }
+
+  const handleCustomRatioHChange = (val: number) => {
+    const safeVal = Math.max(1, val)
+    setCustomRatioH(safeVal)
+    fitCropToRatio(customRatioW / safeVal, origDims.width, origDims.height)
+  }
+
+  // Direct numeric input adjustments for Width, Height, Position X, Position Y
+  const handleWidthInputChange = (val: number) => {
+    const newW = Math.max(10, Math.min(origDims.width, val))
+    const ratio = getActiveRatio()
+    let newH = crop.height
+    if (ratio !== null) {
+      newH = Math.max(10, Math.min(origDims.height, Math.round(newW / ratio)))
+    }
+    // Always keep selector centered in the middle
+    const newX = Math.max(0, Math.round((origDims.width - newW) / 2))
+    const newY = Math.max(0, Math.round((origDims.height - newH) / 2))
+    setCrop({ x: newX, y: newY, width: newW, height: newH })
+  }
+
+  const handleHeightInputChange = (val: number) => {
+    const newH = Math.max(10, Math.min(origDims.height, val))
+    const ratio = getActiveRatio()
+    let newW = crop.width
+    if (ratio !== null) {
+      newW = Math.max(10, Math.min(origDims.width, Math.round(newH * ratio)))
+    }
+    // Always keep selector centered in the middle
+    const newX = Math.max(0, Math.round((origDims.width - newW) / 2))
+    const newY = Math.max(0, Math.round((origDims.height - newH) / 2))
+    setCrop({ x: newX, y: newY, width: newW, height: newH })
+  }
+
+  const centerSelector = () => {
+    if (!origDims.width || !origDims.height) return
+    const x = Math.max(0, Math.round((origDims.width - crop.width) / 2))
+    const y = Math.max(0, Math.round((origDims.height - crop.height) / 2))
+    setCrop((prev) => ({ ...prev, x, y }))
+  }
+
+  const handlePositionXChange = (val: number) => {
+    const maxX = Math.max(0, origDims.width - crop.width)
+    const newX = Math.max(0, Math.min(maxX, val))
+    setCrop((prev) => ({ ...prev, x: newX }))
+  }
+
+  const handlePositionYChange = (val: number) => {
+    const maxY = Math.max(0, origDims.height - crop.height)
+    const newY = Math.max(0, Math.min(maxY, val))
+    setCrop((prev) => ({ ...prev, y: newY }))
+  }
+
+  // Pointer dragging on Crop Box & 8 Handles
+  const startDrag = (e: React.PointerEvent, action: HandleDirection) => {
+    e.preventDefault()
+    e.stopPropagation()
+    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+    setDragState({
+      action,
+      startX: e.clientX,
+      startY: e.clientY,
+      startCrop: { ...crop },
     })
   }
 
-  // Pointer drag events for crop box
-  const startDrag = (action: string, e: React.PointerEvent) => {
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!dragState || !imgRef.current) return
     e.preventDefault()
-    e.stopPropagation()
-    setDragAction(action)
-    setDragStart({ x: e.clientX, y: e.clientY })
-    setInitialCrop(normCrop)
-  }
 
-  const onPointerMove = useCallback(
-    (e: PointerEvent) => {
-      if (!dragAction || !imgRef.current) return
-      const rect = imgRef.current.getBoundingClientRect()
-      if (rect.width === 0 || rect.height === 0) return
+    const imgEl = imgRef.current
+    const rect = imgEl.getBoundingClientRect()
+    if (rect.width <= 0 || rect.height <= 0) return
 
-      const deltaX = (e.clientX - dragStart.x) / rect.width
-      const deltaY = (e.clientY - dragStart.y) / rect.height
+    const scaleX = origDims.width / rect.width
+    const scaleY = origDims.height / rect.height
 
-      let { x, y, width, height } = initialCrop
+    const deltaX = (e.clientX - dragState.startX) * scaleX
+    const deltaY = (e.clientY - dragState.startY) * scaleY
+    const { action, startCrop } = dragState
+    const ratio = getActiveRatio()
 
-      if (dragAction === 'move') {
-        x = Math.max(0, Math.min(1 - width, initialCrop.x + deltaX))
-        y = Math.max(0, Math.min(1 - height, initialCrop.y + deltaY))
+    const origW = origDims.width
+    const origH = origDims.height
+
+    if (action === 'move') {
+      const maxX = origW - startCrop.width
+      const maxY = origH - startCrop.height
+      const nextX = Math.round(Math.max(0, Math.min(maxX, startCrop.x + deltaX)))
+      const nextY = Math.round(Math.max(0, Math.min(maxY, startCrop.y + deltaY)))
+      setCrop({
+        ...startCrop,
+        x: nextX,
+        y: nextY,
+      })
+      return
+    }
+
+    let nextX = startCrop.x
+    let nextY = startCrop.y
+    let nextW = startCrop.width
+    let nextH = startCrop.height
+
+    if (action.includes('e')) {
+      nextW = Math.max(20, Math.min(origW - startCrop.x, startCrop.width + deltaX))
+    }
+    if (action.includes('s')) {
+      nextH = Math.max(20, Math.min(origH - startCrop.y, startCrop.height + deltaY))
+    }
+    if (action.includes('w')) {
+      const maxW = startCrop.x + startCrop.width
+      nextW = Math.max(20, Math.min(maxW, startCrop.width - deltaX))
+      nextX = startCrop.x + (startCrop.width - nextW)
+    }
+    if (action.includes('n')) {
+      const maxH = startCrop.y + startCrop.height
+      nextH = Math.max(20, Math.min(maxH, startCrop.height - deltaY))
+      nextY = startCrop.y + (startCrop.height - nextH)
+    }
+
+    // Apply aspect ratio constraints if locked
+    if (ratio !== null) {
+      if (action === 'e' || action === 'w') {
+        nextH = Math.max(20, Math.min(origH, Math.round(nextW / ratio)))
+        nextY = Math.max(0, Math.min(origH - nextH, Math.round(startCrop.y + (startCrop.height - nextH) / 2)))
+      } else if (action === 's' || action === 'n') {
+        nextW = Math.max(20, Math.min(origW, Math.round(nextH * ratio)))
+        nextX = Math.max(0, Math.min(origW - nextW, Math.round(startCrop.x + (startCrop.width - nextW) / 2)))
       } else {
-        // Handle resizing
-        if (dragAction.includes('e')) width = Math.max(0.05, Math.min(1 - x, initialCrop.width + deltaX))
-        if (dragAction.includes('s')) height = Math.max(0.05, Math.min(1 - y, initialCrop.height + deltaY))
-        if (dragAction.includes('w')) {
-          const newW = Math.max(0.05, initialCrop.width - deltaX)
-          const newX = initialCrop.x + (initialCrop.width - newW)
-          if (newX >= 0) {
-            x = newX
-            width = newW
-          }
+        // Corner handles
+        if (nextW / ratio > origH - nextY) {
+          nextW = Math.round((origH - nextY) * ratio)
         }
-        if (dragAction.includes('n')) {
-          const newH = Math.max(0.05, initialCrop.height - deltaY)
-          const newY = initialCrop.y + (initialCrop.height - newH)
-          if (newY >= 0) {
-            y = newY
-            height = newH
-          }
+        nextH = Math.round(nextW / ratio)
+
+        if (action.includes('n')) {
+          nextY = startCrop.y + (startCrop.height - nextH)
         }
-      }
-
-      setNormCrop({ x, y, width, height })
-    },
-    [dragAction, dragStart, initialCrop]
-  )
-
-  const onPointerUp = useCallback(() => {
-    setDragAction(null)
-  }, [])
-
-  useEffect(() => {
-    if (dragAction) {
-      window.addEventListener('pointermove', onPointerMove)
-      window.addEventListener('pointerup', onPointerUp)
-      return () => {
-        window.removeEventListener('pointermove', onPointerMove)
-        window.removeEventListener('pointerup', onPointerUp)
+        if (action.includes('w')) {
+          nextX = startCrop.x + (startCrop.width - nextW)
+        }
       }
     }
-  }, [dragAction, onPointerMove, onPointerUp])
 
-  // Actual pixel dimensions of current crop
-  const pixelCrop: CropArea = {
-    x: Math.round(normCrop.x * origDims.width),
-    y: Math.round(normCrop.y * origDims.height),
-    width: Math.round(normCrop.width * origDims.width),
-    height: Math.round(normCrop.height * origDims.height),
+    setCrop({
+      x: Math.round(Math.max(0, Math.min(origW - nextW, nextX))),
+      y: Math.round(Math.max(0, Math.min(origH - nextH, nextY))),
+      width: Math.round(nextW),
+      height: Math.round(nextH),
+    })
   }
 
-  const handleExport = async () => {
-    if (!loadedImg || !file || isExporting) return
+  const onPointerUp = (e: React.PointerEvent) => {
+    if (dragState) {
+      try {
+        ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
+      } catch {}
+      setDragState(null)
+    }
+  }
+
+  // Execute Crop & Immediate Download
+  const handleCropAndDownload = async () => {
+    if (!loadedImg || !file) return
     setIsExporting(true)
     try {
-      const res = await exportCroppedImage(loadedImg, pixelCrop, settings, file.name)
-      setResult(res)
-      downloadSingleFile(res.blob, res.filename)
+      const result = await exportCroppedImage(loadedImg, crop, settings, file.name)
+      downloadSingleFile(result.blob, result.filename)
+      setToastMsg(`Cropped successfully! Saved ${result.filename} (${formatBytes(result.size)})`)
+      setShowToast(true)
+      window.setTimeout(() => setShowToast(false), 3800)
     } catch (err) {
-      console.error('Failed to export cropped image', err)
+      alert(err instanceof Error ? err.message : 'Cropping failed')
     } finally {
       setIsExporting(false)
     }
   }
 
+  // Clear / Reset workspace
+  const handleReset = () => {
+    const ratio = getActiveRatio()
+    fitCropToRatio(ratio, origDims.width, origDims.height)
+  }
+
+  const handleClear = () => {
+    if (imgUrl) URL.revokeObjectURL(imgUrl)
+    setFile(null)
+    setLoadedImg(null)
+    setImgUrl('')
+    setOrigDims({ width: 0, height: 0 })
+    setCrop({ x: 0, y: 0, width: 0, height: 0 })
+  }
+
+  // Rotation & Flip Toolbar actions
+  const handleRotateCw = () => {
+    setSettings((s) => ({ ...s, rotation: (s.rotation + 90) % 360 }))
+  }
+
+  const handleRotateCcw = () => {
+    setSettings((s) => ({ ...s, rotation: (s.rotation - 90 + 360) % 360 }))
+  }
+
+  const handleFlipH = () => {
+    setSettings((s) => ({ ...s, flipH: !s.flipH }))
+  }
+
+  const handleFlipV = () => {
+    setSettings((s) => ({ ...s, flipV: !s.flipV }))
+  }
+
+  // Calculate box display coordinates in exact percentage of image container
+  const pctLeft = origDims.width ? (crop.x / origDims.width) * 100 : 0
+  const pctTop = origDims.height ? (crop.y / origDims.height) * 100 : 0
+  const pctWidth = origDims.width ? (crop.width / origDims.width) * 100 : 0
+  const pctHeight = origDims.height ? (crop.height / origDims.height) * 100 : 0
+
   return (
     <div className="image-cropper-page">
-      <div className="icr-container">
-        {/* Hero Head */}
-        <div className="icr-hero-head">
-          <span className="icr-hero-kicker">
-            <Wand2 size={14} /> FREE PHOTO FRAMING TOOL
-          </span>
-          <h1>Free Online Image Cropper</h1>
-          <p className="icr-hero-subhead">
-            Crop and Frame Photos to Exact Aspect Ratios Online
-          </p>
-          <p className="icr-hero-intro">
-            Cut out distractions, re-frame compositions, and crop photos for Instagram, YouTube, TikTok, or passports with pixel-level precision. 100% private in-browser cropping with zero quality degradation.
-          </p>
-        </div>
-
-        {/* Dropzone */}
-        {!file ? (
-          <div
-            className={`icr-dropzone ${isDragging ? 'dragging' : ''}`}
-            onDragOver={(e) => {
-              e.preventDefault()
-              setIsDragging(true)
-            }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            role="button"
-            tabIndex={0}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              style={{ display: 'none' }}
-              onChange={handleFileInput}
-            />
-            <div className="icr-dropzone-inner">
-              <div className="icr-dropzone-icon">
-                <Upload size={28} />
-              </div>
-              <h2 className="icr-dropzone-title">Drop your image here, or browse files</h2>
-              <p className="icr-dropzone-sub">
-                Supports JPG, PNG, WebP up to 50MB
-              </p>
-              <button type="button" className="icr-browse-btn">
-                <Plus size={16} /> Choose Image to Crop
-              </button>
-            </div>
+      {/* =========================================================================
+          LANDING / DROPZONE VIEW (When no image is loaded)
+          ========================================================================= */}
+      {!file && (
+        <div className="icr-landing-hero">
+          <div className="icr-landing-header">
+            <h1>Crop Image</h1>
+            <p>Quickly crop image files online for free!</p>
           </div>
-        ) : (
-          <>
-            {/* Active Uploaded Image Overview Bar (Clearly shows uploaded image) */}
-            {file && (
-              <div className="icr-active-image-bar">
-                <div className="icr-active-meta-left">
-                  <img src={imgUrl} alt={file.name} className="icr-active-mini-thumb" />
-                  <div>
-                    <div className="icr-active-name-row">
-                      <strong className="icr-active-name" title={file.name}>
-                        {file.name}
-                      </strong>
-                      <span className="icr-active-fmt-chip">
-                        {getFileExtension(file.name).toUpperCase() || 'IMAGE'}
-                      </span>
-                    </div>
-                    <span className="icr-active-details">
-                      Original: {origDims.width} × {origDims.height} px · {formatBytes(file.size)} · Crop Target: {pixelCrop.width} × {pixelCrop.height} px
-                    </span>
+
+          <div
+            className={`icr-dropzone-box ${isDragging ? 'drag-over' : ''}`}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
+          >
+            <div className="icr-dropzone-icon">
+              <Crop size={36} />
+            </div>
+
+            {/* In-place URL mode or Standard Split-Button */}
+            {isUrlMode ? (
+              <div className="icr-url-box">
+                <button
+                  type="button"
+                  className="icr-url-btn-back"
+                  onClick={() => setIsUrlMode(false)}
+                >
+                  &larr; Back
+                </button>
+                <input
+                  type="url"
+                  placeholder="Paste image URL (https://...)"
+                  value={urlInputValue}
+                  onChange={(e) => setUrlInputValue(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleLoadFromUrl()}
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  className="icr-url-btn-go"
+                  onClick={handleLoadFromUrl}
+                  disabled={isLoadingUrl}
+                >
+                  {isLoadingUrl ? 'Loading...' : 'Go'}
+                </button>
+              </div>
+            ) : (
+              <div className="icr-dropzone-btn-split">
+                <button
+                  type="button"
+                  className="icr-dropzone-btn-main"
+                  data-testid="device-upload-direct"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload size={18} />
+                  <span>Select Image</span>
+                </button>
+                <button
+                  type="button"
+                  className="icr-dropzone-btn-arrow"
+                  aria-label="Upload options"
+                  onClick={() => setShowUploadMenu((prev) => !prev)}
+                >
+                  <ChevronDown size={18} />
+                </button>
+
+                {showUploadMenu && (
+                  <div className="icr-upload-menu">
+                    <button
+                      type="button"
+                      className="icr-upload-menu-item"
+                      onClick={() => {
+                        setShowUploadMenu(false)
+                        fileInputRef.current?.click()
+                      }}
+                    >
+                      <Upload size={15} />
+                      <span>From Device</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="icr-upload-menu-item"
+                      onClick={() => {
+                        setShowUploadMenu(false)
+                        setIsUrlMode(true)
+                      }}
+                    >
+                      <Link to="#" onClick={(e) => e.preventDefault()} style={{ display: 'none' }} />
+                      <SlidersHorizontal size={15} />
+                      <span>From URL</span>
+                    </button>
                   </div>
-                </div>
-                <div className="icr-active-meta-right">
-                  <button
-                    type="button"
-                    className="icr-active-change-btn"
-                    onClick={() => fileInputRef.current?.click()}
-                    title="Upload or switch image"
-                  >
-                    <Upload size={14} /> Upload New Photo
-                  </button>
-                </div>
+                )}
               </div>
             )}
 
-            {/* Workspace */}
-            <div className="icr-workspace">
-            {/* Left Crop Stage */}
-            <div className="icr-stage-box">
-              <div className="icr-stage-toolbar">
-                <div className="icr-tool-btn-group">
-                  <button
-                    type="button"
-                    className="icr-icon-btn"
-                    onClick={() => setSettings((s) => ({ ...s, rotation: (s.rotation - 90) % 360 }))}
-                    title="Rotate Counter-Clockwise 90°"
-                  >
-                    <RotateCcw size={14} /> -90°
-                  </button>
-                  <button
-                    type="button"
-                    className="icr-icon-btn"
-                    onClick={() => setSettings((s) => ({ ...s, rotation: (s.rotation + 90) % 360 }))}
-                    title="Rotate Clockwise 90°"
-                  >
-                    <RotateCw size={14} /> +90°
-                  </button>
-                  <button
-                    type="button"
-                    className="icr-icon-btn"
-                    onClick={() => setSettings((s) => ({ ...s, flipH: !s.flipH }))}
-                    title="Flip Horizontally"
-                  >
-                    <FlipHorizontal size={14} /> Flip H
-                  </button>
-                  <button
-                    type="button"
-                    className="icr-icon-btn"
-                    onClick={() => setSettings((s) => ({ ...s, flipV: !s.flipV }))}
-                    title="Flip Vertically"
-                  >
-                    <FlipVertical size={14} /> Flip V
-                  </button>
-                  <button
-                    type="button"
-                    className={`icr-icon-btn ${settings.showGrid ? 'active' : ''}`}
-                    onClick={() => setSettings((s) => ({ ...s, showGrid: !s.showGrid }))}
-                    title="Toggle Rule of Thirds Grid"
-                  >
-                    <Grid3X3 size={14} /> Grid
-                  </button>
-                </div>
+            <div className="icr-dropzone-hint">or, drag and drop an image here</div>
+            <div className="icr-dropzone-limits">
+              Max file size: 100 MB · 100% private in-browser processing
+            </div>
 
-                <button
-                  type="button"
-                  className="icr-icon-btn"
-                  onClick={clearImage}
-                  style={{ color: '#ef4444' }}
-                >
-                  <Trash2 size={14} /> Change Image
-                </button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={onFileInputChange}
+              accept="image/*"
+              style={{ display: 'none' }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          EDITOR WORKSPACE (When image is loaded)
+          ========================================================================= */}
+      {file && (
+        <div className="icr-studio-wrapper">
+          <div className="icr-studio-container">
+            {/* Left Sidebar Controls */}
+            <aside className="icr-sidebar">
+              <div className="icr-sidebar-header">
+                <h2 className="icr-sidebar-title" data-testid="crop-settings-title">
+                  Crop Rectangle
+                </h2>
+                <span className="icr-sidebar-badge">
+                  {origDims.width} × {origDims.height} px
+                </span>
               </div>
 
-              {/* Interactive Canvas Container */}
-              <div className="icr-canvas-wrap" ref={containerRef}>
-                <div style={{ position: 'relative', display: 'inline-block' }}>
+              {/* Crop Rectangle Width & Height (Side-by-Side) */}
+              <div className="icr-form-group">
+                <div className="icr-input-row">
+                  <div className="icr-input-col">
+                    <label className="icr-form-label" data-testid="width-input-label">
+                      Width
+                    </label>
+                    <input
+                      type="number"
+                      className="icr-text-input"
+                      data-testid="width-input"
+                      min={10}
+                      max={origDims.width}
+                      value={crop.width}
+                      onChange={(e) => handleWidthInputChange(parseInt(e.target.value) || 0)}
+                    />
+                  </div>
+                  <div className="icr-input-col">
+                    <label className="icr-form-label" data-testid="height-input-label">
+                      Height
+                    </label>
+                    <input
+                      type="number"
+                      className="icr-text-input"
+                      data-testid="height-input"
+                      min={10}
+                      max={origDims.height}
+                      value={crop.height}
+                      onChange={(e) => handleHeightInputChange(parseInt(e.target.value) || 0)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Aspect Ratio Presets Selector */}
+              <div className="icr-form-group">
+                <label className="icr-form-label" data-testid="crop-settings-crop-ratio-label">
+                  Aspect Ratio
+                </label>
+                <div className="icr-select-wrap">
+                  <select
+                    className="icr-select"
+                    id="crop-settings-crop-ratio"
+                    value={settings.aspectRatioPreset}
+                    onChange={(e) => handlePresetChange(e.target.value)}
+                  >
+                    <optgroup label="Standard Modes">
+                      <option value="free">FreeForm</option>
+                      <option value="original">Original ({origDims.width}:{origDims.height})</option>
+                      <option value="custom">Custom Ratio</option>
+                      <option value="1:1">1:1 (Square)</option>
+                      <option value="4:3">4:3 (Monitor)</option>
+                      <option value="14:9">14:9</option>
+                      <option value="16:9">16:9 (Widescreen)</option>
+                      <option value="16:10">16:10</option>
+                      <option value="2:1">2:1</option>
+                      <option value="3:1">3:1 (Panorama)</option>
+                      <option value="4:1">4:1</option>
+                      <option value="3:2">3:2 (35mm film)</option>
+                      <option value="5:4">5:4</option>
+                      <option value="7:5">7:5</option>
+                      <option value="4:5">4:5 (Vertical Portrait)</option>
+                      <option value="9:16">9:16 (Story / Reel)</option>
+                      <option value="19:10">19:10</option>
+                      <option value="21:9">21:9 (Cinemascope)</option>
+                      <option value="32:9">32:9 (Super Ultra Wide)</option>
+                    </optgroup>
+                    <optgroup label="Social Media">
+                      <option value="fb-profile">Facebook profile 170x170</option>
+                      <option value="fb-cover">Facebook cover 820x312</option>
+                      <option value="fb-post">Facebook post 1200x900</option>
+                      <option value="fb-ad">Facebook ad 1280x720</option>
+                      <option value="ig-profile">Instagram profile 110x110</option>
+                      <option value="ig-post">Instagram post 1080x1080</option>
+                      <option value="ig-story">Instagram story 1080x1920</option>
+                      <option value="twitter-profile">Twitter profile 400x400</option>
+                      <option value="twitter-header">Twitter header 1500x500</option>
+                      <option value="twitter-image">Twitter image 1024x512</option>
+                      <option value="twitter-card">Twitter card 1200x628</option>
+                      <option value="twitter-ad">Twitter ad 1200x675</option>
+                      <option value="youtube-profile">Youtube profile 800x800</option>
+                      <option value="youtube-channel-art">Youtube channel art 2560x1440</option>
+                      <option value="youtube-thumb">Youtube thumb 1280x720</option>
+                    </optgroup>
+                    <optgroup label="Web &amp; Screen">
+                      <option value="web-mini">Web mini 1024x768</option>
+                      <option value="web-small">Web small 1280x800</option>
+                      <option value="web-common">Web common 1366x768</option>
+                      <option value="web-medium">Web medium 1440x900</option>
+                      <option value="fll-hd">Full HD 1920x1080</option>
+                      <option value="ultra-hd-4k">Ultra HD 4x 3840x2160</option>
+                    </optgroup>
+                    <optgroup label="Paper Formats">
+                      <option value="paper-a4">Paper A4 2480x3508</option>
+                      <option value="paper-a5">Paper A5 1748x2480</option>
+                      <option value="paper-a6">Paper A6 1280x1748</option>
+                      <option value="paper-letter">Paper letter 2400x3300</option>
+                    </optgroup>
+                  </select>
+                  <ChevronDown size={16} className="icr-select-chevron" />
+                </div>
+
+                {/* Custom Ratio Inputs (Revealed when Custom is selected) */}
+                {settings.aspectRatioPreset === 'custom' && (
+                  <div className="icr-custom-ratio-box">
+                    <label>Custom Aspect Ratio</label>
+                    <div className="icr-input-row">
+                      <div className="icr-input-col">
+                        <span className="icr-input-sublabel">Ratio (X)</span>
+                        <input
+                          type="number"
+                          className="icr-text-input"
+                          data-testid="crop-settings-left"
+                          min={1}
+                          value={customRatioW}
+                          onChange={(e) => handleCustomRatioWChange(parseInt(e.target.value) || 1)}
+                        />
+                      </div>
+                      <div className="icr-input-col">
+                        <span className="icr-input-sublabel">Ratio (Y)</span>
+                        <input
+                          type="number"
+                          className="icr-text-input"
+                          data-testid="crop-settings-top"
+                          min={1}
+                          value={customRatioH}
+                          onChange={(e) => handleCustomRatioHChange(parseInt(e.target.value) || 1)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Crop Position Inputs (Position Y and Position X) */}
+              <div className="icr-form-group">
+                <label className="icr-form-label">Crop Position</label>
+                <div className="icr-input-row">
+                  <div className="icr-input-col">
+                    <span className="icr-input-sublabel">Position · (Y)</span>
+                    <input
+                      type="number"
+                      className="icr-text-input"
+                      data-testid="top-input"
+                      min={0}
+                      max={Math.max(0, origDims.height - crop.height)}
+                      value={crop.y}
+                      onChange={(e) => handlePositionYChange(parseInt(e.target.value) || 0)}
+                    />
+                  </div>
+                  <div className="icr-input-col">
+                    <span className="icr-input-sublabel">Position · (X)</span>
+                    <input
+                      type="number"
+                      className="icr-text-input"
+                      data-testid="left-input"
+                      min={0}
+                      max={Math.max(0, origDims.width - crop.width)}
+                      value={crop.x}
+                      onChange={(e) => handlePositionXChange(parseInt(e.target.value) || 0)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Output Format & Quality (Compact inline row) */}
+              <div className="icr-form-group">
+                <label className="icr-form-label">Format &amp; Quality</label>
+                <div className="icr-format-quality-row">
+                  <div className="icr-select-wrap">
+                    <select
+                      className="icr-select"
+                      value={settings.format}
+                      onChange={(e) =>
+                        setSettings((s) => ({ ...s, format: e.target.value as CropSettings['format'] }))
+                      }
+                    >
+                      <option value="jpeg">JPG / JPEG</option>
+                      <option value="png">PNG (Lossless)</option>
+                      <option value="webp">WebP</option>
+                    </select>
+                    <ChevronDown size={15} className="icr-select-chevron" />
+                  </div>
+                  {settings.format !== 'png' && (
+                    <div className="icr-quality-mini-box">
+                      <div className="icr-quality-mini-header">
+                        <span>Quality</span>
+                        <strong>{settings.quality}%</strong>
+                      </div>
+                      <input
+                        type="range"
+                        min={20}
+                        max={100}
+                        className="icr-range-slider"
+                        value={settings.quality}
+                        onChange={(e) => setSettings((s) => ({ ...s, quality: parseInt(e.target.value) }))}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Action Buttons: Reset & Crop CTA */}
+              <div className="icr-sidebar-actions">
+                <button
+                  type="button"
+                  className="icr-btn-reset"
+                  data-testid="crop-reset-button"
+                  onClick={handleReset}
+                >
+                  <RefreshCw size={14} />
+                  <span>Reset</span>
+                </button>
+                <button
+                  type="button"
+                  className="icr-btn-crop-primary"
+                  data-testid="crop-button"
+                  onClick={handleCropAndDownload}
+                  disabled={isExporting}
+                >
+                  {isExporting ? (
+                    <>
+                      <RefreshCw size={18} className="spinning" />
+                      <span>Cropping...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Crop &amp; Download</span>
+                      <ArrowRight size={18} />
+                    </>
+                  )}
+                </button>
+              </div>
+            </aside>
+
+            {/* Right Interactive Canvas Workspace */}
+            <main className="icr-canvas-area">
+              <div className="icr-canvas-topbar">
+                <div className="icr-canvas-meta">
+                  <div className="icr-crop-badge">
+                    <Crop size={14} />
+                    <span>{crop.width} × {crop.height} px</span>
+                  </div>
+                  <span className="icr-canvas-orig-meta">
+                    {file.name} ({formatBytes(file.size)})
+                  </span>
+                </div>
+
+                {/* Transform, Grid, Center & Canvas Tools */}
+                <div className="icr-canvas-tools">
+                  <button
+                    type="button"
+                    className="icr-canvas-btn"
+                    title="Rotate 90° Clockwise"
+                    onClick={handleRotateCw}
+                  >
+                    <RotateCw size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    className="icr-canvas-btn"
+                    title="Rotate 90° Counter-Clockwise"
+                    onClick={handleRotateCcw}
+                  >
+                    <RotateCcw size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    className={`icr-canvas-btn ${settings.flipH ? 'active' : ''}`}
+                    title="Flip Horizontally"
+                    onClick={handleFlipH}
+                  >
+                    <FlipHorizontal size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    className={`icr-canvas-btn ${settings.flipV ? 'active' : ''}`}
+                    title="Flip Vertically"
+                    onClick={handleFlipV}
+                  >
+                    <FlipVertical size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    className={`icr-canvas-btn ${settings.showGrid ? 'active' : ''}`}
+                    title="Toggle 3x3 Grid"
+                    onClick={() => setSettings((s) => ({ ...s, showGrid: !s.showGrid }))}
+                  >
+                    <Grid3X3 size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    className="icr-canvas-btn"
+                    title="Center selector in the middle"
+                    onClick={centerSelector}
+                  >
+                    <Maximize2 size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    className="icr-canvas-btn"
+                    title="Choose a different image"
+                    onClick={handleClear}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Viewport Box */}
+              <div
+                className="icr-viewport-box"
+                ref={containerRef}
+                onPointerMove={onPointerMove}
+                onPointerUp={onPointerUp}
+              >
+                <div className="icr-image-container">
                   <img
                     ref={imgRef}
                     src={imgUrl}
-                    alt="Source to crop"
-                    className="icr-canvas-stage"
+                    alt="The image to crop"
+                    className="icr-stage-img"
                     style={{
-                      transform: `rotate(${settings.rotation}deg) scaleX(${settings.flipH ? -1 : 1}) scaleY(${settings.flipV ? -1 : 1})`,
-                      transition: 'transform 0.2s ease',
+                      transform: `rotate(${settings.rotation}deg) scale(${settings.flipH ? -1 : 1}, ${settings.flipV ? -1 : 1})`,
                     }}
                   />
 
-                  {/* Crop Box */}
+                  {/* Dimmed Overlay outside Crop Area */}
+                  <div className="icr-mask-overlay" />
+
+                  {/* Interactive Crop Bounding Box */}
                   <div
                     className="icr-crop-box"
                     style={{
-                      left: `${normCrop.x * 100}%`,
-                      top: `${normCrop.y * 100}%`,
-                      width: `${normCrop.width * 100}%`,
-                      height: `${normCrop.height * 100}%`,
+                      left: `${pctLeft}%`,
+                      top: `${pctTop}%`,
+                      width: `${pctWidth}%`,
+                      height: `${pctHeight}%`,
                     }}
-                    onPointerDown={(e) => startDrag('move', e)}
+                    onPointerDown={(e) => startDrag(e, 'move')}
                   >
-                    {/* Grid */}
+                    {/* Floating size badge */}
+                    <div className="icr-floating-size">
+                      {crop.width} × {crop.height} px
+                    </div>
+
+                    {/* Rule of Thirds Grid Lines & Crosshair */}
                     {settings.showGrid && (
                       <>
-                        <div className="icr-grid-line icr-grid-h1" />
-                        <div className="icr-grid-line icr-grid-h2" />
-                        <div className="icr-grid-line icr-grid-v1" />
-                        <div className="icr-grid-line icr-grid-v2" />
+                        <div className="icr-grid-line-v1" />
+                        <div className="icr-grid-line-v2" />
+                        <div className="icr-grid-line-h1" />
+                        <div className="icr-grid-line-h2" />
+                        <div className="icr-grid-crosshair" />
                       </>
                     )}
 
-                    {/* Resize handles */}
-                    <div className="icr-handle nw" onPointerDown={(e) => startDrag('nw', e)} />
-                    <div className="icr-handle ne" onPointerDown={(e) => startDrag('ne', e)} />
-                    <div className="icr-handle sw" onPointerDown={(e) => startDrag('sw', e)} />
-                    <div className="icr-handle se" onPointerDown={(e) => startDrag('se', e)} />
-                    <div className="icr-handle n" onPointerDown={(e) => startDrag('n', e)} />
-                    <div className="icr-handle s" onPointerDown={(e) => startDrag('s', e)} />
-                    <div className="icr-handle w" onPointerDown={(e) => startDrag('w', e)} />
-                    <div className="icr-handle e" onPointerDown={(e) => startDrag('e', e)} />
+                    {/* 8 Drag Handles */}
+                    <div className="icr-handle icr-handle-nw" onPointerDown={(e) => startDrag(e, 'nw')} />
+                    <div className="icr-handle icr-handle-n"  onPointerDown={(e) => startDrag(e, 'n')} />
+                    <div className="icr-handle icr-handle-ne" onPointerDown={(e) => startDrag(e, 'ne')} />
+                    <div className="icr-handle icr-handle-e"  onPointerDown={(e) => startDrag(e, 'e')} />
+                    <div className="icr-handle icr-handle-se" onPointerDown={(e) => startDrag(e, 'se')} />
+                    <div className="icr-handle icr-handle-s"  onPointerDown={(e) => startDrag(e, 's')} />
+                    <div className="icr-handle icr-handle-sw" onPointerDown={(e) => startDrag(e, 'sw')} />
+                    <div className="icr-handle icr-handle-w"  onPointerDown={(e) => startDrag(e, 'w')} />
                   </div>
                 </div>
               </div>
-            </div>
-
-            {/* Right Settings Sidebar */}
-            <aside className="icr-sidebar">
-              <h3 className="icr-sidebar-title">
-                <Wand2 size={18} /> Crop Settings
-              </h3>
-
-              {/* Aspect Ratio Presets */}
-              <div className="icr-control-group">
-                <label className="icr-control-label">Aspect Ratio</label>
-                <div className="icr-ratio-grid">
-                  {CROP_PRESETS.map((p) => {
-                    const isActive = settings.aspectRatioPreset === p.id
-                    return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        className={`icr-ratio-btn ${isActive ? 'active' : ''}`}
-                        onClick={() => setPresetRatio(p.id)}
-                      >
-                        <span className="icr-ratio-name">{p.name}</span>
-                        <span className="icr-ratio-tag">{p.label}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Crop Dimensions Display */}
-              <div className="icr-control-group">
-                <label className="icr-control-label">Cropped Dimensions</label>
-                <div className="icr-dims-display">
-                  <span>Selected Area:</span>
-                  <strong>{pixelCrop.width} × {pixelCrop.height} px</strong>
-                </div>
-              </div>
-
-              {/* Format & Quality */}
-              <div className="icr-control-group">
-                <label className="icr-control-label">Output Format</label>
-                <select
-                  value={settings.format}
-                  onChange={(e) =>
-                    setSettings((s) => ({ ...s, format: e.target.value as CropSettings['format'] }))
-                  }
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '1px solid var(--icr-line)', background: 'var(--icr-surface)', color: 'var(--icr-ink)', fontWeight: 600 }}
-                >
-                  <option value="jpeg">JPG / JPEG (Universal)</option>
-                  <option value="png">PNG (Lossless)</option>
-                  <option value="webp">WebP (Modern &amp; Lightweight)</option>
-                </select>
-              </div>
-
-              {settings.format !== 'png' && (
-                <div className="icr-control-group">
-                  <label className="icr-control-label">Output Quality: {settings.quality}%</label>
-                  <input
-                    type="range"
-                    min={20}
-                    max={100}
-                    value={settings.quality}
-                    onChange={(e) =>
-                      setSettings((s) => ({ ...s, quality: parseInt(e.target.value) }))
-                    }
-                  />
-                </div>
-              )}
-
-              {/* Export Button */}
-              <button
-                type="button"
-                className="icr-action-btn-main"
-                onClick={handleExport}
-                disabled={isExporting}
-              >
-                {isExporting ? (
-                  <>
-                    <RefreshCw size={16} className="spinning" /> Exporting...
-                  </>
-                ) : (
-                  <>
-                    <Download size={16} /> Crop &amp; Download Image
-                  </>
-                )}
-              </button>
-
-              {/* Cropped Result Card (Shown clearly to user) */}
-              {result && (
-                <div className="icr-result-card">
-                  <div className="icr-result-tag">✓ CROPPED IMAGE READY</div>
-                  <div className="icr-result-img-box">
-                    <img src={result.url} alt="Cropped output" className="icr-result-img" />
-                  </div>
-                  <div className="icr-result-meta">
-                    <strong>{result.width} × {result.height} px</strong> · {formatBytes(result.size)}
-                  </div>
-                </div>
-              )}
-            </aside>
+            </main>
           </div>
-        </>
+        </div>
       )}
 
+      {/* Success Notification Toast */}
+      {showToast && (
+        <div className="icr-success-toast">
+          <Check size={18} />
+          <span>{toastMsg}</span>
+        </div>
+      )}
+
+      {/* =========================================================================
+          CONTENT SECTIONS DOWN TO THE TOOL (Preserved 100%)
+          ========================================================================= */}
+      <div className="icr-content-wrapper">
         {/* Step-by-Step Instructions */}
         <section className="icr-section" aria-labelledby="icr-howto-heading">
           <div className="icr-section-head">
