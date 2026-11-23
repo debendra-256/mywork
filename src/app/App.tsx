@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ChevronDown, Clock3, Copy, DatabaseBackup, Download, Facebook, Video, Flame, Headphones, Heart, Home, ImagePlus, Images, Instagram, KeyRound, Layers, LayoutDashboard, LayoutGrid, Linkedin, Lock, LockOpen, LogOut, Mail, Menu, MessageCircle, Move, Play, Plus, RotateCcw, Search, Share2, ShieldCheck, SlidersHorizontal, Sparkles, Store, Sun, Trash2, Twitter, Upload, X, Zap } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ChevronDown, ChevronLeft, ChevronRight, Clock3, Copy, DatabaseBackup, Download, Facebook, Video, Flame, Headphones, Heart, Home, ImagePlus, Images, Instagram, KeyRound, Layers, LayoutDashboard, LayoutGrid, Linkedin, Lock, LockOpen, LogOut, Mail, Maximize2, Menu, MessageCircle, Move, Play, Plus, RotateCcw, Search, Share2, ShieldCheck, SlidersHorizontal, Sparkles, Store, Sun, Trash2, Twitter, Upload, X, Zap, ZoomIn, ZoomOut } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { appConfig } from '../config/app.config'
 import { toolsConfig, type ToolDefinition, type ToolIcon } from '../config/ToolsConfig'
@@ -2237,72 +2237,428 @@ export interface PartyLogo {
   src: string
   visualSpec: string
   colorTheme?: string
+  hindiName?: string
+  symbolName?: string
+  keywords?: string
+  aliases?: string[]
 }
 
 export const POLITICAL_PARTY_LOGOS: PartyLogo[] = [
   {
-    id: 'lotus',
-    name: 'LOTUS',
-    partyName: 'Lotus (BJP)',
-    src: '/templates/logos/logo-lotus.png',
+id: 'samajsevi',
+    name: 'निर्दलीय',
+    partyName: 'समाजसेवी / निर्दलीय',
+    hindiName: 'समाजसेवी/निर्दलीय',
+    symbolName: 'Social Worker / Independent (समाजसेवी)',
+    src: '/templates/logos/logo-samajsevi.png',
+    colorTheme: 'Clean White & Navy',
+    keywords: 'samajsevi nirdaliya independent social worker candidate leader public servant sevak',
+    visualSpec:
+      'a circular white emblem badge depicting a respectful folded hands namaste social worker portrait figure (Independent Candidate / Samajsevi)',
+  },
+  {
+    id: 'bjp',
+    name: 'BJP',
+    partyName: 'BJP : भारतीय जनता पार्टी',
+    hindiName: 'भारतीय जनता पार्टी',
+    symbolName: 'Lotus (कमल)',
+    src: '/templates/logos/logo-bjp.png',
     colorTheme: 'Saffron Orange & Green',
+    keywords: 'bjp bharatiya janata party lotus kamal modi narendra modi saffron',
+    aliases: ['lotus'],
     visualSpec:
       'a circular white emblem badge with a split green and saffron-orange outer ring containing a bold black line-art blooming Lotus flower (BJP Kamal election symbol) centered inside',
   },
   {
-    id: 'hand',
-    name: 'HAND',
-    partyName: 'Hand (INC)',
-    src: '/templates/logos/logo-hand.png',
+id: 'inc',
+    name: 'INC',
+    partyName: 'INC : कांग्रेस',
+    hindiName: 'कांग्रेस',
+    symbolName: 'Hand (हाथ)',
+    src: '/templates/logos/logo-inc.png',
     colorTheme: 'Tricolour Saffron, White & Green',
+    keywords: 'inc congress indian national congress hand hath panja tricolour rahul gandhi',
+    aliases: ['hand'],
     visualSpec:
       'a circular white emblem badge with a saffron-orange and green tricolour outer ring containing a bold black line-art raised open right palm (INC Hand election symbol) centered inside',
   },
   {
-    id: 'conch',
-    name: 'CONCH',
-    partyName: 'Conch (BJD)',
-    src: '/templates/logos/logo-conch.png',
+id: 'jdu',
+    name: 'JDU',
+    partyName: 'JDU : जनता दल (यूनाइटेड)',
+    hindiName: 'जनता दल (यूनाइटेड)',
+    symbolName: 'Arrow (तीर)',
+    src: '/templates/logos/logo-jdu.png',
     colorTheme: 'Emerald Green & White',
+    keywords: 'jdu janata dal united arrow teer teer nitish kumar bihar green',
     visualSpec:
-      'a circular white emblem badge with a bold dark-green outer ring containing a crisp black line-art horizontal sacred Conch shell (BJD Shankha election symbol) with spiral ridges on the left and curved contour lines in the center',
+      'a circular white emblem badge with a green outer band containing a bold black horizontal pointing Arrow (JDU Teer election symbol) centered inside',
   },
   {
-    id: 'bow',
-    name: 'BOW & ARROW',
-    partyName: 'Bow & Arrow (Shiv Sena)',
-    src: '/templates/logos/logo-bow.png',
-    colorTheme: 'Saffron Orange & Black',
+id: 'jmm',
+    name: 'JMM',
+    partyName: 'JMM : झारखंड मुक्ति मोर्चा',
+    hindiName: 'झारखंड मुक्ति मोर्चा',
+    symbolName: 'Bow & Arrow (तीर कमान)',
+    src: '/templates/logos/logo-jmm.png',
+    colorTheme: 'Forest Green & White',
+    keywords: 'jmm jharkhand mukti morcha bow arrow teer dhanush hemant soren jharkhand green',
     visualSpec:
-      'a circular white emblem badge with a vibrant saffron-orange outer ring containing a bold black silhouette horizontal bow strung with a vertical upward-pointing arrow at the center (Bow & Arrow election symbol)',
+      'a circular dark green emblem badge containing a white bow strung with an arrow pointing upward (JMM Bow & Arrow election symbol) with JMM inscription',
   },
   {
-    id: 'broom',
-    name: 'BROOM',
-    partyName: 'Broom (AAP)',
-    src: '/templates/logos/logo-broom.png',
+id: 'aap',
+    name: 'AAP',
+    partyName: 'AAP : आम आदमी पार्टी',
+    hindiName: 'आम आदमी पार्टी',
+    symbolName: 'Broom (झाड़ू)',
+    src: '/templates/logos/logo-aap.png',
     colorTheme: 'Royal Blue & White',
+    keywords: 'aap aam aadmi party broom jhadu kejriwal arvind kejriwal blue',
+    aliases: ['broom'],
     visualSpec:
       'a circular white emblem badge with a blue outer ring containing a bold black horizontal sweeping broom (AAP Jhadu election symbol) centered inside',
   },
   {
-    id: 'clock',
-    name: 'CLOCK',
-    partyName: 'Clock (NCP)',
-    src: '/templates/logos/logo-clock.png',
-    colorTheme: 'Tricolour Saffron, White & Green',
+id: 'rjd',
+    name: 'RJD',
+    partyName: 'RJD : राष्ट्रीय जनता दल',
+    hindiName: 'राष्ट्रीय जनता दल',
+    symbolName: 'Lantern (लालटेन)',
+    src: '/templates/logos/logo-rjd.png',
+    colorTheme: 'Emerald Green & White',
+    keywords: 'rjd rashtriya janata dal lantern lalten lalu prasad yadav tejashwi green',
     visualSpec:
-      'a circular white emblem badge with a saffron-orange and green outer ring containing a bold black line-art party election emblem centered inside',
+      'a circular white emblem badge with a dark-green outer ring containing a classic kerosene Hurricane Lantern (RJD Lalten election symbol) centered inside',
   },
   {
-    id: 'hammer',
-    name: 'HAMMER & SICKLE',
-    partyName: 'Hammer & Sickle (CPI-M)',
+id: 'sp',
+    name: 'SP',
+    partyName: 'SP : समाजवादी पार्टी',
+    hindiName: 'समाजवादी पार्टी',
+    symbolName: 'Bicycle (साइकिल)',
+    src: '/templates/logos/logo-sp.png',
+    colorTheme: 'Crimson Red & Green',
+    keywords: 'sp samajwadi party bicycle cycle cycle akhilesh yadav mulayam singh red green',
+    visualSpec:
+      'a circular emblem badge with red top and green bottom containing a white line-art bicycle (Samajwadi Party Cycle election symbol) centered inside',
+  },
+  {
+id: 'ajsu',
+    name: 'AJSU',
+    partyName: 'AJSU : ऑल झारखंड स्टूडेंट्स यूनियन',
+    hindiName: 'ऑल झारखंड स्टूडेंट्स यूनियन',
+    symbolName: 'Banana (केला)',
+    src: '/templates/logos/logo-ajsu.png',
+    colorTheme: 'Tricolour & Yellow',
+    keywords: 'ajsu all jharkhand students union banana kela jharkhand sudesh mahto',
+    visualSpec:
+      'a circular white emblem badge with rainbow-tricolour border containing a curved ripe yellow Banana (AJSU Kela election symbol) centered inside',
+  },
+  {
+id: 'iyc',
+    name: 'IYC',
+    partyName: 'IYC : भारतीय युवा कांग्रेस',
+    hindiName: 'भारतीय युवा कांग्रेस',
+    symbolName: 'Youth Congress Hand',
+    src: '/templates/logos/logo-iyc.png',
+    colorTheme: 'Tricolour & White',
+    keywords: 'iyc indian youth congress yuva congress rahul gandhi youth congress hand',
+    visualSpec:
+      'a circular white emblem badge with a tricolour border containing the Indian Youth Congress logo featuring a raised open hand centered inside',
+  },
+  {
+id: 'bjym',
+    name: 'BJYM',
+    partyName: 'BJYM : भारतीय जनता युवा मोर्चा',
+    hindiName: 'भारतीय जनता युवा मोर्चा',
+    symbolName: 'BJYM Youth Torch',
+    src: '/templates/logos/logo-bjym.png',
+    colorTheme: 'Saffron, Cyan & Orange',
+    keywords: 'bjym bharatiya janata yuva morcha bjp youth wing torch flame',
+    visualSpec:
+      'a circular white emblem badge containing stylized dynamic youth figures holding a torch with vibrant orange and blue BJYM typography',
+  },
+  {
+id: 'ljp',
+    name: 'LJP',
+    partyName: 'LJP : लोक जनशक्ति पार्टी (रामविलास)',
+    hindiName: 'लोक जनशक्ति पार्टी (रामविलास)',
+    symbolName: 'Helicopter (हेलीकॉप्टर)',
+    src: '/templates/logos/logo-ljp.png',
+    colorTheme: 'Blue, Green & Saffron Ring',
+    keywords: 'ljp lok janshakti party ram vilas chirag paswan helicopter bihar',
+    visualSpec:
+      'a circular white emblem badge with a multi-color ring containing a bold line-art Helicopter (LJP Ram Vilas election symbol) centered inside',
+  },
+  {
+id: 'rlsp',
+    name: 'RLSP',
+    partyName: 'RLSP : राष्ट्रीय लोक समता पार्टी',
+    hindiName: 'राष्ट्रीय लोक समता पार्टी',
+    symbolName: 'Ceiling Fan (छत का पंखा)',
+    src: '/templates/logos/logo-rlsp.png',
+    colorTheme: 'Royal Blue, White & Green',
+    keywords: 'rlsp rashtriya lok samta party ceiling fan fan pankha upendra kushwaha bihar',
+    visualSpec:
+      'a circular emblem badge with blue, white and green horizontal stripes containing a 3-blade electric Ceiling Fan (RLSP election symbol) centered inside',
+  },
+  {
+id: 'ham',
+    name: 'HAM',
+    partyName: 'HAM : हिंदुस्तानी आवाम मोर्चा (सेक्युलर)',
+    hindiName: 'हिंदुस्तानी आवाम मोर्चा (सेक्युलर)',
+    symbolName: 'Kadahi / Wok (कढ़ाई)',
+    src: '/templates/logos/logo-ham.png',
+    colorTheme: 'Crimson Red & White',
+    keywords: 'ham hindustani awam morcha secular kadahi wok cooking pan jitan ram manjhi bihar red',
+    visualSpec:
+      'a circular emblem badge with crimson red top and bottom and a white central stripe containing a Kadahi / Cooking Wok (HAM election symbol)',
+  },
+  {
+id: 'rld',
+    name: 'RLD',
+    partyName: 'RLD : राष्ट्रीय लोक दल',
+    hindiName: 'राष्ट्रीय लोक दल',
+    symbolName: 'Hand Pump (हैंडपंप / नल)',
+    src: '/templates/logos/logo-rld.png',
+    colorTheme: 'Forest Green & White',
+    keywords: 'rld rashtriya lok dal hand pump nal handpump jayant chaudhary choudhary charan singh up green',
+    visualSpec:
+      'a circular white emblem badge with a green border and RLD letters containing a cast-iron Hand Pump water tap (RLD Handpump election symbol)',
+  },
+  {
+id: 'apnadal',
+    name: 'APNADAL(S)',
+    partyName: 'APNADAL(S) : अपना दल (सोनेलाल)',
+    hindiName: 'अपना दल (सोनेलाल)',
+    symbolName: 'Cup & Saucer (कप प्लेट)',
+    src: '/templates/logos/logo-apnadal.png',
+    colorTheme: 'Orange, Navy Blue & White',
+    keywords: 'apnadal apna dal sonelal cup saucer plate anupriya patel up',
+    visualSpec:
+      'a circular emblem badge with an orange upper half, blue lower half and a white ceramic Tea Cup on a Saucer (Apna Dal Sonelal election symbol)',
+  },
+  {
+id: 'bsp',
+    name: 'BSP',
+    partyName: 'BSP : बहुजन समाज पार्टी',
+    hindiName: 'बहुजन समाज पार्टी',
+    symbolName: 'Elephant (हाथी)',
+    src: '/templates/logos/logo-bsp.png',
+    colorTheme: 'Deep Blue & White',
+    keywords: 'bsp bahujan samaj party elephant hathi mayawati kanshi ram blue',
+    visualSpec:
+      'a circular white emblem badge with a blue outer ring containing a noble walking Elephant silhouette (BSP Hathi election symbol) facing left centered inside',
+  },
+  {
+id: 'aimim',
+    name: 'AIMIM',
+    partyName: 'AIMIM : ऑल इंडिया मजलिसे-इत्तेहादुल मुस्लिमीन',
+    hindiName: 'ऑल इंडिया मजलिसे-इत्तेहादुल मुस्लिमीन',
+    symbolName: 'Kite (पतंग)',
+    src: '/templates/logos/logo-aimim.png',
+    colorTheme: 'Deep Green & White',
+    keywords: 'aimim all india majlis ittehadul muslimeen kite patang asaduddin owaisi hyderabad green',
+    visualSpec:
+      'a circular dark-green emblem badge with white border text "ALL INDIA MAJLIS-E-ITTEHADUL MUSLIMEEN" and Urdu calligraphy containing a white line-art flying diamond Kite (AIMIM Patang election symbol) with circular eyes and tail centered inside',
+  },
+  {
+id: 'jansuraj',
+    name: 'JAN SURAJ',
+    partyName: 'JAN SURAJ : जन सुराज पार्टी',
+    hindiName: 'जन सुराज पार्टी',
+    symbolName: 'School Bag (स्कूल बस्ता)',
+    src: '/templates/logos/logo-jansuraj.png',
+    colorTheme: 'Golden Yellow & Black',
+    keywords: 'jan suraj jan suraaj party prashant kishor pk school bag basta bihar yellow',
+    visualSpec:
+      'a circular bright yellow emblem badge with circular inscription and Jan Suraaj party emblem containing education school bag symbol',
+  },
+  {
+id: 'rlp',
+    name: 'RLP',
+    partyName: 'RLP : राष्ट्रीय लोकतांत्रिक पार्टी',
+    hindiName: 'राष्ट्रीय लोकतांत्रिक पार्टी',
+    symbolName: 'Water Bottle (पानी की बोतल)',
+    src: '/templates/logos/logo-rlp.png',
+    colorTheme: 'Yellow, Green & White',
+    keywords: 'rlp rashtriya loktantrik party water bottle bottle hanuman beniwal rajasthan',
+    visualSpec:
+      'a circular white emblem badge with yellow-green arc containing a vertical clear Water Bottle (RLP election symbol) centered inside',
+  },
+  {
+id: 'abvp',
+    name: 'ABVP',
+    partyName: 'ABVP : अखिल भारतीय विद्यार्थी परिषद',
+    hindiName: 'अखिल भारतीय विद्यार्थी परिषद',
+    symbolName: 'ABVP Student Flag',
+    src: '/templates/logos/logo-abvp.png',
+    colorTheme: 'Red, Navy & Gold',
+    keywords: 'abvp akhil bharatiya vidyarthi parishad student organization flag flame ज्ञान शील एकता',
+    visualSpec:
+      'a circular white emblem badge with navy lettering containing the sacred flame and flag motif of Akhil Bharatiya Vidyarthi Parishad (ABVP)',
+  },
+  {
+id: 'asp',
+    name: 'ASP',
+    partyName: 'ASP : आजाद समाज पार्टी (कांशीराम)',
+    hindiName: 'आजाद समाज पार्टी (कांशीराम)',
+    symbolName: 'Kettle (केतली)',
+    src: '/templates/logos/logo-asp.png',
+    colorTheme: 'Royal Blue & White',
+    keywords: 'asp azad samaj party kanshi ram kettle ketli chandra shekhar aazad ravan blue',
+    visualSpec:
+      'a circular solid royal-blue emblem badge containing a crisp white line-art tea Kettle (ASP Ketli election symbol) with ASP letters centered inside',
+  },
+  {
+id: 'gfp',
+    name: 'GFP',
+    partyName: 'GFP : गोवा फॉरवर्ड पार्टी',
+    hindiName: 'गोवा फॉरवर्ड पार्टी',
+    symbolName: 'Coconut (नारियल)',
+    src: '/templates/logos/logo-gfp.png',
+    colorTheme: 'Indigo Purple & Coconut Brown',
+    keywords: 'gfp goa forward party coconut nariyal vijai sardesai goa purple',
+    visualSpec:
+      'a circular purple emblem badge containing a whole and sliced Coconut (Goa Forward Party election symbol) with GOA FORWARD inscription',
+  },
+  {
+id: 'inld',
+    name: 'INLD',
+    partyName: 'INLD : इंडियन नेशनल लोक दल',
+    hindiName: 'इंडियन नेशनल लोक दल',
+    symbolName: 'Spectacles (चश्मा)',
+    src: '/templates/logos/logo-inld.png',
+    colorTheme: 'Teal Green & White',
+    keywords: 'inld indian national lok dal spectacles glasses chashma om prakash chautala haryana green',
+    visualSpec:
+      'a circular dark teal-green emblem badge containing white frame Spectacles / Eyeglasses (INLD Chashma election symbol) with INLD lettering',
+  },
+  {
+id: 'mns',
+    name: 'MNS',
+    partyName: 'MNS : महाराष्ट्र नवनिर्माण सेना',
+    hindiName: 'महाराष्ट्र नवनिर्माण सेना',
+    symbolName: 'Railway Engine (रेल इंजन)',
+    src: '/templates/logos/logo-mns.png',
+    colorTheme: 'Saffron Orange & Charcoal',
+    keywords: 'mns maharashtra navnirman sena railway engine train rail engine raj thackeray',
+    visualSpec:
+      'a circular white emblem badge with a saffron border containing a vintage steam Railway Engine train locomotive (MNS election symbol) centered inside',
+  },
+  {
+id: 'ncp',
+    name: 'NCP',
+    partyName: 'NCP : नेशनलिस्ट कांग्रेस पार्टी',
+    hindiName: 'नेशनलिस्ट कांग्रेस पार्टी',
+    symbolName: 'Clock (घड़ी)',
+    src: '/templates/logos/logo-ncp.png',
+    colorTheme: 'Tricolour Saffron, White & Green',
+    keywords: 'ncp nationalist congress party clock ghadi alarm clock sharad pawar ajit pawar',
+    aliases: ['clock'],
+    visualSpec:
+      'a circular white emblem badge with a tricolour outer ring containing a classic two-legged alarm Clock (NCP Ghadi election symbol) set at 10 past 10 centered inside',
+  },
+  {
+id: 'nsui',
+    name: 'NSUI',
+    partyName: 'NSUI : नेशनल स्टूडेंट्स यूनियन ऑफ इंडिया',
+    hindiName: 'नेशनल स्टूडेंट्स यूनियन ऑफ इंडिया',
+    symbolName: 'NSUI Student Flag',
+    src: '/templates/logos/logo-nsui.png',
+    colorTheme: 'Tricolour & Navy Blue',
+    keywords: 'nsui national students union of india student congress flag tricolour torch',
+    visualSpec:
+      'a circular white emblem badge with circular inscription containing the national tricolour flag and torch emblem of NSUI student union',
+  },
+  {
+id: 'sad',
+    name: 'SAD',
+    partyName: 'Shiromani Akali Dal (SAD) : शिरोमणि अकाली दल',
+    hindiName: 'शिरोमणि अकाली दल',
+    symbolName: 'Scales (तराजू)',
+    src: '/templates/logos/logo-sad.png',
+    colorTheme: 'Deep Blue & Golden Orange',
+    keywords: 'sad shiromani akali dal scales tarazu takazu punjab sikh sukhbir badal',
+    visualSpec:
+      'a circular deep-blue emblem badge with an orange border containing the golden Scales of Justice / Takazu (SAD election symbol) centered inside',
+  },
+  {
+id: 'shivsena',
+    name: 'Shiv Sena',
+    partyName: 'Shiv Sena : शिवसेना',
+    hindiName: 'शिवसेना',
+    symbolName: 'Bow & Arrow (धनुष-बाण)',
+    src: '/templates/logos/logo-shivsena.png',
+    colorTheme: 'Saffron Orange & Black',
+    keywords: 'shiv sena shivsena bow arrow dhanush teer eknath shinde balasaheb thackeray saffron',
+    aliases: ['bow'],
+    visualSpec:
+      'a circular saffron-orange emblem badge containing a bold silhouette horizontal bow strung with a vertical upward-pointing arrow at the center with Shiv Sena lettering',
+  },
+  {
+id: 'shivsena_ubt',
+    name: 'Shiv Sena (UBT)',
+    partyName: 'Shiv Sena (UBT) : शिवसेना (उद्धव बालासाहेब ठाकरे)',
+    hindiName: 'शिवसेना (उद्धव बालासाहेब ठाकरे)',
+    symbolName: 'Flaming Torch (मशाल)',
+    src: '/templates/logos/logo-shivsena-ubt.png',
+    colorTheme: 'Saffron Orange & Flaming Gold',
+    keywords: 'shiv sena ubt uddhav thackeray mashaal flaming torch flame fire maharashtra saffron',
+    visualSpec:
+      'a circular saffron-orange emblem badge containing a bold flaming torch / Mashaal with burning fiery flames at top (Shiv Sena UBT election symbol)',
+  },
+  {
+id: 'tmc',
+    name: 'TMC',
+    partyName: 'TRINAMOOL CONGRESS : तृणमूल कांग्रेस',
+    hindiName: 'तृणमूल कांग्रेस',
+    symbolName: 'Twin Flowers (जोड़ा फूल)',
+    src: '/templates/logos/logo-tmc.png',
+    colorTheme: 'Tricolour Green, Saffron & White',
+    keywords: 'tmc all india trinamool congress mamata banerjee twin flowers jora ghas phool grass west bengal',
+    visualSpec:
+      'a circular white emblem badge with a tricolour circular border containing two blooming flowers rising together from grass (Trinamool Congress election symbol)',
+  },
+  {
+id: 'ysr',
+    name: 'YSRCP',
+    partyName: 'YSR : वाईएसआर कांग्रेस पार्टी',
+    hindiName: 'वाईएसआर कांग्रेस पार्टी',
+    symbolName: 'Ceiling Fan (पंखा)',
+    src: '/templates/logos/logo-ysr.png',
+    colorTheme: 'Tricolour Blue, White & Green',
+    keywords: 'ysr ysrcp ysr congress party ceiling fan fan jagan mohan reddy andhra pradesh',
+    visualSpec:
+      'a circular emblem badge with blue and green outer ring containing circular portrait leaders and central Ceiling Fan (YSRCP election symbol)',
+  },
+  {
+id: 'conch',
+    name: 'BJD',
+    partyName: 'BJD : बीजू जनता दल',
+    hindiName: 'बीजू जनता दल',
+    symbolName: 'Conch (शंख)',
+    src: '/templates/logos/logo-conch.png',
+    colorTheme: 'Emerald Green & White',
+    keywords: 'conch bjd biju janata dal shankha naveen patnaik odisha green',
+    aliases: ['bjd'],
+    visualSpec:
+      'a circular white emblem badge with a bold dark-green outer ring containing a crisp black line-art horizontal sacred Conch shell (BJD Shankha election symbol) with spiral ridges on the left and curved contour lines in the center',
+  },
+  {
+id: 'hammer',
+    name: 'CPI(M)',
+    partyName: 'CPI(M) : भारत की कम्युनिस्ट पार्टी (मार्क्सवादी)',
+    hindiName: 'भारत की कम्युनिस्ट पार्टी (मार्क्सवादी)',
+    symbolName: 'Hammer & Sickle (हथौड़ा और हंसिया)',
     src: '/templates/logos/logo-hammer.png',
     colorTheme: 'Crimson Red & White',
+    keywords: 'hammer sickle cpim cpi m communist party left front star red',
+    aliases: ['cpim'],
     visualSpec:
       'a circular white emblem badge with a red outer ring containing a bold red crossed hammer and sickle with a five-pointed star centered inside',
-  },
+  }
 ]
 
 function cleanUploadedSymbolName(rawFileName: string, fallbackIndex: number): string {
@@ -2558,7 +2914,6 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
   const [selectedPosterSize, setSelectedPosterSize] = useState('')
   const [selectedParty, setSelectedParty] = useState('')
   const [customPartyName, setCustomPartyName] = useState('')
-  const partyInputRef = useRef<HTMLInputElement>(null)
 
   // Symbol simulation & multiple draggable emblems on political poster
   const [placedEmblems, setPlacedEmblems] = useState<PlacedEmblem[]>([])
@@ -2568,13 +2923,51 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
   const [resizingEmblemId, setResizingEmblemId] = useState<string | null>(null)
   const [resizeStart, setResizeStart] = useState<{ startX: number; startY: number; initialSize: number } | null>(null)
   const [customUploadedLogos, setCustomUploadedLogos] = useState<PartyLogo[]>([])
+  const [partySearchQuery, setPartySearchQuery] = useState('')
+  const [partyPage, setPartyPage] = useState(1)
+  const [fullscreenEditorOpen, setFullscreenEditorOpen] = useState(false)
+  const [fullscreenZoom, setFullscreenZoom] = useState(1)
+  const [isPosterDragOver, setIsPosterDragOver] = useState(false)
+  const LOGOS_PER_PAGE = 8
   const fileInputRef = useRef<HTMLInputElement>(null)
   const posterRef = useRef<HTMLDivElement>(null)
+  const fullscreenPosterRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && fullscreenEditorOpen) {
+        setFullscreenEditorOpen(false)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [fullscreenEditorOpen])
 
   const allPartyLogos = useMemo(
     () => [...POLITICAL_PARTY_LOGOS, ...customUploadedLogos],
     [customUploadedLogos]
   )
+
+  const filteredPartyLogos = useMemo(() => {
+    const q = partySearchQuery.trim().toLowerCase()
+    if (!q) return allPartyLogos
+    return allPartyLogos.filter((item) => {
+      return (
+        item.name.toLowerCase().includes(q) ||
+        item.partyName.toLowerCase().includes(q) ||
+        (item.hindiName && item.hindiName.toLowerCase().includes(q)) ||
+        (item.symbolName && item.symbolName.toLowerCase().includes(q)) ||
+        (item.keywords && item.keywords.toLowerCase().includes(q)) ||
+        (item.aliases && item.aliases.some((a) => a.toLowerCase().includes(q)))
+      )
+    })
+  }, [allPartyLogos, partySearchQuery])
+
+  const totalPartyPages = Math.max(1, Math.ceil(filteredPartyLogos.length / LOGOS_PER_PAGE))
+  const currentPageLogos = useMemo(() => {
+    const start = (partyPage - 1) * LOGOS_PER_PAGE
+    return filteredPartyLogos.slice(start, start + LOGOS_PER_PAGE)
+  }, [filteredPartyLogos, partyPage])
 
   const selectedEmblem = useMemo(
     () => placedEmblems.find((e) => e.id === selectedEmblemId) || placedEmblems[placedEmblems.length - 1],
@@ -2603,7 +2996,9 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
   }
 
   const addOrPlaceEmblem = (partyId: string, xPercent?: number, yPercent?: number, emblemSize = 58) => {
-    const partyObj = [...POLITICAL_PARTY_LOGOS, ...customUploadedLogos].find((p) => p.id === partyId)
+    const partyObj = [...POLITICAL_PARTY_LOGOS, ...customUploadedLogos].find(
+      (p) => p.id === partyId || (p.aliases && p.aliases.includes(partyId))
+    )
     if (!partyObj) return
     const defaultX = xPercent !== undefined ? xPercent : (placedEmblems.length % 2 === 0 ? 14 : 84)
     const defaultY = yPercent !== undefined ? yPercent : (placedEmblems.length < 2 ? 14 : 76)
@@ -2632,8 +3027,22 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
   const handlePosterDrop = (e: React.DragEvent) => {
     e.preventDefault()
     const partyId = e.dataTransfer.getData('text/party-id')
-    if (partyId && posterRef.current) {
-      const rect = posterRef.current.getBoundingClientRect()
+    const container = fullscreenEditorOpen ? fullscreenPosterRef.current : posterRef.current
+    if (partyId && container) {
+      const rect = container.getBoundingClientRect()
+      let xPercent = ((e.clientX - rect.left) / rect.width) * 100
+      let yPercent = ((e.clientY - rect.top) / rect.height) * 100
+      xPercent = Math.max(6, Math.min(94, xPercent))
+      yPercent = Math.max(6, Math.min(94, yPercent))
+      addOrPlaceEmblem(partyId, xPercent, yPercent)
+    }
+  }
+
+  const handleFullscreenDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    const partyId = e.dataTransfer.getData('text/party-id')
+    if (partyId && fullscreenPosterRef.current) {
+      const rect = fullscreenPosterRef.current.getBoundingClientRect()
       let xPercent = ((e.clientX - rect.left) / rect.width) * 100
       let yPercent = ((e.clientY - rect.top) / rect.height) * 100
       xPercent = Math.max(6, Math.min(94, xPercent))
@@ -2659,8 +3068,10 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
   }
 
   const handleEmblemPointerMove = (e: React.PointerEvent) => {
-    if (!draggingEmblemId || !posterRef.current) return
-    const rect = posterRef.current.getBoundingClientRect()
+    if (!draggingEmblemId) return
+    const container = fullscreenEditorOpen ? fullscreenPosterRef.current : posterRef.current
+    if (!container) return
+    const rect = container.getBoundingClientRect()
     let xPercent = ((e.clientX - rect.left) / rect.width) * 100
     let yPercent = ((e.clientY - rect.top) / rect.height) * 100
     xPercent = Math.max(6, Math.min(94, xPercent))
@@ -3116,6 +3527,22 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
     handleOpenCustomizeModal()
   }
 
+  const handleDirectCopyPrompt = async () => {
+    if (!effectivePrompt) return
+    try {
+      await navigator.clipboard.writeText(effectivePrompt)
+      setCopiedCustom(true)
+      setCopied(true)
+      if (prompt) record(prompt.id, 'copy')
+      window.setTimeout(() => {
+        setCopiedCustom(false)
+        setCopied(false)
+      }, 2000)
+    } catch (err) {
+      console.error('Failed to copy prompt:', err)
+    }
+  }
+
   useEffect(() => {
     if (!showCustomModal) return
     const originalOverflow = document.body.style.overflow
@@ -3226,9 +3653,11 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
           <div className="detail-cover-wrapper">
             <div
               ref={posterRef}
-              className={`detail-cover ${prompt.video ? 'detail-cover-video' : ''} ${isPolitical ? 'detail-cover-simulatable' : ''}`}
+              className={`detail-cover ${prompt.video ? 'detail-cover-video' : ''} ${isPolitical ? 'detail-cover-simulatable is-editing-canvas' : ''} ${isPosterDragOver ? 'is-drag-target' : ''}`}
               onDragOver={isPolitical ? handlePosterDragOver : undefined}
-              onDrop={isPolitical ? handlePosterDrop : undefined}
+              onDragEnter={isPolitical ? () => setIsPosterDragOver(true) : undefined}
+              onDragLeave={isPolitical ? () => setIsPosterDragOver(false) : undefined}
+              onDrop={isPolitical ? (e) => { setIsPosterDragOver(false); handlePosterDrop(e) } : undefined}
             >
               {prompt.video ? (
                 <PromptVideo src={prompt.video} title={prompt.title} className="detail-video-iframe" poster={prompt.image} />
@@ -3239,7 +3668,31 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
                   <Sparkles size={28} />
                 </span>
               )}
-              <span className="detail-cover-tag">{prompt.category}</span>
+              {/* Clearly visible boundary guidelines when editing / placing symbols */}
+              {isPolitical && (
+                <div className="poster-boundary-guides" aria-hidden="true">
+                  <span className="boundary-corner corner-tl" />
+                  <span className="boundary-corner corner-tr" />
+                  <span className="boundary-corner corner-bl" />
+                  <span className="boundary-corner corner-br" />
+                </div>
+              )}
+              {/* Only show category tag on non-simulatable non-political covers to avoid overlapping placed emblems */}
+              {!isPolitical && <span className="detail-cover-tag">{prompt.category}</span>}
+
+              {/* Fullscreen Editor button on leftside image */}
+              {prompt.image && (
+                <button
+                  type="button"
+                  className="detail-cover-fullscreen-btn"
+                  onClick={() => setFullscreenEditorOpen(true)}
+                  title="Open leftside image in Fullscreen Editor view"
+                  aria-label="Open Fullscreen Editor View"
+                >
+                  <Maximize2 size={13} />
+                  <span>Editor View</span>
+                </button>
+              )}
 
               {/* Simulation of Party Symbol / Logo on Political Poster (Multiple draggable & resizable emblems) */}
               {isPolitical && (
@@ -3427,6 +3880,15 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
               <div className="detail-cover-bar">
                 <button
                   type="button"
+                  className="detail-cover-btn detail-cover-btn-editor"
+                  title="Open leftside image in Fullscreen Editor view"
+                  onClick={() => setFullscreenEditorOpen(true)}
+                >
+                  <Maximize2 size={14} />
+                  <span>Editor View (Fullscreen)</span>
+                </button>
+                <button
+                  type="button"
                   className="detail-cover-btn"
                   title="Download image"
                   onClick={handleDownload}
@@ -3467,7 +3929,6 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
               )}
             </div>
             <h1>{prompt.title}</h1>
-            {prompt.description && <p className="detail-description">{prompt.description}</p>}
 
             {/* Prompt Customization Studio Card */}
             <div className="prompt-customizer-card" ref={customizerRef}>
@@ -3577,141 +4038,177 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
                     <div className="prompt-party-header">
                       <div className="prompt-party-title-row">
                         <span className="prompt-party-title">PARTY LOGOS &amp; EMBLEMS</span>
-                        <span className="prompt-party-count">{POLITICAL_PARTY_LOGOS.length}</span>
+                        <span className="prompt-party-count">{allPartyLogos.length}</span>
                         <span className="prompt-political-badge">Political Blog</span>
+                        <button
+                          type="button"
+                          className="prompt-party-upload-btn"
+                          onClick={() => fileInputRef.current?.click()}
+                          title="Upload custom party logo or emblem (Must be PNG format)"
+                        >
+                          <Upload size={12} />
+                          <span>Upload PNG</span>
+                        </button>
                       </div>
                       <span className="prompt-party-hint">
-                        Select a party flag / emblem to include in the prompt, or enter a custom party name below:
+                        Search by party name, Hindi name, or election symbol (e.g. कमल, साइकिल, तीर, झाड़ू). Drag logo onto poster or click to place it:
                       </span>
                     </div>
 
-                    <div className="prompt-party-logo-grid">
-                      {/* Hidden file input restricted strictly to PNG */}
+                    {/* Search Bar */}
+                    <div className="prompt-party-search-bar">
+                      <Search size={14} className="prompt-party-search-icon" />
                       <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/png,.png"
-                        onChange={handleUploadPngLogo}
-                        style={{ display: 'none' }}
+                        type="text"
+                        value={partySearchQuery}
+                        onChange={(e) => {
+                          setPartySearchQuery(e.target.value)
+                          setPartyPage(1)
+                        }}
+                        placeholder="Search party or symbol (e.g. BJP, Kamal, Cycle, AAP, तीर...)"
+                        className="prompt-party-search-input"
                       />
+                      {partySearchQuery && (
+                        <button
+                          type="button"
+                          className="prompt-party-search-clear"
+                          onClick={() => {
+                            setPartySearchQuery('')
+                            setPartyPage(1)
+                          }}
+                          title="Clear search"
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
+                      {partySearchQuery && (
+                        <span className="prompt-party-search-matches">
+                          {filteredPartyLogos.length} found
+                        </span>
+                      )}
+                    </div>
 
-                      {allPartyLogos.map((item) => {
-                        const countOnPoster = placedEmblems.filter((e) => e.partyId === item.id).length
-                        const isUploaded = item.id.startsWith('uploaded_')
-                        return (
-                          <button
-                            key={item.id}
-                            type="button"
-                            draggable={true}
-                            onDragStart={(e) => e.dataTransfer.setData('text/party-id', item.id)}
-                            className={`prompt-party-chip ${countOnPoster > 0 ? 'is-selected' : ''} ${isUploaded ? 'is-custom-uploaded' : ''}`}
-                            onClick={() => addOrPlaceEmblem(item.id)}
-                            title={`Drag onto poster or click to add ${item.partyName} (Can drag & drop multiple times)`}
-                          >
-                            <span className="prompt-party-thumb">
-                              <img src={item.src} alt={item.name} loading="lazy" />
-                              {countOnPoster > 0 && (
-                                <span className="prompt-party-check" title={`${countOnPoster} placed on poster`}>
-                                  {countOnPoster > 1 ? countOnPoster : <Check size={10} />}
+                    {/* Hidden file input restricted strictly to PNG */}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/png,.png"
+                      onChange={handleUploadPngLogo}
+                      style={{ display: 'none' }}
+                    />
+
+                    {/* Grid of separate single unit HD logos */}
+                    {currentPageLogos.length > 0 ? (
+                      <div className="prompt-party-logo-grid">
+                        {currentPageLogos.map((item) => {
+                          const countOnPoster = placedEmblems.filter(
+                            (e) => e.partyId === item.id || (item.aliases && item.aliases.includes(e.partyId))
+                          ).length
+                          const isUploaded = item.id.startsWith('uploaded_')
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              draggable={true}
+                              onDragStart={(e) => {
+                                e.dataTransfer.setData('text/party-id', item.id)
+                                e.dataTransfer.effectAllowed = 'copy'
+                              }}
+                              className={`prompt-party-chip ${countOnPoster > 0 ? 'is-selected' : ''} ${isUploaded ? 'is-custom-uploaded' : ''}`}
+                              onClick={() => addOrPlaceEmblem(item.id)}
+                              title={`Drag onto poster or click to add ${item.partyName}${item.symbolName ? ` • ${item.symbolName}` : ''} (Can drag & drop multiple times)`}
+                            >
+                              <span className="prompt-party-thumb">
+                                <img src={item.src} alt={item.name} loading="lazy" />
+                                {countOnPoster > 0 && (
+                                  <span className="prompt-party-check" title={`${countOnPoster} placed on poster`}>
+                                    {countOnPoster > 1 ? countOnPoster : <Check size={10} />}
+                                  </span>
+                                )}
+                              </span>
+                              <span className="prompt-party-name">
+                                {item.name}
+                                {isUploaded && <span className="uploaded-png-badge">PNG</span>}
+                              </span>
+                              {item.symbolName && (
+                                <span className="prompt-party-subtag" title={item.symbolName}>
+                                  {item.symbolName.split('(')[0].trim()}
                                 </span>
                               )}
-                            </span>
-                            <span className="prompt-party-name">
-                              {item.name}
-                              {isUploaded && <span className="uploaded-png-badge">PNG</span>}
-                            </span>
-                          </button>
-                        )
-                      })}
+                            </button>
+                          )
+                        })}
 
-                      {/* OTHER... Button to upload custom PNG logo */}
-                      <button
-                        type="button"
-                        className="prompt-party-chip prompt-party-other-chip"
-                        onClick={() => fileInputRef.current?.click()}
-                        title="Click to upload another party emblem or logo (Must be PNG format)"
-                      >
-                        <span className="prompt-party-thumb prompt-party-other-thumb">
-                          <Upload size={18} />
-                        </span>
-                        <span className="prompt-party-name">OTHER...</span>
-                        <span className="prompt-party-subtag">PNG Upload</span>
-                      </button>
-                    </div>
-
-                    {/* If party is not available or custom PNG is uploaded, allow naming/describing the symbol */}
-                    <div className="prompt-party-custom-field">
-                      <label htmlFor="custom-party-input" className="prompt-customizer-label">
-                        <span className="field-name">
-                          {customUploadedLogos.length > 0
-                            ? 'Uploaded Symbol Name / Description (Used in Generated Prompt)'
-                            : 'Not in list? Add Party Flag / Symbol Name'}
-                        </span>
-                        {(customPartyName.trim() || customUploadedLogos.length > 0) && (
-                          <span className="field-active-tag">
-                            {customUploadedLogos.length > 0 ? 'Uploaded Symbol Active' : 'Custom Active'}
+                        {/* OTHER... Button to upload custom PNG logo */}
+                        <button
+                          type="button"
+                          className="prompt-party-chip prompt-party-other-chip"
+                          onClick={() => fileInputRef.current?.click()}
+                          title="Click to upload another party emblem or logo (Must be PNG format)"
+                        >
+                          <span className="prompt-party-thumb prompt-party-other-thumb">
+                            <Upload size={18} />
                           </span>
-                        )}
-                      </label>
-                      <div className="prompt-customizer-input-wrapper">
-                        <input
-                          id="custom-party-input"
-                          ref={partyInputRef}
-                          type="text"
-                          className="prompt-customizer-text-input"
-                          value={customPartyName}
-                          placeholder={
-                            customUploadedLogos.length > 0
-                              ? 'Describe your uploaded symbol for exact AI prompt generation (e.g. BJD Conch Shell, Shiv Sena Bow & Arrow, SP Cycle...)'
-                              : 'Type your party flag / symbol name (e.g. BJD Conch, Shiv Sena Bow & Arrow, TMC Flowers, SP Cycle...)'
-                          }
-                          onChange={(e) => {
-                            const val = e.target.value
-                            setCustomPartyName(val)
-                            if (customUploadedLogos.length > 0) {
-                              const latestId = customUploadedLogos[customUploadedLogos.length - 1].id
-                              const trimmed = val.trim()
-                              if (trimmed) {
-                                setCustomUploadedLogos((prev) =>
-                                  prev.map((u) =>
-                                    u.id === latestId
-                                      ? {
-                                          ...u,
-                                          name: trimmed.slice(0, 11).toUpperCase(),
-                                          partyName: trimmed,
-                                          visualSpec: `a circular white party emblem badge featuring the uploaded "${trimmed}" symbol with ${u.colorTheme || 'high-contrast'} artwork, sharp line art, and clean circular border matching the uploaded reference PNG`,
-                                        }
-                                      : u
-                                  )
-                                )
-                                setPlacedEmblems((prev) =>
-                                  prev.map((emb) => (emb.partyId === latestId ? { ...emb, name: trimmed } : emb))
-                                )
-                                syncSymbolToTemplateVariables(trimmed)
-                              }
-                            } else if (val.trim()) {
-                              setSelectedParty('custom')
-                            } else if (selectedParty === 'custom') {
-                              setSelectedParty('')
-                            }
-                          }}
-                        />
-                        {customPartyName && (
-                          <button
-                            type="button"
-                            className="prompt-customizer-clear-btn"
-                            onClick={() => {
-                              setCustomPartyName('')
-                              if (selectedParty === 'custom') setSelectedParty('')
-                            }}
-                            title="Clear custom party"
-                            aria-label="Clear custom party"
-                          >
-                            <X size={12} />
-                          </button>
-                        )}
+                          <span className="prompt-party-name">OTHER...</span>
+                          <span className="prompt-party-subtag">PNG Upload</span>
+                        </button>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="prompt-party-empty-search">
+                        <span>No party symbol matching "{partySearchQuery}"</span>
+                        <button
+                          type="button"
+                          className="prompt-party-reset-search"
+                          onClick={() => {
+                            setPartySearchQuery('')
+                            setPartyPage(1)
+                          }}
+                        >
+                          Show all symbols ({allPartyLogos.length})
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Paging Controls */}
+                    {totalPartyPages > 1 && (
+                      <div className="prompt-party-pagination">
+                        <button
+                          type="button"
+                          className="prompt-party-page-nav-btn"
+                          disabled={partyPage <= 1}
+                          onClick={() => setPartyPage((p) => Math.max(1, p - 1))}
+                          title="Previous page"
+                        >
+                          <ChevronLeft size={14} />
+                          <span>Prev</span>
+                        </button>
+
+                        <div className="prompt-party-page-pills">
+                          {Array.from({ length: totalPartyPages }, (_, i) => i + 1).map((pg) => (
+                            <button
+                              key={pg}
+                              type="button"
+                              className={`prompt-party-page-pill ${pg === partyPage ? 'is-active' : ''}`}
+                              onClick={() => setPartyPage(pg)}
+                              title={`Go to page ${pg}`}
+                            >
+                              {pg}
+                            </button>
+                          ))}
+                        </div>
+
+                        <button
+                          type="button"
+                          className="prompt-party-page-nav-btn"
+                          disabled={partyPage >= totalPartyPages}
+                          onClick={() => setPartyPage((p) => Math.min(totalPartyPages, p + 1))}
+                          title="Next page"
+                        >
+                          <span>Next</span>
+                          <ChevronRight size={14} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -4018,6 +4515,342 @@ function PromptPage({ prompts }: { prompts: Prompt[] }) {
                   </>
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fullscreen Editor View Modal */}
+      {fullscreenEditorOpen && (
+        <div className="fullscreen-editor-modal" role="dialog" aria-modal="true" aria-label="Fullscreen Poster Editor View">
+          <div className="fullscreen-editor-header">
+            <div className="fullscreen-editor-title-group">
+              <span className="fullscreen-editor-badge">FULLSCREEN EDITOR VIEW</span>
+              <h2 className="fullscreen-editor-title">{prompt.title}</h2>
+            </div>
+
+            <div className="fullscreen-editor-toolbar">
+              <div className="fullscreen-zoom-group">
+                <button
+                  type="button"
+                  className="fullscreen-tool-btn"
+                  onClick={() => setFullscreenZoom((z) => Math.max(0.6, Math.round((z - 0.15) * 100) / 100))}
+                  title="Zoom Out"
+                >
+                  <ZoomOut size={15} />
+                </button>
+                <span className="fullscreen-zoom-level">{Math.round(fullscreenZoom * 100)}%</span>
+                <button
+                  type="button"
+                  className="fullscreen-tool-btn"
+                  onClick={() => setFullscreenZoom((z) => Math.min(2.0, Math.round((z + 0.15) * 100) / 100))}
+                  title="Zoom In"
+                >
+                  <ZoomIn size={15} />
+                </button>
+                {fullscreenZoom !== 1 && (
+                  <button
+                    type="button"
+                    className="fullscreen-tool-btn"
+                    onClick={() => setFullscreenZoom(1)}
+                    title="Reset Zoom to 100%"
+                  >
+                    100%
+                  </button>
+                )}
+              </div>
+
+              {placedEmblems.length > 0 && (
+                <button
+                  type="button"
+                  className="fullscreen-tool-btn fullscreen-clear-btn"
+                  onClick={handleClearAllEmblems}
+                  title="Clear all emblems"
+                >
+                  <RotateCcw size={14} />
+                  <span>Reset Emblems</span>
+                </button>
+              )}
+
+              {/* Prompt Generation Option in Fullscreen Editor View */}
+              <button
+                type="button"
+                className="fullscreen-tool-btn fullscreen-prompt-btn"
+                onClick={handleCustomizeAndCopy}
+                title="Generate & customize AI prompt with placed party emblems"
+              >
+                <Sparkles size={14} />
+                <span>Generate Prompt</span>
+              </button>
+
+              <button
+                type="button"
+                className="fullscreen-tool-btn fullscreen-copy-btn"
+                onClick={handleDirectCopyPrompt}
+                title="Copy generated prompt with placed party logos"
+              >
+                {copiedCustom ? <Check size={14} /> : <Copy size={14} />}
+                <span>{copiedCustom ? 'Copied Prompt!' : 'Copy Prompt'}</span>
+              </button>
+
+              <button
+                type="button"
+                className="fullscreen-close-btn"
+                onClick={() => setFullscreenEditorOpen(false)}
+                title="Close Fullscreen Editor (Esc)"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+
+          <div className="fullscreen-editor-body">
+            {/* Main Fullscreen Canvas Stage */}
+            <div className="fullscreen-canvas-wrapper" onDragOver={handlePosterDragOver} onDrop={handleFullscreenDrop}>
+              <div
+                ref={fullscreenPosterRef}
+                className={`fullscreen-poster-canvas is-editing-canvas ${isPosterDragOver ? 'is-drag-target' : ''}`}
+                style={{
+                  transform: `scale(${fullscreenZoom})`,
+                  transformOrigin: 'center center',
+                }}
+              >
+                {/* Clearly visible boundary guidelines in Fullscreen */}
+                <div className="poster-boundary-guides" aria-hidden="true">
+                  <span className="boundary-corner corner-tl" />
+                  <span className="boundary-corner corner-tr" />
+                  <span className="boundary-corner corner-bl" />
+                  <span className="boundary-corner corner-br" />
+                </div>
+                {prompt.image ? (
+                  <img
+                    src={imageAtWidth(prompt.image, 2048) || prompt.image}
+                    alt={prompt.imageAlt || prompt.title}
+                    draggable={false}
+                    className="fullscreen-poster-img"
+                  />
+                ) : (
+                  <span className="tile-image-fallback" style={{ width: 480, height: 480 }}>
+                    <Sparkles size={48} />
+                  </span>
+                )}
+
+                {/* Draggable & Resizable Emblems overlay in Fullscreen */}
+                {placedEmblems.map((emblem) => {
+                  const isSelected = selectedEmblemId === emblem.id
+                  const isDragging = draggingEmblemId === emblem.id
+                  return (
+                    <div
+                      key={emblem.id}
+                      className={`poster-symbol-overlay ${isDragging ? 'is-dragging' : ''} ${isSelected ? 'is-selected' : ''}`}
+                      style={{
+                        left: `${emblem.x}%`,
+                        top: `${emblem.y}%`,
+                        width: `${emblem.size}px`,
+                        height: `${emblem.size}px`,
+                      }}
+                      onPointerDown={(e) => handleEmblemPointerDown(e, emblem.id)}
+                      onPointerMove={handleEmblemPointerMove}
+                      onPointerUp={handleEmblemPointerUp}
+                      onPointerCancel={handleEmblemPointerUp}
+                      title={`Drag to reposition "${emblem.name}". Corner handle to resize.`}
+                    >
+                      <div className="poster-symbol-badge">
+                        <img src={emblem.src} alt={emblem.name} draggable={false} />
+                      </div>
+
+                      <div
+                        className="poster-resize-handle"
+                        onPointerDown={(e) => handleResizePointerDown(e, emblem)}
+                        onPointerMove={handleResizePointerMove}
+                        onPointerUp={handleResizePointerUp}
+                        onPointerCancel={handleResizePointerUp}
+                        title="Drag corner handle to resize logo"
+                      >
+                        <span className="resize-handle-dot" />
+                      </div>
+
+                      <button
+                        type="button"
+                        className="emblem-delete-btn"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleRemoveEmblem(emblem.id)
+                        }}
+                        title="Remove emblem"
+                      >
+                        <X size={11} />
+                      </button>
+
+                      <span className="poster-symbol-drag-hint">
+                        <Move size={9} /> {emblem.size}px
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Sidebar inside Fullscreen Editor: Party Logos & Controls */}
+            <div className="fullscreen-editor-sidebar">
+              <div className="fullscreen-sidebar-header">
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 13, fontWeight: 800 }}>Party Logos &amp; Emblems</h3>
+                  <small style={{ color: '#94a3b8', fontSize: 10 }}>Drag onto poster or click to place</small>
+                </div>
+                <span className="prompt-party-count">{allPartyLogos.length}</span>
+              </div>
+
+              {/* Quick placement controls for selected emblem */}
+              {selectedEmblem && (
+                <div className="fullscreen-quick-controls">
+                  <div className="fullscreen-selected-info">
+                    <span>Selected:</span>
+                    <strong>{selectedEmblem.name}</strong>
+                    <small>({selectedEmblem.size}px)</small>
+                  </div>
+                  <div className="fullscreen-pos-row">
+                    <span className="sim-sublabel">Pos:</span>
+                    <button type="button" className="sim-pos-btn" onClick={() => setPlacedEmblems((prev) => prev.map((e) => (e.id === selectedEmblem.id ? { ...e, x: 14, y: 14 } : e)))}>TL</button>
+                    <button type="button" className="sim-pos-btn" onClick={() => setPlacedEmblems((prev) => prev.map((e) => (e.id === selectedEmblem.id ? { ...e, x: 84, y: 14 } : e)))}>TR</button>
+                    <button type="button" className="sim-pos-btn" onClick={() => setPlacedEmblems((prev) => prev.map((e) => (e.id === selectedEmblem.id ? { ...e, x: 14, y: 84 } : e)))}>BL</button>
+                    <button type="button" className="sim-pos-btn" onClick={() => setPlacedEmblems((prev) => prev.map((e) => (e.id === selectedEmblem.id ? { ...e, x: 84, y: 84 } : e)))}>BR</button>
+                    <button type="button" className="sim-pos-btn" onClick={() => setPlacedEmblems((prev) => prev.map((e) => (e.id === selectedEmblem.id ? { ...e, x: 48, y: 48 } : e)))}>Center</button>
+                  </div>
+                  <div className="fullscreen-size-row">
+                    <span className="sim-sublabel">Size:</span>
+                    <button type="button" className={`sim-size-btn ${selectedEmblem.size === 46 ? 'is-active' : ''}`} onClick={() => setPlacedEmblems((prev) => prev.map((e) => (e.id === selectedEmblem.id ? { ...e, size: 46 } : e)))}>SM</button>
+                    <button type="button" className={`sim-size-btn ${selectedEmblem.size === 64 ? 'is-active' : ''}`} onClick={() => setPlacedEmblems((prev) => prev.map((e) => (e.id === selectedEmblem.id ? { ...e, size: 64 } : e)))}>MD</button>
+                    <button type="button" className={`sim-size-btn ${selectedEmblem.size === 86 ? 'is-active' : ''}`} onClick={() => setPlacedEmblems((prev) => prev.map((e) => (e.id === selectedEmblem.id ? { ...e, size: 86 } : e)))}>LG</button>
+                    <button type="button" className={`sim-size-btn ${selectedEmblem.size === 110 ? 'is-active' : ''}`} onClick={() => setPlacedEmblems((prev) => prev.map((e) => (e.id === selectedEmblem.id ? { ...e, size: 110 } : e)))}>XL</button>
+                  </div>
+                </div>
+              )}
+
+              {/* Search Bar in Fullscreen */}
+              <div className="prompt-party-search-bar" style={{ marginTop: 8 }}>
+                <Search size={14} className="prompt-party-search-icon" />
+                <input
+                  type="text"
+                  value={partySearchQuery}
+                  onChange={(e) => {
+                    setPartySearchQuery(e.target.value)
+                    setPartyPage(1)
+                  }}
+                  placeholder="Search symbols (BJP, Kamal, Cycle, तीर...)"
+                  className="prompt-party-search-input"
+                />
+                {partySearchQuery && (
+                  <button
+                    type="button"
+                    className="prompt-party-search-clear"
+                    onClick={() => {
+                      setPartySearchQuery('')
+                      setPartyPage(1)
+                    }}
+                    title="Clear search"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+
+              {/* Grid of Logos in Fullscreen */}
+              <div className="fullscreen-logos-scroll">
+                <div className="prompt-party-logo-grid" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+                  {currentPageLogos.map((item) => {
+                    const countOnPoster = placedEmblems.filter(
+                      (e) => e.partyId === item.id || (item.aliases && item.aliases.includes(e.partyId))
+                    ).length
+                    return (
+                      <button
+                        key={`fs_${item.id}`}
+                        type="button"
+                        draggable={true}
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('text/party-id', item.id)
+                          e.dataTransfer.effectAllowed = 'copy'
+                        }}
+                        className={`prompt-party-chip ${countOnPoster > 0 ? 'is-selected' : ''}`}
+                        onClick={() => addOrPlaceEmblem(item.id)}
+                        title={`Click to add or drag onto canvas: ${item.partyName}`}
+                      >
+                        <span className="prompt-party-thumb">
+                          <img src={item.src} alt={item.name} loading="lazy" />
+                          {countOnPoster > 0 && (
+                            <span className="prompt-party-check">
+                              {countOnPoster > 1 ? countOnPoster : <Check size={10} />}
+                            </span>
+                          )}
+                        </span>
+                        <span className="prompt-party-name">{item.name}</span>
+                        {item.symbolName && (
+                          <span className="prompt-party-subtag">
+                            {item.symbolName.split('(')[0].trim()}
+                          </span>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Pagination in Fullscreen */}
+              {totalPartyPages > 1 && (
+                <div className="prompt-party-pagination" style={{ marginTop: 'auto' }}>
+                  <button
+                    type="button"
+                    className="prompt-party-page-nav-btn"
+                    disabled={partyPage <= 1}
+                    onClick={() => setPartyPage((p) => Math.max(1, p - 1))}
+                  >
+                    <ChevronLeft size={14} />
+                    <span>Prev</span>
+                  </button>
+                  <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                    {partyPage} / {totalPartyPages}
+                  </span>
+                  <button
+                    type="button"
+                    className="prompt-party-page-nav-btn"
+                    disabled={partyPage >= totalPartyPages}
+                    onClick={() => setPartyPage((p) => Math.min(totalPartyPages, p + 1))}
+                  >
+                    <span>Next</span>
+                    <ChevronRight size={14} />
+                  </button>
+                </div>
+              )}
+
+              {/* Generated AI Prompt Section inside Fullscreen Editor */}
+              <div className="fullscreen-prompt-box">
+                <div className="fullscreen-prompt-box-header">
+                  <div className="fullscreen-prompt-box-title">
+                    <Sparkles size={13} />
+                    <span>Prompt Generation</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="fullscreen-prompt-copy-mini"
+                    onClick={handleDirectCopyPrompt}
+                    title="Copy AI Prompt"
+                  >
+                    {copiedCustom ? <Check size={12} /> : <Copy size={12} />}
+                    <span>{copiedCustom ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
+                <div className="fullscreen-prompt-text-preview" title={effectivePrompt}>
+                  {effectivePrompt}
+                </div>
+                <button
+                  type="button"
+                  className="fullscreen-prompt-customize-btn"
+                  onClick={handleCustomizeAndCopy}
+                >
+                  <SlidersHorizontal size={13} />
+                  <span>Customize Prompt Variables</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

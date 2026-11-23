@@ -261,6 +261,22 @@ export default function Inspector({
     return () => { alive = false }
   }, [doc.bg?.type, doc.bg?.src])
 
+  const [logoSearch, setLogoSearch] = useState('')
+  const [logoPage, setLogoPage] = useState(1)
+  const TS_LOGOS_PER_PAGE = 10
+
+  const filteredLogoElements = React.useMemo(() => {
+    const q = logoSearch.trim().toLowerCase()
+    if (!q) return logoElements
+    return logoElements.filter((item) => item.name.toLowerCase().includes(q) || item.id.toLowerCase().includes(q))
+  }, [logoElements, logoSearch])
+
+  const totalTsLogoPages = Math.max(1, Math.ceil(filteredLogoElements.length / TS_LOGOS_PER_PAGE))
+  const currentTsLogoElements = React.useMemo(() => {
+    const start = (logoPage - 1) * TS_LOGOS_PER_PAGE
+    return filteredLogoElements.slice(start, start + TS_LOGOS_PER_PAGE)
+  }, [filteredLogoElements, logoPage])
+
   const [activeTag, setActiveTag] = useState('All')
   const [scanModalFile, setScanModalFile] = useState(null)
   const [scanModalPreview, setScanModalPreview] = useState(null)
@@ -1928,10 +1944,29 @@ export default function Inspector({
           {logoElements.length > 0 && (
             <Section
               title="Party Logos & Emblems"
-              aside={<span className="ts-count">{logoElements.length}</span>}
+              aside={<span className="ts-count">{filteredLogoElements.length}</span>}
             >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, padding: '4px 8px', background: 'var(--ts-surface)', borderRadius: 6, border: '1px solid var(--ts-line)' }}>
+                <input
+                  type="text"
+                  value={logoSearch}
+                  onChange={(e) => { setLogoSearch(e.target.value); setLogoPage(1); }}
+                  placeholder="Search symbols..."
+                  style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 11, color: 'inherit' }}
+                />
+                {logoSearch && (
+                  <button
+                    type="button"
+                    onClick={() => { setLogoSearch(''); setLogoPage(1); }}
+                    style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 12, color: 'var(--ts-muted)' }}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+
               <div className="ts-logo-grid">
-                {logoElements.map((item) => (
+                {currentTsLogoElements.map((item) => (
                   <button
                     key={item.id}
                     type="button"
@@ -1947,6 +1982,28 @@ export default function Inspector({
                   </button>
                 ))}
               </div>
+
+              {totalTsLogoPages > 1 && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, paddingTop: 6, borderTop: '1px solid var(--ts-line)', fontSize: 10 }}>
+                  <button
+                    type="button"
+                    disabled={logoPage <= 1}
+                    onClick={() => setLogoPage((p) => Math.max(1, p - 1))}
+                    style={{ padding: '2px 8px', borderRadius: 4, border: '1px solid var(--ts-line)', background: 'transparent', cursor: logoPage <= 1 ? 'default' : 'pointer', opacity: logoPage <= 1 ? 0.4 : 1 }}
+                  >
+                    Prev
+                  </button>
+                  <span style={{ color: 'var(--ts-muted)' }}>Page {logoPage} of {totalTsLogoPages}</span>
+                  <button
+                    type="button"
+                    disabled={logoPage >= totalTsLogoPages}
+                    onClick={() => setLogoPage((p) => Math.min(totalTsLogoPages, p + 1))}
+                    style={{ padding: '2px 8px', borderRadius: 4, border: '1px solid var(--ts-line)', background: 'transparent', cursor: logoPage >= totalTsLogoPages ? 'default' : 'pointer', opacity: logoPage >= totalTsLogoPages ? 0.4 : 1 }}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
               <p className="ts-hint">Transparent badges with custom background and foreground color support.</p>
             </Section>
           )}
