@@ -28,6 +28,7 @@ function escapeXml(unsafe = '') {
 // 1. Core Tool and Information Pages
 const STATIC_ROUTES = [
   { path: '/', title: 'ImgMojo – Free Online Image, Video & PDF Tools' },
+  { path: '/unlock-pdf', title: 'Unlock PDF – Free Online PDF Password Remover' },
   { path: '/Recorder', title: 'Free Online Screen Recorder' },
   { path: '/screen-recorder', title: 'Screen Recorder Online' },
   { path: '/qr-code', title: 'Free QR Code Generator Online' },

@@ -1,4 +1,4 @@
-import { Bot, Download, Droplets, Eraser, FileArchive, IdCard, ImagePlus, Images, Instagram, Layers, MessageCircle, MonitorPlay, Network, Palette, PanelLeft, QrCode, ScanLine, Smile, Sparkles, Video, Wand2, Youtube, Zap } from 'lucide-react'
+import { Bot, Download, Droplets, Eraser, FileArchive, IdCard, ImagePlus, Images, Instagram, Layers, LockOpen, MessageCircle, MonitorPlay, Network, Palette, PanelLeft, QrCode, ScanLine, Smile, Sparkles, Video, Wand2, Youtube, Zap } from 'lucide-react'
 import type { ToolIcon } from './ToolsConfig'
 
 const toolGlyphs: Record<ToolIcon, typeof Images> = {
@@ -25,6 +25,7 @@ const toolGlyphs: Record<ToolIcon, typeof Images> = {
   'panel-left': PanelLeft,
   'id-card': IdCard,
   'file-archive': FileArchive,
+  'lock-open': LockOpen,
 }
 
 /** Draws the lucide glyph registered for a tool icon key. */

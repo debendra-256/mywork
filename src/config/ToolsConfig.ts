@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react'
 
-export type ToolIcon = 'images' | 'youtube' | 'image-plus' | 'video' | 'qr-code' | 'download' | 'scan' | 'layers' | 'message' | 'network' | 'eraser' | 'droplets' | 'sparkles' | 'wand' | 'bot' | 'monitor-play' | 'zap' | 'instagram' | 'smile' | 'palette' | 'panel-left' | 'id-card' | 'file-archive'
+export type ToolIcon = 'images' | 'youtube' | 'image-plus' | 'video' | 'qr-code' | 'download' | 'scan' | 'layers' | 'message' | 'network' | 'eraser' | 'droplets' | 'sparkles' | 'wand' | 'bot' | 'monitor-play' | 'zap' | 'instagram' | 'smile' | 'palette' | 'panel-left' | 'id-card' | 'file-archive' | 'lock-open'
 
 /** Where a tool is surfaced: its own page, an inline/overlay panel on the home page, Creator Studio, or its own sidebar menu. */
 export type ToolPlacement = 'library' | 'utility' | 'admin' | 'feature'
@@ -37,6 +37,7 @@ export interface ToolDefinition {
  * from the app without touching any other file.
  */
 export const toolsConfig: readonly ToolDefinition[] = [
+  { id: 'unlock-pdf', title: 'Unlock PDF', placement: 'library', path: '/unlock-pdf', href: '/unlock-pdf', icon: 'lock-open', enabled: true, load: () => import('../tools/unlock-pdf/UnlockPdf') },
   { id: 'screen-recorder', title: 'Screen Recorder', placement: 'library', path: '/Recorder', href: '/Recorder', icon: 'monitor-play', enabled: true, load: () => import('../tools/screen-recorder/ScreenRecorder') },
   { id: 'qr-code', title: 'QR Code Generator', placement: 'library', path: '/qr-code', href: '/qr-code', icon: 'qr-code', enabled: true, load: () => import('../tools/qr-code/QRCodeGenerator') },
   { id: 'collage', title: 'Photo and Video Editor', placement: 'library', path: '/collage', href: '/collage', icon: 'wand', editorFonts: true, enabled: true, load: () => import('../tools/collage/CollageStudio') },

@@ -62,6 +62,132 @@ function paintWatermark(context, canvas, text) {
   mark(`${text} · free version`, canvas.height - pad - bar)
 }
 
+let audioCtx = null
+
+function getAudioContext() {
+  if (typeof window === 'undefined') return null
+  if (!audioCtx) {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext
+    if (AudioCtx) {
+      audioCtx = new AudioCtx()
+    }
+  }
+  if (audioCtx && audioCtx.state === 'suspended') {
+    void audioCtx.resume().catch(() => undefined)
+  }
+  return audioCtx
+}
+
+function playCountdownBeep(count) {
+  try {
+    const ctx = getAudioContext()
+    if (!ctx) return
+    const now = ctx.currentTime
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+
+    const freqs = { 5: 440, 4: 500, 3: 580, 2: 680, 1: 800 }
+    osc.frequency.setValueAtTime(freqs[count] || 500, now)
+    osc.type = 'sine'
+
+    gain.gain.setValueAtTime(0, now)
+    gain.gain.linearRampToValueAtTime(0.2, now + 0.02)
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16)
+
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+
+    osc.start(now)
+    osc.stop(now + 0.17)
+  } catch {
+    // Ignore audio error
+  }
+}
+
+function playStartChime() {
+  try {
+    const ctx = getAudioContext()
+    if (!ctx) return
+    const now = ctx.currentTime
+
+    const playTone = (freq, startTime, duration, gainVal) => {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.frequency.setValueAtTime(freq, startTime)
+      osc.type = 'triangle'
+
+      gain.gain.setValueAtTime(0, startTime)
+      gain.gain.linearRampToValueAtTime(gainVal, startTime + 0.02)
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration)
+
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.start(startTime)
+      osc.stop(startTime + duration + 0.02)
+    }
+
+    playTone(523.25, now, 0.14, 0.22)
+    playTone(659.25, now + 0.08, 0.16, 0.24)
+    playTone(1046.5, now + 0.16, 0.45, 0.28)
+  } catch {
+    // Ignore audio error
+  }
+}
+
+let originalTitle = ''
+let originalFavicon = ''
+
+function setTabStatus(status, { count, timeLabel, title } = {}) {
+  if (typeof document === 'undefined') return
+
+  if (!originalTitle) {
+    originalTitle = document.title || 'ImgMojo'
+  }
+
+  let link = document.querySelector("link[rel*='icon']")
+  if (!link) {
+    link = document.createElement('link')
+    link.rel = 'shortcut icon'
+    document.head.appendChild(link)
+  }
+  if (!originalFavicon) {
+    originalFavicon = link.getAttribute('href') || '/favicon.ico'
+  }
+
+  const cleanTitle = (title && title.trim()) || 'Screen recording'
+
+  if (status === 'countdown') {
+    document.title = `⏳ (${count}s) Starting... | ${cleanTitle}`
+    try {
+      link.type = 'image/svg+xml'
+      link.href = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="%23f59e0b"/><text x="16" y="21" font-size="16" font-weight="bold" text-anchor="middle" fill="white">⏱</text></svg>'
+    } catch {
+      // Ignore favicon error
+    }
+  } else if (status === 'recording') {
+    document.title = `🔴 [REC ${timeLabel}] ${cleanTitle}`
+    try {
+      link.type = 'image/svg+xml'
+      link.href = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="%23ef4444"/><circle cx="16" cy="16" r="6" fill="white"/></svg>'
+    } catch {
+      // Ignore favicon error
+    }
+  } else if (status === 'paused') {
+    document.title = `⏸️ [PAUSED ${timeLabel}] ${cleanTitle}`
+    try {
+      link.type = 'image/svg+xml'
+      link.href = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="%23f97316"/><rect x="11" y="9" width="3" height="14" fill="white"/><rect x="18" y="9" width="3" height="14" fill="white"/></svg>'
+    } catch {
+      // Ignore favicon error
+    }
+  } else {
+    document.title = originalTitle
+    if (originalFavicon) {
+      link.href = originalFavicon
+    }
+  }
+}
+
 /** 3. Screen Recording Application Widget (100% existing functionality intact) */
 export function ScreenRecorder() {
   const [title, setTitle] = useState('Screen recording')
@@ -109,16 +235,26 @@ export function ScreenRecorder() {
 
   useEffect(() => {
     if (!recording || paused) return
-    timerRef.current = window.setInterval(() => setSeconds((time) => time + 1), 1000)
+    timerRef.current = window.setInterval(() => {
+      setSeconds((time) => {
+        const next = time + 1
+        const currentLabel = `${String(Math.floor(next / 60)).padStart(2, '0')}:${String(
+          next % 60
+        ).padStart(2, '0')}`
+        setTabStatus('recording', { timeLabel: currentLabel, title })
+        return next
+      })
+    }, 1000)
     return () => {
       if (timerRef.current) window.clearInterval(timerRef.current)
     }
-  }, [recording, paused])
+  }, [recording, paused, title])
 
   useEffect(
     () => () => {
       if (timerRef.current) window.clearInterval(timerRef.current)
       tracksRef.current.forEach((stream) => stream.getTracks().forEach((track) => track.stop()))
+      setTabStatus('idle')
     },
     []
   )
@@ -236,8 +372,11 @@ export function ScreenRecorder() {
       tracksRef.current = streams
       setPreviewStream(composed)
       chunksRef.current = []
+      getAudioContext()
       for (let count = 5; count >= 1; count -= 1) {
         setCountdown(count)
+        playCountdownBeep(count)
+        setTabStatus('countdown', { count, title })
         await new Promise((resolve) => window.setTimeout(resolve, 1000))
       }
       setCountdown(null)
@@ -276,6 +415,7 @@ export function ScreenRecorder() {
         setPaused(false)
         setStarting(false)
         setCountdown(null)
+        setTabStatus('idle')
       }
       screen.getVideoTracks()[0]?.addEventListener(
         'ended',
@@ -285,6 +425,8 @@ export function ScreenRecorder() {
         { once: true }
       )
       recorder.start(1000)
+      playStartChime()
+      setTabStatus('recording', { timeLabel: '00:00', title })
       recorderRef.current = recorder
       setSeconds(0)
       setRecording(true)
@@ -299,6 +441,7 @@ export function ScreenRecorder() {
       setPreviewStream(null)
       setStarting(false)
       setCountdown(null)
+      setTabStatus('idle')
       setError(
         reason instanceof Error
           ? reason.message
@@ -315,9 +458,11 @@ export function ScreenRecorder() {
     if (recorder.state === 'recording') {
       recorder.pause()
       setPaused(true)
+      setTabStatus('paused', { timeLabel, title })
     } else if (recorder.state === 'paused') {
       recorder.resume()
       setPaused(false)
+      setTabStatus('recording', { timeLabel, title })
     }
   }
   const timeLabel = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(

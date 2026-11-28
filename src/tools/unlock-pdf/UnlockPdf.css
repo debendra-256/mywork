@@ -1,0 +1,1065 @@
+/* ==========================================================================
+   IMGMOJO UNLOCK PDF — FULL STYLES
+   AdSense Compliant · Fully Responsive · Client-Side PDF Password Remover
+   ========================================================================== */
+
+.unlock-pdf-page {
+  --up-brand: var(--brand, #7c3aed);
+  --up-brand-dark: var(--brand-dark, #5f24c9);
+  --up-brand-glow: var(--brand-glow, rgba(124, 58, 237, 0.25));
+  --up-brand-soft: var(--brand-soft, #f1eafe);
+  --up-brand-softer: var(--brand-softer, #f8f4ff);
+  --up-brand-line: var(--brand-line, #ded0f9);
+  --up-accent: var(--accent, #a855f7);
+  --up-green: #0e9f6e;
+  --up-green-soft: #def7ec;
+  --up-green-line: #84e1bc;
+  --up-amber: #d97706;
+  --up-amber-soft: #fef3c7;
+  --up-ink: var(--ink, #1d1a2b);
+  --up-muted: var(--muted, #77708c);
+  --up-line: var(--line, #e9e4f5);
+  --up-paper: var(--paper, #ffffff);
+  --up-surface: var(--surface, #faf8fe);
+  --up-shadow: var(--shadow, 0 10px 30px rgba(76, 42, 154, 0.08));
+
+  width: 100%;
+  color: var(--up-ink);
+  padding: 6px clamp(14px, 2.8vw, 40px) 90px;
+  font-family: inherit;
+}
+
+.up-container {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+/* ==========================================================================
+   1. HERO HEADER & INTRO
+   ========================================================================== */
+.up-hero-header {
+  text-align: center;
+  max-width: 1060px;
+  margin: 0 auto 14px;
+}
+
+.up-hero-title {
+  font-size: clamp(23px, 3.2vw, 34px);
+  font-weight: 850;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  margin: 0 0 6px;
+  color: var(--up-ink);
+}
+
+.up-gradient-word {
+  background: linear-gradient(135deg, var(--up-brand) 0%, var(--up-accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.up-hero-intro {
+  font-size: clamp(13px, 1.25vw, 14.5px);
+  color: var(--up-muted);
+  line-height: 1.4;
+  margin: 0 auto 8px;
+  max-width: 980px;
+}
+
+.up-pills-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.up-pill-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--up-surface);
+  border: 1px solid var(--up-line);
+  color: var(--up-ink);
+  font-size: 11.5px;
+  font-weight: 650;
+  padding: 4px 10px;
+  border-radius: 999px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+  white-space: nowrap;
+}
+
+.up-pill-tag svg {
+  color: var(--up-brand);
+}
+
+/* ==========================================================================
+   2. APPLICATION WORKSPACE WRAPPER
+   ========================================================================== */
+.up-app-wrapper {
+  background: var(--up-paper);
+  border: 1.5px solid var(--up-brand-line);
+  border-radius: 20px;
+  padding: 16px clamp(14px, 2.5vw, 30px) 24px;
+  box-shadow: 0 14px 44px var(--up-brand-glow);
+  margin-bottom: 48px;
+  position: relative;
+  overflow: hidden;
+}
+
+.up-app-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--up-line);
+}
+
+.up-app-toolbar-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 750;
+  color: var(--up-ink);
+}
+
+.up-app-toolbar-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--up-brand);
+  box-shadow: 0 0 10px var(--up-brand);
+  animation: upDotPulse 2s infinite ease-in-out;
+}
+
+@keyframes upDotPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+.up-privacy-shield {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--up-green);
+  background: var(--up-green-soft);
+  border: 1px solid var(--up-green-line);
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+
+/* ==========================================================================
+   DROPZONE / UPLOAD STAGE
+   ========================================================================== */
+.up-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 230px;
+  border: 2px dashed #cfc3ee;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #faf7fe 0%, #f4effd 100%);
+  padding: 24px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  position: relative;
+}
+
+.up-dropzone:hover,
+.up-dropzone.up-dragover {
+  border-color: var(--up-brand);
+  background: linear-gradient(180deg, #f5effe 0%, #ede3fc 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(124, 58, 237, 0.12);
+}
+
+.up-drop-icon-box {
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  background: #ffffff;
+  display: grid;
+  place-items: center;
+  color: var(--up-brand);
+  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.12);
+  margin-bottom: 12px;
+  transition: transform 0.2s ease;
+}
+
+.up-dropzone:hover .up-drop-icon-box {
+  transform: scale(1.08) rotate(-3deg);
+}
+
+.up-dropzone h2 {
+  font-size: clamp(17px, 2vw, 20px);
+  font-weight: 800;
+  margin: 0 0 6px;
+  color: var(--up-ink);
+}
+
+.up-dropzone p {
+  color: var(--up-muted);
+  font-size: 13px;
+  margin: 0 0 16px;
+  max-width: 480px;
+}
+
+.up-choose-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--up-brand) 0%, var(--up-brand-dark) 100%);
+  color: #ffffff;
+  font-size: 14.5px;
+  font-weight: 750;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(124, 58, 237, 0.35);
+  transition: all 0.18s ease;
+}
+
+.up-choose-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px rgba(124, 58, 237, 0.45);
+  filter: brightness(1.06);
+}
+
+.up-drop-notice {
+  margin-top: 18px;
+  font-size: 12px;
+  color: var(--up-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ==========================================================================
+   PASSWORD / UNLOCK STAGE
+   ========================================================================== */
+.up-action-card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: linear-gradient(180deg, #fbf9ff 0%, #f6f0fd 100%);
+  border: 1px solid var(--up-brand-line);
+  border-radius: 18px;
+  padding: 24px;
+}
+
+.up-file-summary-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  background: #ffffff;
+  border: 1px solid var(--up-line);
+  border-radius: 14px;
+  box-shadow: 0 4px 14px rgba(76, 42, 154, 0.05);
+  flex-wrap: wrap;
+}
+
+.up-file-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.up-file-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #fdf2f2;
+  color: #e02424;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.up-file-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.up-file-name {
+  font-size: 14.5px;
+  font-weight: 750;
+  color: var(--up-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 450px;
+}
+
+.up-file-size {
+  font-size: 12px;
+  color: var(--up-muted);
+}
+
+.up-file-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.up-badge-lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+}
+
+.up-badge-algo {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+}
+
+/* Password Box */
+.up-password-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: #ffffff;
+  border: 1px solid #ece5f7;
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.up-password-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.up-password-header h3 {
+  font-size: 16px;
+  font-weight: 800;
+  margin: 0;
+  color: var(--up-ink);
+}
+
+.up-password-header p {
+  font-size: 13px;
+  color: var(--up-muted);
+  margin: 0;
+}
+
+.up-password-input-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.up-password-input-wrap input {
+  width: 100%;
+  height: 48px;
+  padding: 0 46px 0 16px;
+  border: 1.5px solid var(--up-line);
+  border-radius: 12px;
+  font-size: 15px;
+  outline: none;
+  background: #fcfbfe;
+  color: var(--up-ink);
+  transition: all 0.18s ease;
+}
+
+.up-password-input-wrap input:focus {
+  border-color: var(--up-brand);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.18);
+}
+
+.up-password-eye-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--up-muted);
+  cursor: pointer;
+  padding: 6px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+}
+
+.up-password-eye-btn:hover {
+  color: var(--up-ink);
+}
+
+.up-consent-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--up-muted);
+  cursor: pointer;
+}
+
+.up-consent-check input {
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--up-brand);
+  cursor: pointer;
+}
+
+.up-action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.up-btn-unlock {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 32px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #0e9f6e 0%, #057a55 100%);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(14, 159, 110, 0.35);
+  transition: all 0.18s ease;
+}
+
+.up-btn-unlock:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(14, 159, 110, 0.45);
+  filter: brightness(1.05);
+}
+
+.up-btn-unlock:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.up-btn-cancel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 22px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid var(--up-line);
+  color: var(--up-muted);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.up-btn-cancel:hover {
+  background: #f8f6fc;
+  color: var(--up-ink);
+  border-color: #d1c4e9;
+}
+
+/* ==========================================================================
+   DECRYPTING / PROGRESS STAGE
+   ========================================================================== */
+.up-processing-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  text-align: center;
+  gap: 14px;
+}
+
+.up-spinner-ring {
+  width: 56px;
+  height: 56px;
+  border: 4px solid #ebdcfc;
+  border-top-color: var(--up-brand);
+  border-radius: 50%;
+  animation: upSpin 0.8s linear infinite;
+}
+
+@keyframes upSpin {
+  to { transform: rotate(360deg); }
+}
+
+.up-processing-box h3 {
+  font-size: 19px;
+  font-weight: 800;
+  margin: 0;
+  color: var(--up-ink);
+}
+
+.up-processing-box p {
+  font-size: 13.5px;
+  color: var(--up-muted);
+  margin: 0;
+}
+
+/* ==========================================================================
+   SUCCESS & DOWNLOAD STAGE
+   ========================================================================== */
+.up-success-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 36px 20px;
+  text-align: center;
+  gap: 20px;
+}
+
+.up-success-badge {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: #def7ec;
+  border: 3px solid #84e1bc;
+  color: #0e9f6e;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 10px 30px rgba(14, 159, 110, 0.2);
+  animation: upBounce 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes upBounce {
+  0% { transform: scale(0.6); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.up-success-box h3 {
+  font-size: clamp(22px, 2.6vw, 26px);
+  font-weight: 850;
+  margin: 0;
+  color: #03543f;
+}
+
+.up-success-box p {
+  font-size: 14px;
+  color: var(--up-muted);
+  margin: 0;
+  max-width: 520px;
+}
+
+.up-unlocked-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  width: 100%;
+  max-width: 580px;
+  padding: 16px 20px;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #d1fae5;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.08);
+}
+
+.up-unlocked-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+
+.up-unlocked-name {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: var(--up-ink);
+}
+
+.up-unlocked-meta {
+  font-size: 12px;
+  color: var(--up-muted);
+  display: flex;
+  gap: 8px;
+}
+
+.up-download-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.up-btn-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 34px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--up-brand) 0%, var(--up-brand-dark) 100%);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 10px 28px rgba(124, 58, 237, 0.38);
+  transition: all 0.18s ease;
+}
+
+.up-btn-download:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 34px rgba(124, 58, 237, 0.48);
+  filter: brightness(1.08);
+}
+
+.up-btn-again {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 13px 24px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid var(--up-line);
+  color: var(--up-ink);
+  font-size: 13.5px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.up-btn-again:hover {
+  background: #f8f6fc;
+  border-color: #d1c4e9;
+}
+
+/* Error message */
+.up-error-alert {
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: #fde8e8;
+  border: 1px solid #f8b4b4;
+  color: #9b1c1c;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ==========================================================================
+   ADSENSE COMPLIANT EDUCATIONAL SECTIONS
+   ========================================================================== */
+.up-section {
+  padding: 42px clamp(18px, 3.5vw, 44px);
+  border-radius: 20px;
+  background: var(--up-paper);
+  border: 1px solid var(--up-line);
+  box-shadow: var(--up-shadow);
+  margin-bottom: 40px;
+}
+
+.up-section-head {
+  margin-bottom: 28px;
+}
+
+.up-section-kicker {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--up-brand);
+  margin-bottom: 6px;
+}
+
+.up-section-head h2 {
+  font-size: clamp(21px, 2.5vw, 27px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--up-ink);
+  margin: 0 0 8px;
+}
+
+.up-section-head p {
+  font-size: 14px;
+  color: var(--up-muted);
+  line-height: 1.5;
+  margin: 0;
+  max-width: 820px;
+}
+
+/* Steps Grid */
+.up-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+.up-step-card {
+  padding: 22px 18px;
+  border-radius: 16px;
+  background: var(--up-surface);
+  border: 1px solid #ece5f7;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.18s ease;
+}
+
+.up-step-card:hover {
+  transform: translateY(-2px);
+  border-color: #d8c9f5;
+}
+
+.up-step-num {
+  font-size: 28px;
+  font-weight: 900;
+  color: #dcd2f3;
+  margin-bottom: 10px;
+  line-height: 1;
+}
+
+.up-step-card h3 {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--up-ink);
+  margin: 0 0 6px;
+}
+
+.up-step-card p {
+  font-size: 12.5px;
+  color: var(--up-muted);
+  line-height: 1.48;
+  margin: 0;
+}
+
+/* Comparison Cards (Owner vs User) */
+.up-pw-types-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.up-pw-card {
+  padding: 24px;
+  border-radius: 16px;
+  background: var(--up-surface);
+  border: 1px solid #ece5f7;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.up-pw-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+}
+
+.up-pw-card.owner .up-pw-card-icon {
+  background: #def7ec;
+  color: #0e9f6e;
+}
+
+.up-pw-card.user .up-pw-card-icon {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.up-pw-card h3 {
+  font-size: 17px;
+  font-weight: 800;
+  margin: 0;
+  color: var(--up-ink);
+}
+
+.up-pw-card p {
+  font-size: 13.5px;
+  color: var(--up-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.up-pw-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.up-pw-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--up-ink);
+}
+
+.up-pw-list li svg {
+  color: var(--up-brand);
+  flex-shrink: 0;
+}
+
+/* Use Cases Grid */
+.up-usecases-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.up-usecase-card {
+  padding: 22px;
+  border-radius: 16px;
+  background: var(--up-surface);
+  border: 1px solid #ece5f7;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.up-usecase-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: #f3eefb;
+  color: var(--up-brand);
+  display: grid;
+  place-items: center;
+}
+
+.up-usecase-card h3 {
+  font-size: 15.5px;
+  font-weight: 800;
+  margin: 0;
+  color: var(--up-ink);
+}
+
+.up-usecase-card p {
+  font-size: 13px;
+  color: var(--up-muted);
+  line-height: 1.48;
+  margin: 0;
+}
+
+/* Compatibility & Comparison Tables */
+.up-table-wrap {
+  overflow-x: auto;
+  border-radius: 14px;
+  border: 1px solid var(--up-line);
+}
+
+.up-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13.5px;
+}
+
+.up-table th {
+  background: #f8f6fc;
+  color: var(--up-ink);
+  font-weight: 800;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--up-line);
+  white-space: nowrap;
+}
+
+.up-table td {
+  padding: 13px 16px;
+  border-bottom: 1px solid #f1edfa;
+  color: #3b3554;
+}
+
+.up-table tr:last-child td {
+  border-bottom: none;
+}
+
+.up-table tr:hover td {
+  background: #fbf9ff;
+}
+
+.up-tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.up-tag-pill.success {
+  background: #def7ec;
+  color: #03543f;
+}
+
+.up-tag-pill.neutral {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+/* FAQ Accordion */
+.up-faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.up-faq-item {
+  border: 1px solid #ece5f7;
+  border-radius: 14px;
+  background: var(--up-surface);
+  overflow: hidden;
+  transition: all 0.16s ease;
+}
+
+.up-faq-item:hover {
+  border-color: #dcd0f3;
+}
+
+.up-faq-question {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 18px 20px;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--up-ink);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  cursor: pointer;
+}
+
+.up-faq-question svg {
+  color: var(--up-brand);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.up-faq-item.open .up-faq-question svg {
+  transform: rotate(180deg);
+}
+
+.up-faq-answer {
+  padding: 0 20px 20px;
+  font-size: 13.5px;
+  color: var(--up-muted);
+  line-height: 1.55;
+}
+
+/* Related Tools Grid */
+.up-tools-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.up-tool-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--up-surface);
+  border: 1px solid #ece5f7;
+  text-decoration: none;
+  color: var(--up-ink);
+  transition: all 0.18s ease;
+}
+
+.up-tool-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--up-brand-line);
+  box-shadow: 0 6px 18px rgba(124, 58, 237, 0.1);
+}
+
+.up-tool-icon-mini {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: #f1eafe;
+  color: var(--up-brand);
+  display: grid;
+  place-items: center;
+}
+
+.up-tool-card strong {
+  font-size: 13.5px;
+  font-weight: 800;
+}
+
+.up-tool-card span {
+  font-size: 11.5px;
+  color: var(--up-muted);
+  line-height: 1.35;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 960px) {
+  .up-steps-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .up-usecases-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .up-tools-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 680px) {
+  .up-steps-grid,
+  .up-pw-types-grid,
+  .up-usecases-grid,
+  .up-tools-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .up-file-summary-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .up-unlocked-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .up-download-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .up-btn-download,
+  .up-btn-again {
+    width: 100%;
+    justify-content: center;
+  }
+}

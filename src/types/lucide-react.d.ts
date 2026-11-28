@@ -1,6 +1,7 @@
 declare module 'lucide-react' {
   import type { JSX, SVGProps } from 'react'
   export type LucideIcon = (props: SVGProps<SVGSVGElement> & { size?: number | string; strokeWidth?: number }) => JSX.Element
+  export const AlertCircle: LucideIcon
   export const ArrowDown: LucideIcon
   export const ArrowLeft: LucideIcon
   export const ArrowRight: LucideIcon
@@ -29,8 +30,11 @@ declare module 'lucide-react' {
   export const Droplets: LucideIcon
   export const Eraser: LucideIcon
   export const ExternalLink: LucideIcon
+  export const Eye: LucideIcon
+  export const EyeOff: LucideIcon
   export const Facebook: LucideIcon
   export const FileArchive: LucideIcon
+  export const FileCheck: LucideIcon
   export const FileSpreadsheet: LucideIcon
   export const FileText: LucideIcon
   export const Flame: LucideIcon
@@ -76,6 +80,7 @@ declare module 'lucide-react' {
   export const PenLine: LucideIcon
   export const Play: LucideIcon
   export const Plus: LucideIcon
+  export const Printer: LucideIcon
   export const QrCode: LucideIcon
   export const Redo2: LucideIcon
   export const RefreshCw: LucideIcon

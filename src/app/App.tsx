@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ChevronDown, ChevronLeft, ChevronRight, Clock3, Copy, DatabaseBackup, Download, Facebook, Video, Flame, Headphones, Heart, Home, ImagePlus, Images, Instagram, KeyRound, Layers, LayoutDashboard, LayoutGrid, Linkedin, Lock, LockOpen, LogOut, Mail, Maximize2, Menu, MessageCircle, Move, Play, Plus, RotateCcw, Search, Share2, ShieldCheck, SlidersHorizontal, Sparkles, Store, Sun, Trash2, Twitter, Upload, X, Zap, ZoomIn, ZoomOut } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ChevronDown, ChevronLeft, ChevronRight, Clock3, Copy, DatabaseBackup, Download, Facebook, FileText, Video, Flame, Headphones, Heart, Home, ImagePlus, Images, Instagram, KeyRound, Layers, LayoutDashboard, LayoutGrid, Linkedin, Lock, LockOpen, LogOut, Mail, Maximize2, Menu, MessageCircle, Move, Play, Plus, RotateCcw, Search, Share2, ShieldCheck, SlidersHorizontal, Sparkles, Store, Sun, Trash2, Twitter, Upload, X, Zap, ZoomIn, ZoomOut } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { appConfig } from '../config/app.config'
 import { toolsConfig, type ToolDefinition, type ToolIcon } from '../config/ToolsConfig'
@@ -80,10 +80,14 @@ const NAV_SECTIONS: { id: string; label: string; href?: string; items?: NavItem[
       { group: 'Image', toolId: 'collage' },
       { toolId: 'poster' },
       { toolId: 'compress-image' },
+      { toolId: 'image-resizer' },
+      { toolId: 'image-converter' },
+      { toolId: 'image-cropper' },
       { toolId: 'remove-object' },
       { toolId: 'watermark-remover' },
       { toolId: 'passport-photo' },
-      { group: 'PDF', label: 'Digital PDFs', href: '/store?type=pdf', glyph: 'store' },
+      { group: 'PDF', toolId: 'unlock-pdf' },
+      { label: 'Digital PDFs', href: '/store?type=pdf', glyph: 'store' },
       { group: 'Video', toolId: 'screen-recorder' },
       { toolId: 'shorts' },
       { group: 'Writing', toolId: 'fakechat' },
@@ -132,9 +136,22 @@ const TOOL_MEGA_GROUPS = [
       { toolId: 'collage', label: 'Photo & Video Editor' },
       { toolId: 'poster', label: 'Create Poster' },
       { toolId: 'compress-image', label: 'Compress Image' },
+      { toolId: 'image-resizer', label: 'Image Resizer' },
+      { toolId: 'image-converter', label: 'Image Converter' },
+      { toolId: 'image-cropper', label: 'Image Cropper' },
       { toolId: 'remove-object', label: 'Remove Object' },
       { toolId: 'watermark-remover', label: 'Watermark Remover' },
       { toolId: 'passport-photo', label: 'Passport Photo Maker' },
+    ],
+  },
+  {
+    id: 'pdf',
+    title: 'PDF Tools',
+    icon: FileText,
+    viewAllHref: '/unlock-pdf',
+    items: [
+      { toolId: 'unlock-pdf', label: 'Unlock PDF' },
+      { label: 'Digital PDF Store', href: '/store?type=pdf', glyph: 'store' as const },
     ],
   },
   {
@@ -157,7 +174,6 @@ const TOOL_MEGA_GROUPS = [
       { toolId: 'prompt-generator', label: 'Prompt Generator' },
       { toolId: 'mindcloud', label: 'Mind Cloud Map' },
       { toolId: 'qr-code', label: 'QR Code Generator' },
-      { label: 'Digital PDF Store', href: '/store?type=pdf', glyph: 'store' as const },
     ],
   },
   {
@@ -236,7 +252,7 @@ function TopMenu({ onJump, onFilter, signedIn }: { onJump?: (id: string) => void
             })
             if (!availableItems.length) return null
             return (
-              <div className="mega-menu-column" key={group.id}>
+              <div className={`mega-menu-column mega-col-${group.id}`} key={group.id}>
                 <div className="mega-menu-heading">
                   <span className="mega-menu-icon"><GroupIcon size={14} /></span>
                   <span className="mega-menu-title">{group.title}</span>

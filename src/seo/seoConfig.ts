@@ -55,6 +55,41 @@ export const SEO_CONFIG: Record<string, SeoMetadata> = {
     twitterImage: DEFAULT_OG_IMAGE,
   },
 
+  // UNLOCK PDF
+  'unlock-pdf': {
+    title: 'Unlock PDF – Free Online PDF Password Remover | ImgMojo',
+    description:
+      'Remove passwords and security restrictions from your PDF files online for free. 100% private, client-side decryption using Web Crypto. No file size limits or cloud uploads.',
+    keywords:
+      'unlock pdf, remove pdf password, pdf password remover online, decrypt pdf free, unlock protected pdf, remove pdf restrictions, smallpdf unlock pdf alternative, free pdf unlocker, ImgMojo',
+    canonical: `${BASE_URL}/unlock-pdf`,
+    author: DEFAULT_AUTHOR,
+    robots: DEFAULT_ROBOTS,
+    ogType: 'website',
+    ogTitle: 'Unlock PDF – Free Online PDF Password Remover | ImgMojo',
+    ogDescription:
+      'Instantly remove passwords and restrictions from your PDF files directly in your browser. 100% private and secure.',
+    ogImage: `${BASE_URL}/images/unlock-pdf-og.png`,
+    ogImageWidth: '1200',
+    ogImageHeight: '630',
+    ogImageAlt: 'ImgMojo Unlock PDF Tool',
+    twitterCard: 'summary_large_image',
+    twitterTitle: 'Unlock PDF – Free Online PDF Password Remover',
+    twitterDescription: 'Remove PDF passwords and permissions restrictions in seconds with zero uploads.',
+    twitterImage: `${BASE_URL}/images/unlock-pdf-og.png`,
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'WebApplication',
+      name: 'Free Online PDF Password Remover',
+      url: `${BASE_URL}/unlock-pdf`,
+      description:
+        'Remove passwords and restrictions from your PDF files online for free. 100% private, client-side decryption with no file size limits.',
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'All',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    },
+  },
+
   // QR CODE GENERATOR
   'qr-code': {
     title: 'Free QR Code Generator Online – Create Custom QR Codes | ImgMojo',
