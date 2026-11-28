@@ -45,7 +45,8 @@ const categories: CategoryCardItem[] = [
     title: 'PDF Tools',
     text: 'Merge, split, convert & more',
     tint: 'pdf',
-    href: '/store?type=pdf',
+    toolId: 'unlock-pdf',
+    href: '/unlock-pdf',
   },
   {
     id: 'generators',

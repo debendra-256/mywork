@@ -1892,7 +1892,7 @@ function SiteFooter() {
               <a href="https://twitter.com/imgmojo" target="_blank" rel="noreferrer" className="footer-social-link" aria-label="Twitter" title="Follow us on X (Twitter)">
                 <Twitter size={18} />
               </a>
-              <a href={`mailto:${appConfig.supportEmail || 'support@imgmojo.com'}`} className="footer-social-link" aria-label="Email Support" title="Email Support">
+              <a href={`mailto:${appConfig.supportEmail || 'imgmojo@gmail.com'}`} className="footer-social-link" aria-label="Email Support" title="Email Support">
                 <Mail size={18} />
               </a>
             </div>
@@ -1920,7 +1920,7 @@ function SiteFooter() {
             <Link to="/contact">Contact Us</Link>
             <Link to="/report-bug">Report a Bug</Link>
             <Link to="/feature-request">Feature Request</Link>
-            <a href="mailto:support@imgmojo.com">support@imgmojo.com</a>
+            <a href={`mailto:${appConfig.supportEmail || 'imgmojo@gmail.com'}`}>{appConfig.supportEmail || 'imgmojo@gmail.com'}</a>
           </nav>
         </div>
 
